@@ -1,0 +1,94 @@
+/**
+ *  Door Lock Monitor
+ *
+ *  Copyright 2016 Phil Maynard
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License. You may obtain a copy of the License at:
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+ *  for the specific language governing permissions and limitations under the License.
+ *
+ */
+definition(
+    name: "Door Lock Monitor",
+    namespace: "astrowings",
+    author: "Phil Maynard",
+    description: "Monitor a door lock and report anomalies",
+    category: "Convenience",
+    iconUrl: "http://cdn.device-icons.smartthings.com/Home/home3-icn.png",
+    iconX2Url: "http://cdn.device-icons.smartthings.com/Home/home3-icn@2x.png",
+    iconX3Url: "http://cdn.device-icons.smartthings.com/Home/home3-icn@3x.png")
+
+
+preferences {
+	section() {
+    	paragraph "This app sends a push notification if a lock gets unlocked or if the mode changes while the lock is unlocked."
+    }
+    section("Monitor this door lock") {
+        input "theLock", "capability.lock", required: true, title: "Which lock?"
+    }
+}
+
+
+//   ----------------------------
+//   ***   APP INSTALLATION   ***
+
+def installed() {
+	log.info "installed with settings: $settings"
+    initialize()
+}
+
+def updated() {
+    unsubscribe()
+	log.info "updated with settings: $settings"
+    initialize()
+}
+
+def uninstalled() {
+	log.info "uninstalled"
+}
+
+def initialize() {
+    subscribe(theLock, "lock.unlocked", unlockHandler)
+    subscribe(location, modeChangeHandler)
+    subscribe(location, "position", locationPositionChange) //update settings if the hub location changes
+
+}
+
+
+//   --------------------------
+//   ***   EVENT HANDLERS   ***
+
+def unlockHandler(evt) {
+	if (allOk) {
+    	def unlockText = evt.descriptionText
+       	log.debug unlockText
+        sendPush(unlockText)
+    }
+}
+
+def modeChangeHandler(evt) {
+	if (theLock.currentLock == "unlocked") {
+    	def unlockedMsg = "The mode changed to $location.currentMode and the $theLock.label is $theLock.currentLock"
+        log.debug unlockedMsg
+        sendPush(unlockedMsg)
+    }
+}
+
+def locationPositionChange(evt) {
+	log.trace "locationChange()"
+	initialize()
+}
+
+
+//   ----------------
+//   ***   UTILS  ***
+
+private getAllOk() {
+	def result = true
+    return result
+}
