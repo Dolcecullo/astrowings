@@ -29,6 +29,9 @@ definition(
     iconX3Url: "http://cdn.device-icons.smartthings.com/Lighting/light11-icn@3x.png")
 
 
+//   -----------------------------------
+//   ***   SETTING THE PREFERENCES   ***
+
 preferences {
 	section() {
     	paragraph "This app turns on a light when a door is unlocked using the keypad."
@@ -45,27 +48,36 @@ preferences {
     }
 }
 
+
+//   ----------------------------
+//   ***   APP INSTALLATION   ***
+
 def installed() {
-	log.debug "installed with settings: $settings"
+	log.info "installed with settings: $settings"
     initialize()
 }
 
 def updated() {
-    unsubscribe()
-	log.debug "updated with settings: $settings"
+    log.info "updated with settings $settings"
+	unsubscribe()
+    unschedule()
     initialize()
 }
 
 def uninstalled() {
 	switchOff()
+    log.info "uninstalled"
 }
 
 def initialize() {
-	unschedule()
-    switchOff()
+	log.info "initializing"
     subscribe(theLock, "lock.unlocked", unlockHandler)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
 }
+
+
+//   --------------------------
+//   ***   EVENT HANDLERS   ***
 
 def locationPositionChange(evt) {
 	log.trace "locationChange()"
@@ -88,6 +100,10 @@ def unlockHandler(evt) {
     }
 }
 
+
+//   -------------------
+//   ***   METHODS   ***
+
 def switchOn() {
 	theSwitch.on()
 }
@@ -97,8 +113,9 @@ def switchOff() {
 	theSwitch.off()
 }
 
-//   -------------------
-//   ***   GETTERS   ***
+
+//   ----------------
+//   ***   UTILS  ***
 
 private getAllOk() {
 	def result = theSwitch.currentSwitch == "off" && darkOk
