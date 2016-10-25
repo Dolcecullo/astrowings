@@ -93,28 +93,27 @@ def sched() {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-	log.info "Installed with settings: ${settings}"
+	log.info "installed with settings: ${settings}"
     initialize()
 }
 
 def updated() {
-	log.info "Updated with settings: ${settings}"
-    unsubscribe()
+    log.info "updated with settings $settings"
+	unsubscribe()
     unschedule()
     initialize()
 }
 
 def uninstalled() {
-	unschedule()
 	if (state.appOn) {
     	theLight.off()
         state.appOn = false
         }
-    log.debug "Uninstalled"
+    log.info "uninstalled"
 }
 
 def initialize() {
-	log.info "Initializing"
+	log.info "initializing"
     theLight.off()
     state.appOn = false
     subscribeToEvents()
