@@ -74,11 +74,9 @@ def initialize() {
 //   ***   EVENT HANDLERS   ***
 
 def unlockHandler(evt) {
-	if (allOk) {
-    	def unlockText = evt.descriptionText
-       	log.debug unlockText
-        sendPush(unlockText)
-    }
+	def unlockText = evt.descriptionText
+	log.debug unlockText
+	sendPush(unlockText)
 }
 
 def modeChangeHandler(evt) {
@@ -92,17 +90,4 @@ def modeChangeHandler(evt) {
 def locationPositionChange(evt) {
 	log.trace "locationChange()"
 	initialize()
-}
-
-
-//   -------------------
-//   ***   METHODS   ***
-
-
-//   ----------------
-//   ***   UTILS  ***
-
-private getAllOk() {
-	def result = true
-    return result
 }
