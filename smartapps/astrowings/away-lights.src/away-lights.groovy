@@ -196,25 +196,24 @@ def setLight4() {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-	log.info "Installed with settings: ${settings}"
+	log.info "installed with settings: $settings"
     initialize()
 }
 
 def updated() {
-	log.info "Updated with settings: ${settings}"
-    unsubscribe()
+    log.info "updated with settings $settings"
+	unsubscribe()
     unschedule()
     initialize()
 }
 
 def uninstalled() {
-	unschedule()
 	turnAllOffNow()
     log.debug "uninstalled"
 }
 
 def initialize() {
-	log.info "Initializing"
+	log.info "initializing"
     subscribeToEvents()
     initStatus()
     log.debug "state.lightStatus :: $state.lightStatus"
@@ -247,6 +246,7 @@ def initStatus() {
     
     state.lightStatus = lightStatus
 }
+
 
 //   --------------------------
 //   ***   EVENT HANDLERS   ***
