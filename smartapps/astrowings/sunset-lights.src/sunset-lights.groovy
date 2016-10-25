@@ -28,6 +28,10 @@ definition(
     iconX2Url: "http://cdn.device-icons.smartthings.com/Lighting/light25-icn@2x.png",
     iconX3Url: "http://cdn.device-icons.smartthings.com/Lighting/light25-icn@3x.png")
 
+
+//   -----------------------------------
+//   ***   SETTING THE PREFERENCES   ***
+
 preferences {
 	page(name: "page1", title: "Turn on these lights at sunset", nextPage: "page2", uninstall: true) {
         section() {
@@ -68,24 +72,23 @@ preferences {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-	log.info "Installed with settings: ${settings}"
-    initialize()
+	log.info "installed with settings $settings"
+	initialize()
 }
 
 def updated() {
-	log.info "Updated with settings: ${settings}"
-    unsubscribe()
+    log.info "updated with settings $settings"
+	unsubscribe()
     unschedule()
     initialize()
 }
 
 def uninstalled() {
-	unschedule()
     log.info "uninstalled"
 }
 
 def initialize() {
-	log.info "Initializing"
+	log.info "initializing"
     subscribe(location, "sunsetTime", sunsetTimeHandler)	//triggers at sunset, evt.value is the sunset String (time for next day's sunset)
     subscribe(location, "sunriseTime", sunriseTimeHandler)	//triggers at sunrise, evt.value is the sunrise String (time for next day's sunrise)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
