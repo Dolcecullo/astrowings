@@ -207,13 +207,13 @@ def getSensorDesc() {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-	log.info "Installed with settings: ${settings}"
-    initialize()
+	log.info "installed with settings $settings"
+	initialize()
 }
 
 def updated() {
-	log.info "Updated with settings: ${settings}"
-    unsubscribe()
+    log.info "updated with settings $settings"
+	unsubscribe()
     unschedule()
     initialize()
 }
@@ -221,15 +221,15 @@ def updated() {
 def uninstalled() {
     flashLights?.off()
     turnOnLights?.off()
-	unschedule()
+    log.info "uninstalled"
 }
 
 def initialize() {
-	log.info "Initializing"
+	log.info "initializing"
     state.alarmTime = null
-    subscribeToEvents()
     flashLights?.off()
     turnOnLights?.off()
+    subscribeToEvents()
 }
 
 private subscribeToEvents() {
@@ -403,8 +403,9 @@ def deactivateLights() {
     state.alarmLights = "off"
 }
 
-//   -------------------
-//   ***   GETTERS   ***
+
+//   ----------------
+//   ***   UTILS  ***
 
 private getItsDarkOut() {
     def sunTime = getSunriseAndSunset(sunsetOffset: 15)
