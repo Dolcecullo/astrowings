@@ -28,6 +28,10 @@ definition(
     iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png",
     iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
 
+
+//   -----------------------------------
+//   ***   SETTING THE PREFERENCES   ***
+
 preferences {
 	section("When this switch is turned on"){
 		input "theswitch", "capability.switch"
@@ -37,19 +41,35 @@ preferences {
     }
 }
 
-def installed() {
-	initialize()
-}
 
-def updated() {
-    unsubscribe()
+//   ----------------------------
+//   ***   APP INSTALLATION   ***
+
+def installed() {
+	log.info "installed with settings: $settings"
     initialize()
 }
 
+def updated() {
+    log.info "updated with settings $settings"
+	unsubscribe()
+    //unschedule()
+    initialize()
+}
+
+def uninstalled() {
+    log.info "uninstalled"
+}
+
 def initialize() {
+	log.info "initializing"
 	subscribe(theswitch, "switch", runTest)
 	runTest()
 }
+
+
+//   --------------------------
+//   ***   EVENT HANDLERS   ***
 
 def runTest(evt) {
 //	log.info " *** EVENT PROPERTIES ***"
@@ -69,6 +89,10 @@ def runTest(evt) {
 //	testState()
 //	testTimeInput()
 }
+
+
+//   -------------------
+//   ***   METHODS   ***
 
 def testSun() {
 	log.info " *** THE SUN ***"
@@ -173,3 +197,7 @@ def testTimeInput() {
     log.debug "timeToday(timeString, tz).time + 60000 :: ${timeToday(timeString, tz).time + 60000}"
     log.debug "new Date(timeToday(timeString, tz).time + 60000) :: ${new Date(timeToday(timeString, tz).time + 60000)}"
 }
+
+
+//   ----------------
+//   ***   UTILS  ***
