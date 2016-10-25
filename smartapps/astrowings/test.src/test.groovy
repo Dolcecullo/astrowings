@@ -28,34 +28,54 @@ definition(
     iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png",
     iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
 
+
+//   -----------------------------------
+//   ***   SETTING THE PREFERENCES   ***
+
 preferences {
 	section("Test this device") {
 		input "myDevice", "capability"
 	}
 }
 
+
+//   ----------------------------
+//   ***   APP INSTALLATION   ***
+
 def installed() {
-	log.info "installed with settings $settings"
-	initialize()
+	log.info "installed with settings: $settings"
+    initialize()
 }
 
 def updated() {
-	unsubscribe()
     log.info "updated with settings $settings"
+	unsubscribe()
     //unschedule()
     initialize()
 }
 
+def uninstalled() {
+    log.info "uninstalled"
+}
+
 def initialize() {
-	log.info "subscribing to events"
+	log.info "initializing"
 	subscribe(myDevice, "capabilityValue", eventHandler)
 }
 
-def uninstalled() {
-	//unschedule()
-    log.debug "uninstalled"
-}
+
+//   --------------------------
+//   ***   EVENT HANDLERS   ***
 
 def eventHandler(evt) {
     log.debug "in eventHandler"
 }
+
+
+//   -------------------
+//   ***   METHODS   ***
+
+
+
+//   ----------------
+//   ***   UTILS  ***
