@@ -29,6 +29,9 @@ definition(
     iconX3Url: "http://cdn.device-icons.smartthings.com/Home/home3-icn@3x.png")
 
 
+//   -----------------------------------
+//   ***   SETTING THE PREFERENCES   ***
+
 preferences {
 	section() {
     	paragraph "This app sends a push notification if a lock gets unlocked or if the mode changes while the lock is unlocked."
@@ -48,8 +51,9 @@ def installed() {
 }
 
 def updated() {
-    unsubscribe()
-	log.info "updated with settings: $settings"
+    log.info "updated with settings $settings"
+	unsubscribe()
+    //unschedule()
     initialize()
 }
 
@@ -58,6 +62,7 @@ def uninstalled() {
 }
 
 def initialize() {
+	log.info "initializing"
     subscribe(theLock, "lock.unlocked", unlockHandler)
     subscribe(location, modeChangeHandler)
     subscribe(location, "position", locationPositionChange) //update settings if the hub location changes
@@ -88,6 +93,10 @@ def locationPositionChange(evt) {
 	log.trace "locationChange()"
 	initialize()
 }
+
+
+//   -------------------
+//   ***   METHODS   ***
 
 
 //   ----------------
