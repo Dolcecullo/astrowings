@@ -28,22 +28,38 @@ definition(
     iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png",
     iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
 
+
+//   -----------------------------------
+//   ***   SETTING THE PREFERENCES   ***
+
 preferences {
 	section("List capabilities for which device?") {
 		input "mydevice", "capability.temperatureMeasurement"
 	}
 }
 
-def installed() {
-	initialize()
-}
 
-def updated() {
-	unsubscribe()
+//   ----------------------------
+//   ***   APP INSTALLATION   ***
+
+def installed() {
+	log.info "installed with settings: $settings"
     initialize()
 }
 
+def updated() {
+    log.info "updated with settings $settings"
+	unsubscribe()
+    //unschedule()
+    initialize()
+}
+
+def uninstalled() {
+    log.info "uninstalled"
+}
+
 def initialize() {
+	log.info "initializing"
 	def deviceCapabilities = mydevice.capabilities
     deviceCapabilities.each {cap ->
     	log.debug "This device supports the ${cap.name} capability"
