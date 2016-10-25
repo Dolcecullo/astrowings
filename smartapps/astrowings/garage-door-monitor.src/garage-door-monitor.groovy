@@ -29,6 +29,9 @@ definition(
     iconX3Url: "http://cdn.device-icons.smartthings.com/Transportation/transportation12-icn@3x.png")
 
 
+//   -----------------------------------
+//   ***   SETTING THE PREFERENCES   ***
+
 preferences {
 	section() {
     	paragraph "Notify if garage door is left open when leaving the house, left open for too long, or if it opens while away."
@@ -58,24 +61,23 @@ preferences {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-	log.info "Installed with settings: ${settings}"
-    initialize()
+	log.info "installed with settings $settings"
+	initialize()
 }
 
 def updated() {
-	log.info "Updated with settings: ${settings}"
-    unsubscribe()
+    log.info "updated with settings $settings"
+	unsubscribe()
     unschedule()
     initialize()
 }
 
 def uninstalled() {
-	unschedule()
     log.info "uninstalled"
 }
 
 def initialize() {
-    log.info "Initializing"
+	log.info "initializing"
     subscribe(myself, "presence.not present", iLeaveHandler)
     subscribe(everyone, "presence.not present", allLeaveHandler)
     subscribe(thedoor, "contact", doorHandler)
