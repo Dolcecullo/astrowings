@@ -29,6 +29,9 @@ definition(
     iconX3Url: "http://cdn.device-icons.smartthings.com/Home/home30-icn@3x.png")
 
 
+//   -----------------------------------
+//   ***   SETTING THE PREFERENCES   ***
+
 preferences {
     section("When motion is detected on this sensor:") {
         input "theMotion", "capability.motionSensor", required: true, title: "Where?"
@@ -45,29 +48,40 @@ preferences {
     }
 }
 
+
+//   ----------------------------
+//   ***   APP INSTALLATION   ***
+
 def installed() {
-	log.debug "installed with settings: $settings"
+	log.info "installed with settings: $settings"
     initialize()
 }
 
 def updated() {
-    unsubscribe()
-	log.debug "updated with settings: $settings"
+    log.info "updated with settings $settings"
+	unsubscribe()
+    unschedule()
     initialize()
 }
 
 def uninstalled() {
 	lightOff()
+    log.info "uninstalled"
 }
 
 def initialize() {
-	unschedule()
+	log.info "initializing"
     state.enable = true
     subscribe(theMotion, "motion.active", motionDetectedHandler)
     subscribe(theMotion, "motion.inactive", motionStoppedHandler)
     subscribe(theSwitch, "switch.on", switchOnHandler)
     subscribe(theSwitch, "switch.off", switchOffHandler)
+    subscribe(location, "position", locationPositionChange) //update settings if hub location changes
 }
+
+
+//   --------------------------
+//   ***   EVENT HANDLERS   ***
 
 def motionDetectedHandler(evt) {
     if (allOk) {
@@ -94,13 +108,22 @@ def switchOffHandler(evt) {
     }
 }
 
+def locationPositionChange(evt) {
+	log.trace "locationChange()"
+	initialize()
+}
+
+
+//   -------------------
+//   ***   METHODS   ***
+
 def lightOff() {
    	theSwitch.off()
 }
 
 
-//   -------------------
-//   ***   GETTERS   ***
+//   ----------------
+//   ***   UTILS  ***
 
 private getAllOk() {
 	def result = darkOk && state.enable == true // && modeOk
