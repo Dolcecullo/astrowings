@@ -28,6 +28,10 @@ definition(
     iconX2Url: "http://cdn.device-icons.smartthings.com/Lighting/light9-icn@2x.png",
     iconX3Url: "http://cdn.device-icons.smartthings.com/Lighting/light9-icn@3x.png")
 
+
+//   -----------------------------------
+//   ***   SETTING THE PREFERENCES   ***
+
 preferences {
 	section() {
     	paragraph "This app turns on a light when someone arrives home and it's dark out."
@@ -43,25 +47,35 @@ preferences {
     }
 }
     
+
+//   ----------------------------
+//   ***   APP INSTALLATION   ***
+
 def installed() {
+	log.info "installed with settings: $settings"
     initialize()
 }
 
 def updated() {
-    unsubscribe()
+    log.info "updated with settings $settings"
+	unsubscribe()
     unschedule()
     initialize()
 }
 
 def uninstalled() {
-	unschedule()
+    log.info "uninstalled"
 }
 
 def initialize() {
-    log.info "Installed with settings: ${settings}"
+	log.info "initializing"
 	subscribe(people, "presence.present", presenceHandler)
-    subscribe(location, "position", locationPositionChange)
+    subscribe(location, "position", locationPositionChange) //update settings if hub location changes
 }
+
+
+//   --------------------------
+//   ***   EVENT HANDLERS   ***
 
 def presenceHandler(evt) {
     log.debug "$evt.displayName has arrived"
@@ -73,6 +87,31 @@ def presenceHandler(evt) {
         log.debug "do nothing"
     }
 }
+
+def locationPositionChange(evt) {
+	log.trace "locationChange()"
+	initialize()
+}
+
+
+//   -------------------
+//   ***   METHODS   ***
+
+def turnOn() {
+    log.debug "turning on $theLight.displayName"
+    theLight.on()
+    log.debug "scheduling $theLight.displayName to turn off in $leaveOn minutes"
+    runIn(60 * leaveOn, turnOff)
+}
+
+def turnOff() {
+    log.debug "turning off $theLight.displayName"
+    theLight.off()
+}
+
+
+//   ----------------
+//   ***   UTILS  ***
 
 def getItsDarkOut() {
     def sunTime = getSunriseAndSunset(sunsetOffset: 15)
@@ -91,21 +130,4 @@ def getItsDarkOut() {
         result = true
     }
     return result
-}
-
-def turnOn() {
-    log.debug "turning on $theLight.displayName"
-    theLight.on()
-    log.debug "scheduling $theLight.displayName to turn off in $leaveOn minutes"
-    runIn(60 * leaveOn, turnOff)
-}
-
-def turnOff() {
-    log.debug "turning off $theLight.displayName"
-    theLight.off()
-}
-
-def locationPositionChange(evt) {
-	log.trace "locationChange()"
-	initialize()
 }
