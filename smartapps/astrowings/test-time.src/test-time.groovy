@@ -12,6 +12,11 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ *  Developer retains all right, title, copyright, and interest, including all copyright, patent rights, trade secret 
+ *  in the Background technology. May be subject to consulting fees under the Agreement between the Developer and the Customer. 
+ *  Developer grants a non exclusive perpetual license to use the Background technology in the Software developed for and delivered 
+ *  to Customer under this Agreement. However, the Customer shall make no commercial use of the Background technology without
+ *  Developer's written consent.
  */
 definition(
     name: "Test - Time",
