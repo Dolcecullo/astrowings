@@ -1,7 +1,7 @@
 /**
  *  Sunset Lights
  *
- *  Copyright 2016 Phil Maynard
+ *  Copyright © 2016 Phil Maynard
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -12,17 +12,18 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  Developer retains all right, title, copyright, and interest, including all copyright, patent rights, trade secret 
- *  in the Background technology. May be subject to consulting fees under the Agreement between the Developer and the Customer. 
- *  Developer grants a non exclusive perpetual license to use the Background technology in the Software developed for and delivered 
- *  to Customer under this Agreement. However, the Customer shall make no commercial use of the Background technology without
- *  Developer's written consent.
- */ 
+ *
+ *  VERSION HISTORY
+ *
+ *   v1.01 (26-Oct-2016): added 'About' section in preferences
+ *   v1 (2016 date unknown): working version, no version tracking up to this point
+ *
+*/
 definition(
     name: "Sunset Lights",
     namespace: "astrowings",
     author: "Phil Maynard",
-    description: "Turn on selected lights at sunset (w/ optional offset) and turn them off at a specified time.",
+    description: "Turn on selected lights at sunset and turn them off at a specified time.",
     category: "Convenience",
     iconUrl: "http://cdn.device-icons.smartthings.com/Lighting/light25-icn.png",
     iconX2Url: "http://cdn.device-icons.smartthings.com/Lighting/light25-icn@2x.png",
@@ -35,8 +36,11 @@ definition(
 preferences {
 	page(name: "page1", title: "Turn on these lights at sunset", nextPage: "page2", uninstall: true) {
         section("About") {
-        	paragraph "This SmartApp turns on selected lights at sunset and turns them off at a specified time."
-            paragraph "version 1"
+        	paragraph "This SmartApp turns on selected lights at sunset and turns them off at a specified time." +
+            	"Different turn-off times can be configured for each day of the week, and they can be " +
+                "randomized within a specified window to simulated manual activation. " +
+                "Can be used to automatically control exterior lights."
+            paragraph "version 1.01"
         }
         section("Choose the lights to turn on") {
             input "theLights", "capability.switch", title: "Lights", multiple: true, required: true

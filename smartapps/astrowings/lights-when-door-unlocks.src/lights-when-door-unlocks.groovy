@@ -1,7 +1,7 @@
 /**
  *  Lights when door unlocks
  *
- *  Copyright 2016 Phil Maynard
+ *  Copyright © 2016 Phil Maynard
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -12,12 +12,13 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  Developer retains all right, title, copyright, and interest, including all copyright, patent rights, trade secret 
- *  in the Background technology. May be subject to consulting fees under the Agreement between the Developer and the Customer. 
- *  Developer grants a non exclusive perpetual license to use the Background technology in the Software developed for and delivered 
- *  to Customer under this Agreement. However, the Customer shall make no commercial use of the Background technology without
- *  Developer's written consent.
- */
+ *
+ *  VERSION HISTORY
+ *
+ *   v1.01 (26-Oct-2016): added 'About' section in preferences
+ *   v1 (2016 date unknown): working version, no version tracking up to this point
+ *
+*/
 definition(
     name: "Lights when door unlocks",
     namespace: "astrowings",
@@ -34,7 +35,9 @@ definition(
 
 preferences {
 	section() {
-    	paragraph "This app turns on a light when a door is unlocked using the keypad."
+    	paragraph "This SmartApp turns a light on when a door is unlocked from outside (i.e. using the keypad). " +
+        	"Can be used to light-up an entrance for example."
+        paragraph "version 1.01"
     }
     section("When this door is unlocked using the keypad") {
         input "theLock", "capability.lock", required: true, title: "Which lock?"

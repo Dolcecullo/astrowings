@@ -1,7 +1,7 @@
 /**
  *  Night Security
  *
- *  Copyright 2016 Phil Maynard
+ *  Copyright © 2016 Phil Maynard
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -12,17 +12,18 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  Developer retains all right, title, copyright, and interest, including all copyright, patent rights, trade secret 
- *  in the Background technology. May be subject to consulting fees under the Agreement between the Developer and the Customer. 
- *  Developer grants a non exclusive perpetual license to use the Background technology in the Software developed for and delivered 
- *  to Customer under this Agreement. However, the Customer shall make no commercial use of the Background technology without
- *  Developer's written consent.
- */
+ *
+ *  VERSION HISTORY
+ *
+ *   v1.01 (26-Oct-2016): added 'About' section in preferences
+ *   v1 (2016 date unknown): working version, no version tracking up to this point
+ *
+*/
 definition(
     name: "Night Security",
     namespace: "astrowings",
     author: "Phil Maynard",
-    description: "Monitors a set of sensors during specified modes and flashes a light when an intrusion is detected.",
+    description: "Monitors a set of sensors during specified modes and alerts the user when an intrusion is detected.",
     category: "Convenience",
     iconUrl: "http://cdn.device-icons.smartthings.com/Weather/weather4-icn.png",
     iconX2Url: "http://cdn.device-icons.smartthings.com/Weather/weather4-icn@2x.png",
@@ -43,8 +44,11 @@ preferences {
 
 def topMenu() {
 	dynamicPage(name: "topMenu", uninstall: true, install: true) {
-    	section(){
-        	paragraph "This app monitors various sensors and sends an alert when a sensor is triggered."
+    	section("About"){
+        	paragraph "This SmartApp sends an alert when any of the selected sensors are triggered. " +
+            	"It sends push notifications, SMS alerts, turns lights on, and flashes lights to alert the user of an intrusion. " +
+                "Can be used to monitor if someone (child, elderly) is attempting to leave the house."
+        	paragraph "version 1.01"
         }
         section("Setup Menu") {
             href(page: "sensorSelect", title: "Sensor Selection", description: sensorDesc)

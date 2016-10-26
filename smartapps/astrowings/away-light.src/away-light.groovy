@@ -1,7 +1,7 @@
 /**
  *  Away Light
  *
- *  Copyright 2016 Phil Maynard
+ *  Copyright © 2016 Phil Maynard
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -12,17 +12,18 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  Developer retains all right, title, copyright, and interest, including all copyright, patent rights, trade secret 
- *  in the Background technology. May be subject to consulting fees under the Agreement between the Developer and the Customer. 
- *  Developer grants a non exclusive perpetual license to use the Background technology in the Software developed for and delivered 
- *  to Customer under this Agreement. However, the Customer shall make no commercial use of the Background technology without
- *  Developer's written consent.
- */
+ *
+ *  VERSION HISTORY
+ *
+ *   v1.01 (26-Oct-2016): added 'About' section in preferences
+ *   v1 (2016 date unknown): working version, no version tracking up to this point
+ *
+*/
 definition(
     name: "Away Light",
     namespace: "astrowings",
     author: "Phil Maynard",
-    description: "Turn a light on/off on a random schedule to simulate presence while away",
+    description: "Turn a light on/off to simulate presence while away",
     category: "Safety & Security",
     iconUrl: "http://cdn.device-icons.smartthings.com/Lighting/light17-icn.png",
     iconX2Url: "http://cdn.device-icons.smartthings.com/Lighting/light17-icn@2x.png",
@@ -39,8 +40,9 @@ preferences {
 
 def prefs() {
 	dynamicPage(name: "prefs", uninstall: true, install: true) {
-    	section(){
-        	paragraph "This app turns a light on/off on a random schedule to simulate presence while away."
+    	section("About"){
+        	paragraph "This SmartApp turns a light on/off simulate presence while away."
+            paragraph "version 1.01"
         }
         section("Select the light") {
             input "theLight", "capability.switch", title: "Which light?", multiple: false, required: true, submitOnChange: true
