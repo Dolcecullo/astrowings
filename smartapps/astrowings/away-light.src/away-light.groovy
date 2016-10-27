@@ -15,7 +15,7 @@
  *
  *  VERSION HISTORY
  *
- *	 v1.1 (26-Oct-2016): change layout of preferences pages
+ *	 v1.1 (27-Oct-2016): change layout of preferences pages, default value for app name
  *   v1.02 (26-Oct-2016): added trace for each event handler
  *   v1.01 (26-Oct-2016): added 'About' section in preferences
  *   v1 (2016 date unknown): working version, no version tracking up to this point
@@ -61,7 +61,7 @@ def prefs() {
                 input "theModes", "mode", title: "Select the mode(s)", multiple: true, required: false
             }
             section() {
-                label title: "Assign a name", required: false //TODO: default name to 'Away light.label'
+                label title: "Assign a name", required: false, defaultValue: "Away Light - ${theLight.label}"
             }
 		}
     }
