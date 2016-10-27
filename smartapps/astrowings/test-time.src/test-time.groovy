@@ -72,6 +72,7 @@ def initialize() {
 //   ***   EVENT HANDLERS   ***
 
 def runTest(evt) {
+	log.trace "runTest>${evt.descriptionText}"
 //	log.info " *** EVENT PROPERTIES ***"
 //	log.debug "The runTest event was triggered on :: $evt.date (Date)"
 //	log.debug "The runTest event dateValue is :: $evt.dateValue (Date)"
@@ -94,7 +95,7 @@ def runTest(evt) {
 //   -------------------
 //   ***   METHODS   ***
 
-def testSun() {
+void testSun() {
 	log.info " *** THE SUN ***"
     def sunTime = getSunriseAndSunset()
     log.debug "the sunrise date from getSunriseAndSunset (today's sunrise) is :: $sunTime.sunrise (Date)"
@@ -103,7 +104,7 @@ def testSun() {
     log.debug "the sunset string for this location (next sunset) is :: ${location.currentValue("sunsetTime")} (String - the evt.value for a location's sunsetTime/sunriseTime event is also a String)"
 }
 
-def testDate() {
+void testDate() {
 	log.info " *** DATE FORMAT ***"
     log.debug "new Date() :: ${new Date()}"
     def nowDate = state.nowDate
@@ -111,7 +112,7 @@ def testDate() {
     log.debug "nowDate.format(\"EEEE hhmm a\") :: ${nowDate.format("EEEE hhmm a")}"
 }
 
-def testString() {
+void testString() {
     log.info " *** STRING FORMAT ***"
     def nowDate = new Date()
     log.debug "convert Date to String - nowDate.toString() :: ${nowDate.toString()}"
@@ -119,7 +120,7 @@ def testString() {
     log.debug "modify String - nowString.replace(\"UTC\", \"Zulu\").toUpperCase() :: ${nowString.replace("UTC", "Zulu").toUpperCase()}"
 }
 
-def testParsing() {
+void testParsing() {
     log.info " *** PARSING A STRING INTO A DATE ***"
     log.debug "parse the string \"2016-08-21T04:46:35.018Z\" :: ${Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", "2016-08-21T04:46:35.018Z")}"
     def myDate = new Date().parse("yyyy/MM/dd", "2016/08/20")
@@ -127,7 +128,7 @@ def testParsing() {
     log.debug "new Date().parse(\"yyyy/MM/dd\", \"2016/08/20\") :: $myDate"
 }
 
-def testUnix() {
+void testUnix() {
     log.info " *** UNIX DATE FORMAT ***"
     def myDate = state.myDate
     log.debug "convert Date to Unix - myDate.time :: $myDate.time"
@@ -136,7 +137,7 @@ def testUnix() {
     log.debug "apply offset (+/- ms) to Unix time - new Date(myUnix + 30 * 60 * 1000) :: ${new Date(myUnix + 30 * 60 * 1000)}"
 }
 
-def testJava() {
+void testJava() {
 	//method to obtain current local time
 	def datNow = new Date()
     log.debug "datNow :: $datNow"
@@ -157,7 +158,7 @@ def testJava() {
     log.debug "strDate :: $strDate"
 }
 
-def listTimeZones() {
+void listTimeZones() {
     def availId = TimeZone.getAvailableIDs()
 	log.debug "Available IDs ($availId.length) are: (uncomment to list)"
 //	for (int i=0; i<availId.length; i++) {
@@ -165,7 +166,7 @@ def listTimeZones() {
 //	} 
 }
 
-def testTimeZone() {
+void testTimeZone() {
 	def datNow = new Date()
     log.debug "datNow :: $datNow"
     def strNow = datNow.format("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
@@ -173,7 +174,7 @@ def testTimeZone() {
 	log.debug "timeToday(strNow, location.timeZone) :: ${timeToday(strNow, location.timeZone)}"
 }
 
-def testState() {
+void testState() {
 	log.info " *** STORING DATE IN APP STATE ***"
     def myDate = new Date()
     log.debug "myDate (Date format): $myDate"
@@ -182,14 +183,14 @@ def testState() {
     retrieveState()
 }
 
-def retrieveState() {
+void retrieveState() {
 	log.info " *** RETRIEVING DATE IN APP STATE ***"
 	log.debug "state.testStateDate: $state.testStateDate"
     def myDate = state.testStateDate
     log.debug "myDate (from State): $myDate"
 }
 
-def testTimeInput() {
+void testTimeInput() {
 	def tz = location.timeZone
     log.debug "timeString :: $timeString"
     log.debug "timeToday(timeString, tz) :: ${timeToday(timeString, tz)}"
@@ -197,7 +198,3 @@ def testTimeInput() {
     log.debug "timeToday(timeString, tz).time + 60000 :: ${timeToday(timeString, tz).time + 60000}"
     log.debug "new Date(timeToday(timeString, tz).time + 60000) :: ${new Date(timeToday(timeString, tz).time + 60000)}"
 }
-
-
-//   ----------------
-//   ***   UTILS  ***

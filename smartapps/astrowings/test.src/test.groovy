@@ -35,7 +35,7 @@ definition(
 
 preferences {
 	section("Test this device") {
-		input "myDevice", "capability"
+		input "theSwitch", "capability.switch"
 	}
 }
 
@@ -61,15 +61,29 @@ def uninstalled() {
 
 def initialize() {
 	log.info "initializing"
-	subscribe(myDevice, "capabilityValue", eventHandler)
+	subscribe(theSwitch, "switch", eventHandler)
 }
 
 
 //   --------------------------
 //   ***   EVENT HANDLERS   ***
 
-def eventHandler(evt) {
+void eventHandler(evt) {
     log.debug "in eventHandler"
+    log.trace "eventHandler>data:${evt.data}"
+    log.trace "eventHandler>description:${evt.description}"
+    log.trace "eventHandler>descriptionText:${evt.descriptionText}"
+    log.trace "eventHandler>device:${evt.device}"
+    log.trace "eventHandler>displayName:${evt.displayName}"
+    log.trace "eventHandler>deviceId:${evt.deviceId}"
+    log.trace "eventHandler>name:${evt.name}"
+    log.trace "eventHandler>source:${evt.source}"
+    log.trace "eventHandler>stringValue:${evt.stringValue}"
+    log.trace "eventHandler>unit:${evt.unit}"
+    log.trace "eventHandler>value:${evt.value}"
+    log.trace "eventHandler>isDigital:${evt.isDigital()}"
+    log.trace "eventHandler>isPhysical:${evt.isPhysical()}"
+    log.trace "eventHandler>isStateChange:${evt.isStateChange()}"
 }
 
 
