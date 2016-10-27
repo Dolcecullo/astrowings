@@ -15,6 +15,7 @@
  *
  *  VERSION HISTORY
  *
+ *	 v1.1 (26-Oct-2016): change layout of preferences pages
  *   v1.02 (26-Oct-2016): added trace for each event handler
  *   v1.01 (26-Oct-2016): added 'About' section in preferences
  *   v1 (2016 date unknown): working version, no version tracking up to this point
@@ -36,57 +37,57 @@ definition(
 
 preferences {
 	page(name: "prefs")
-	page(name: "sched")
+	page(name: "options")
 }
 
 def prefs() {
 	dynamicPage(name: "prefs", uninstall: true, install: true) {
     	section("About"){
         	paragraph "This SmartApp turns a light on/off simulate presence while away."
-            paragraph "version 1.02"
+            paragraph "version 1.1"
         }
         section("Select the light") {
             input "theLight", "capability.switch", title: "Which light?", multiple: false, required: true, submitOnChange: true
         }
         if (theLight) {
-            section("Set additional scheduling options") {
-                href(page: "sched", title: "Scheduling")
+            section("Restrict automation to certain times (optional)") {
+                input "startTime", "time", title: "Start time?", required: false
+                input "endTime", "time", title: "End time?", required: false
             }
-        }
-        section("Enable only for certain days of the week? (will run every day if nothing selected)") {
-        	input "theDays", "enum", title: "On which days?", options: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], required: false, multiple: true
-        }
-        section("The automation schedule will only run in selected modes (disabled if none selected)") {
-        	input "theModes", "mode", title: "Select the mode(s)", multiple: true, required: false
-        }
-        section() {
-        	label title: "Assign a name", required: false
-        }
-	}
+            section("Set additional scheduling options") {
+                href(page: "options", title: "Additional Options")
+            }
+            section("Only run in selected modes (automation disabled if none selected)") {
+                input "theModes", "mode", title: "Select the mode(s)", multiple: true, required: false
+            }
+            section() {
+                label title: "Assign a name", required: false //TODO: default name to 'Away light.label'
+            }
+		}
+    }
 }
 
-def sched() {
-	dynamicPage(name: "sched") {
+def options() {
+	dynamicPage(name: "options") {
         section(){
         	paragraph title: "Additional Options",
             	"Set additional scheduling options for the ${theLight.label ?: light}"
         }
-        section("Between certain times") {
-            input "startTime", "time", title: "Start time?", required: false
-            input "endTime", "time", title: "End time?", required: false
-        }
-        section("Set light on/off duration") {
-            input "onFor", "number", title: "Stay on for (minutes)?", description: "Restrict light-on duration", required: false
-            input "offFor", "number", title: "Leave off for (minutes)?", description: "Turn light back on after x minutes", required: false
-        }
-        section("Random factor") {
-        	input "randWind", "number", title: "Random window (minutes)?", description: "Randomize on/off times within the selected window", required: false
+        section("Enable only for certain days of the week? (optional - will run every day if nothing selected)") {
+        	input "theDays", "enum", title: "On which days?", options: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], required: false, multiple: true
         }
     	section("Only when it's dark out (between sunset and sunrise)") {
         	input "bDark", "bool", title: "Yes/No?", required: false, submitOnChange: true
             if (bDark) {
             	input "sunsetOffset", "number", title: "Sunset time offset (minutes)?", description: "Disable lights until x minutes after sunset", required: false
             }
+        }
+        section("Set light on/off duration - use these settings to have the light turn on and off at the specified interval within the specified time window") {
+            input "onFor", "number", title: "Stay on for (minutes)?", required: false //If set, the light will turn off after the amount of time specified (or at specified end time, whichever comes first)
+            input "offFor", "number", title: "Leave off for (minutes)?", required: false //If set, the light will turn back on after the amount of time specified (unless the specified end time has passed)
+        }
+        section("Random factor - if set, randomize on/off times within the selected window") {
+        	input "randWind", "number", title: "Random window (minutes)?", required: false
         }
 	}
 }
