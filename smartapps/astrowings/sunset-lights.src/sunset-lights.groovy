@@ -15,6 +15,7 @@
  *
  *  VERSION HISTORY
  *
+ *   v1.02 (26-Oct-2016): added trace for each event handler
  *   v1.01 (26-Oct-2016): added 'About' section in preferences
  *   v1 (2016 date unknown): working version, no version tracking up to this point
  *
@@ -40,7 +41,7 @@ preferences {
             	"Different turn-off times can be configured for each day of the week, and they can be " +
                 "randomized within a specified window to simulated manual activation. " +
                 "Can be used to automatically control exterior lights."
-            paragraph "version 1.01"
+            paragraph "version 1.02"
         }
         section("Choose the lights to turn on") {
             input "theLights", "capability.switch", title: "Lights", multiple: true, required: true
@@ -108,6 +109,7 @@ def initialize() {
 //   ***   EVENT HANDLERS   ***
 
 def sunsetTimeHandler(evt) {
+    log.trace "sunsetTimeHandler>${evt.descriptionText}"
     def sunsetTimeHandlerMsg = "triggered sunsetTimeHandler; next sunset will be ${evt.value}"
     log.debug sunsetTimeHandlerMsg
 	
@@ -116,6 +118,7 @@ def sunsetTimeHandler(evt) {
 }
 
 def sunriseTimeHandler(evt) {
+    log.trace "sunriseTimeHandler>${evt.descriptionText}"
     def sunriseTimeHandlerMsg = "triggered sunriseTimeHandler; next sunrise will be ${evt.value}"
     log.debug sunriseTimeHandlerMsg
 
@@ -124,7 +127,7 @@ def sunriseTimeHandler(evt) {
 }    
 
 def locationPositionChange(evt) {
-	log.trace "locationChange()"
+	log.trace "locationChange>${evt.descriptionText}"
 	initialize()
 }
 
@@ -200,7 +203,7 @@ def turnOff() {
 //   ----------------
 //   ***   UTILS  ***
 
-private getDefaultTurnOffTime() {
+def getDefaultTurnOffTime() {
     if (timeOff) {
     	//convert preset time to today's date
         //TODO: deal with times after midnight
@@ -222,7 +225,7 @@ private getDefaultTurnOffTime() {
 	}
 }
 
-private getWeekdayTurnOffTime() {
+def getWeekdayTurnOffTime() {
 //calculate weekday-specific offtime
 //this executes at sunrise, so when the sun rises on Tuesday, it will
 //schedule the lights' turn-off time for Tuesday night

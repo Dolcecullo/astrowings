@@ -15,6 +15,7 @@
  *
  *  VERSION HISTORY
  *
+ *   v1.02 (26-Oct-2016): added trace for each event handler
  *   v1.01 (26-Oct-2016): added 'About' section in preferences
  *   v1 (2016 date unknown): working version, no version tracking up to this point
  *
@@ -36,7 +37,7 @@ definition(
 preferences {
 	section("About") {
     	paragraph "This SmartApp sends a push notification if a lock gets unlocked or if the mode changes while the lock is unlocked."
-        paragraph "version 1.01"
+        paragraph "version 1.02"
     }
     section("Monitor this door lock") {
         input "theLock", "capability.lock", required: true, title: "Which lock?"
@@ -77,13 +78,15 @@ def initialize() {
 //   ***   EVENT HANDLERS   ***
 
 def unlockHandler(evt) {
-	def unlockText = evt.descriptionText
+	log.trace "unlockHandler>${evt.descriptionText}"
+    def unlockText = evt.descriptionText
 	log.debug unlockText
 	sendPush(unlockText)
 }
 
 def modeChangeHandler(evt) {
-	if (theLock.currentLock == "unlocked") {
+	log.trace "modeChangeHandler>${evt.descriptionText}"
+    if (theLock.currentLock == "unlocked") {
     	def unlockedMsg = "The mode changed to $location.currentMode and the $theLock.label is $theLock.currentLock"
         log.debug unlockedMsg
         sendPush(unlockedMsg)
@@ -91,6 +94,6 @@ def modeChangeHandler(evt) {
 }
 
 def locationPositionChange(evt) {
-	log.trace "locationChange()"
+	log.trace "locationPositionChange>${evt.descriptionText}"
 	initialize()
 }

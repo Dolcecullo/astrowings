@@ -15,6 +15,7 @@
  *
  *  VERSION HISTORY
  *
+ *   v1.02 (26-Oct-2016): added trace for each event handler
  *   v1.01 (26-Oct-2016): added 'About' section in preferences
  *   v1 (2016 date unknown): working version, no version tracking up to this point
  *
@@ -48,7 +49,7 @@ def topMenu() {
         	paragraph "This SmartApp sends an alert when any of the selected sensors are triggered. " +
             	"It sends push notifications, SMS alerts, turns lights on, and flashes lights to alert the user of an intrusion. " +
                 "Can be used to monitor if someone (child, elderly) is attempting to leave the house."
-        	paragraph "version 1.01"
+        	paragraph "version 1.02"
         }
         section("Setup Menu") {
             href(page: "sensorSelect", title: "Sensor Selection", description: sensorDesc)
@@ -236,7 +237,7 @@ def initialize() {
     subscribeToEvents()
 }
 
-private subscribeToEvents() {
+def subscribeToEvents() {
 	subscribe(location, "mode", modeChangeHandler)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
 	if (theContacts) {
@@ -261,7 +262,8 @@ private subscribeToEvents() {
 //   ***   EVENT HANDLERS   ***
 
 def intrusionHandler(evt) {
-	if (monitorOn) {
+	log.trace "intrusionHandler>${evt.descriptionText}"
+    if (monitorOn) {
     	def triggerDevice = evt.device
         def triggerTime = evt.date
         state.alarmTime = now()
@@ -273,7 +275,8 @@ def intrusionHandler(evt) {
 }
 
 def modeChangeHandler(evt) {
-	if (!modeOk && alarmOn) {
+	log.trace "modeChangeHandler>${evt.descriptionText}"
+    if (!modeOk && alarmOn) {
     	if (state.alarmFlash == "on") {
         	deactivateFlash()
         }
@@ -284,7 +287,7 @@ def modeChangeHandler(evt) {
 }
 
 def locationPositionChange(evt) {
-	log.trace "locationChange()"
+	log.trace "locationPositionChange>${evt.descriptionText}"
 	initialize()
 }
 
@@ -411,7 +414,7 @@ def deactivateLights() {
 //   ----------------
 //   ***   UTILS  ***
 
-private getItsDarkOut() {
+def getItsDarkOut() {
     def sunTime = getSunriseAndSunset(sunsetOffset: 15)
     def currentDTG = new Date()
     def result = false
@@ -431,25 +434,25 @@ private getItsDarkOut() {
     return result
 }
 
-private getMonitorOn() {
+def getMonitorOn() {
 	def result = modeOk && darkOk && someoneHome && daysOk && timeOk && coolDownOk
     log.debug "MonitorOn :: $result"
     return result
 }
 
-private getModeOk() {
+def getModeOk() {
 	def result = !theModes || theModes.contains(location.mode)
 	log.debug "modeOk :: $result"
 	return result
 }
 
-private getDarkOk() {
+def getDarkOk() {
 	def result = !theSun || itsDarkOut
 	log.debug "darkOk :: $result"
 	return result
 }
 
-private getSomeoneHome() {
+def getSomeoneHome() {
 	def result = (thePresence) ? false : true
     if(thePresence?.findAll {it?.currentPresence == "present"}) {
 		result = true
@@ -458,7 +461,7 @@ private getSomeoneHome() {
 	return result
 }
 
-private getDaysOk() {
+def getDaysOk() {
 	def result = true
 	if (theDays) {
         def strDOW = nowDOW
@@ -469,7 +472,7 @@ private getDaysOk() {
 	return result
 }
 
-private getNowDOW() {
+def getNowDOW() {
 	//method to obtain current weekday adjusted for local time
     def javaDate = new java.text.SimpleDateFormat("EEEE, dd MMM yyyy @ HH:mm:ss")
     def javaDOW = new java.text.SimpleDateFormat("EEEE")
@@ -485,7 +488,7 @@ private getNowDOW() {
     return strDOW
 }
 
-private getTimeOk() {
+def getTimeOk() {
 	def result = true
     if (theTimes) {
     	def start = timeToday(startTime, location.timeZone)
@@ -497,7 +500,7 @@ private getTimeOk() {
 	return result
 }
 
-private getCoolDownOk() {
+def getCoolDownOk() {
 	def result = true
     if (state.alarmTime) {
     	def delay = coolDown * 60 * 1000
@@ -508,7 +511,7 @@ private getCoolDownOk() {
     return result
 }
 
-private getAlarmOn() {
+def getAlarmOn() {
 	def alarmFlash = state.alarmFlash
     def alarmLights = state.alarmLights
     def result = (alarmFlash == "on" || alarmLights == "on")

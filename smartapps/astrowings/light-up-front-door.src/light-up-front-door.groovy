@@ -15,6 +15,7 @@
  *
  *  VERSION HISTORY
  *
+ *   v1.02 (26-Oct-2016): added trace for each event handler
  *   v1.01 (26-Oct-2016): added 'About' section in preferences
  *   v1 (2016 date unknown): working version, no version tracking up to this point
  *
@@ -36,7 +37,7 @@ definition(
 preferences {
 	section("About") {
     	paragraph "This SmartApp turns on a light when someone arrives home and it's dark out. (e.g. to turn on a porch light)"
-        paragraph "version 1.01"
+        paragraph "version 1.02"
     }
     section("When any of these people arrive") {
         input "people", "capability.presenceSensor", title: "Who?", multiple: true
@@ -80,6 +81,7 @@ def initialize() {
 //   ***   EVENT HANDLERS   ***
 
 def presenceHandler(evt) {
+    log.trace "presenceHandler>${evt.descriptionText}"
     log.debug "$evt.displayName has arrived"
     //turn on the light only if it's currently off
     if (itsDarkOut && (theLight.currentSwitch != "on")) {
@@ -91,7 +93,7 @@ def presenceHandler(evt) {
 }
 
 def locationPositionChange(evt) {
-	log.trace "locationChange()"
+	log.trace "locationPositionChange>${evt.descriptionText}"
 	initialize()
 }
 

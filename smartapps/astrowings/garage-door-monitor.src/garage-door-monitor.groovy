@@ -15,6 +15,7 @@
  *
  *  VERSION HISTORY
  *
+ *   v1.02 (26-Oct-2016): added trace for each event handler
  *   v1.01 (26-Oct-2016): added 'About' section in preferences
  *   v1 (2016 date unknown): working version, no version tracking up to this point
  *
@@ -37,7 +38,7 @@ preferences {
 	section("About") {
     	paragraph "This SmartApp sends a notification (or, optionally, a SMS) to notify" +
         	"that a door is left open when leaving the house, left open for too long, or if it opens while away."
-        paragraph "version 1.01"
+        paragraph "version 1.02"
     }
 	section("When I leave") {
 		input "myself", "capability.presenceSensor", title: "Who?", multiple: false, required: true
@@ -93,6 +94,7 @@ def initialize() {
 //   ***   EVENT HANDLERS   ***
 
 def iLeaveHandler(evt) {
+    log.trace "iLeaveHandler>${evt.descriptionText}"
     if (thedoor.currentContact == "open") {
     	def message = "${evt.device} has left the house and the ${thedoor.device} is ${thedoor.currentContact}."
         log.warn message
@@ -102,6 +104,7 @@ def iLeaveHandler(evt) {
 }
 
 def allLeaveHandler(evt) {
+    log.trace "allLeaveHandler>${evt.descriptionText}"
     if (thedoor.currentContact == "open") {
         if (everyoneIsAway) {
             def message = "Everyone has left the house and the ${thedoor.device} is ${thedoor.currentContact}."
@@ -115,7 +118,8 @@ def allLeaveHandler(evt) {
 }
 
 def doorHandler(evt) {
-	if (evt.value == "open" && warnOpening && imAway) {
+	log.trace "doorHandler>${evt.descriptionText}"
+    if (evt.value == "open" && warnOpening && imAway) {
     	def message = "The ${thedoor.device} was opened."
         log.warn message
         sendText(message)
@@ -127,7 +131,7 @@ def doorHandler(evt) {
 }
 
 def locationPositionChange(evt) {
-	log.trace "locationChange()"
+	log.trace "locationPositionChange>${evt.descriptionText}"
 	initialize()
 }
 
@@ -146,7 +150,7 @@ def checkOpen() {
     }
 }
 
-private sendText(msg) {
+def sendText(msg) {
 	if (phone) {
 		log.debug "sending SMS"
 		sendSms(phone, msg)
@@ -157,7 +161,7 @@ private sendText(msg) {
 //   ----------------
 //   ***   UTILS  ***
 
-private getEveryoneIsAway() {
+def getEveryoneIsAway() {
     def result = true
     for (person in everyone) {
         if (person.currentPresence == "present") {
@@ -169,7 +173,7 @@ private getEveryoneIsAway() {
     return result
 }
 
-private getImAway() {
+def getImAway() {
 	def result = !(myself.currentPresence == "present")
     log.debug "imAway :: $result"
     return result

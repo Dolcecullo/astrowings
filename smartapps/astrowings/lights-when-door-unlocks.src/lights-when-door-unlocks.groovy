@@ -15,6 +15,7 @@
  *
  *  VERSION HISTORY
  *
+ *   v1.02 (26-Oct-2016): added trace for each event handler
  *   v1.01 (26-Oct-2016): added 'About' section in preferences
  *   v1 (2016 date unknown): working version, no version tracking up to this point
  *
@@ -37,7 +38,7 @@ preferences {
 	section() {
     	paragraph "This SmartApp turns a light on when a door is unlocked from outside (i.e. using the keypad). " +
         	"Can be used to light-up an entrance for example."
-        paragraph "version 1.01"
+        paragraph "version 1.02"
     }
     section("When this door is unlocked using the keypad") {
         input "theLock", "capability.lock", required: true, title: "Which lock?"
@@ -83,12 +84,13 @@ def initialize() {
 //   ***   EVENT HANDLERS   ***
 
 def locationPositionChange(evt) {
-	log.trace "locationChange()"
+	log.trace "locationPositionChange>${evt.descriptionText}"
 	initialize()
 }
 
 def unlockHandler(evt) {
-	if (allOk) {
+	log.trace "unlockHandler>${evt.descriptionText}"
+    if (allOk) {
     	def unlockText = evt.descriptionText
         if (unlockText.contains("was unlocked with code")) {
             log.debug "${unlockText}; turning the light on"
@@ -120,25 +122,25 @@ def switchOff() {
 //   ----------------
 //   ***   UTILS  ***
 
-private getAllOk() {
+def getAllOk() {
 	def result = theSwitch.currentSwitch == "off" && darkOk
     log.debug "allOk :: ${result}"
     return result
 }
 
-/*private getModeOk() {
+/*def getModeOk() {
 	def result = !theModes || theModes.contains(location.mode)
 	log.debug "modeOk :: $result"
 	return result
 }*/
 
-private getDarkOk() {
+def getDarkOk() {
 	def result = !whenDark || itsDarkOut
 	//log.debug "darkOk :: $result"
 	return result
 }
 
-private getItsDarkOut() {
+def getItsDarkOut() {
     def sunTime = getSunriseAndSunset(sunsetOffset: "00:30")
     def currentDTG = new Date()
     def result = false

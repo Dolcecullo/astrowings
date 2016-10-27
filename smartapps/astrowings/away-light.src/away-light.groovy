@@ -15,6 +15,7 @@
  *
  *  VERSION HISTORY
  *
+ *   v1.02 (26-Oct-2016): added trace for each event handler
  *   v1.01 (26-Oct-2016): added 'About' section in preferences
  *   v1 (2016 date unknown): working version, no version tracking up to this point
  *
@@ -42,7 +43,7 @@ def prefs() {
 	dynamicPage(name: "prefs", uninstall: true, install: true) {
     	section("About"){
         	paragraph "This SmartApp turns a light on/off simulate presence while away."
-            paragraph "version 1.01"
+            paragraph "version 1.02"
         }
         section("Select the light") {
             input "theLight", "capability.switch", title: "Which light?", multiple: false, required: true, submitOnChange: true
@@ -123,7 +124,7 @@ def initialize() {
 }
 
 def subscribeToEvents() {
-	subscribe(location, "mode", modeChangeHandler)
+    subscribe(location, "mode", modeChangeHandler)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
 }
 
@@ -132,6 +133,7 @@ def subscribeToEvents() {
 //   ***   EVENT HANDLERS   ***
 
 def modeChangeHandler(evt) {
+    log.trace "modeChangeHandler>${evt.descriptionText}"
     if(modeOk) {
         log.debug "mode changed to ${location.currentMode}; calling schedTurnOn()"
         schedTurnOn()
@@ -142,7 +144,7 @@ def modeChangeHandler(evt) {
 }
 
 def locationPositionChange(evt) {
-	log.trace "locationChange()"
+	log.trace "locationPositionChange>${evt.descriptionText}"
 	initialize()
 }
 
@@ -315,13 +317,13 @@ def terminate() {
 //   ----------------
 //   ***   UTILS  ***
 
-private getModeOk() {
+def getModeOk() {
 	def result = theModes?.contains(location.mode)
 	//log.debug "modeOk :: $result"
 	return result
 }
 
-private getItsDarkOut() {
+def getItsDarkOut() {
     def sunTime = getSunriseAndSunset(sunsetOffset: sunsetOffset)
     def nowDate = new Date(now() + 2000) // be safe and set current time for 2 minutes later
     def result = false
@@ -335,7 +337,7 @@ private getItsDarkOut() {
     return result
 }
 
-private getNowDOW() {
+def getNowDOW() {
 	//method to obtain current weekday adjusted for local time
     def javaDate = new java.text.SimpleDateFormat("EEEE, dd MMM yyyy @ HH:mm:ss")
     def javaDOW = new java.text.SimpleDateFormat("EEEE")
@@ -351,7 +353,7 @@ private getNowDOW() {
     return strDOW
 }
 
-private convertToHMS(ms) {
+def convertToHMS(ms) {
     int hours = Math.floor(ms/1000/60/60)
     int minutes = Math.floor((ms/1000/60) - (hours * 60))
     int seconds = Math.floor((ms/1000) - (hours * 60 * 60) - (minutes * 60))
@@ -360,7 +362,7 @@ private convertToHMS(ms) {
     return "${hours}h${minutes}m${seconds}.${tenths}s"
 }
 
-private schedOnDate() {
+def schedOnDate() {
     // ***  CALCULATE TURN-ON TIME  ***
     //figure out the next 'on' time based on user settings
     def tz = location.timeZone
@@ -381,7 +383,7 @@ private schedOnDate() {
     return onDate
 }
 
-private schedOffDate() {
+def schedOffDate() {
     // ***  CALCULATE TURN-OFF TIME  ***
     //figure out the light's 'off' time based on user settings
     def tz = location.timeZone

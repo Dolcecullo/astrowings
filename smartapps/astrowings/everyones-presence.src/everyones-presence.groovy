@@ -15,6 +15,7 @@
  *
  *  VERSION HISTORY
  *
+ *   v1.02 (26-Oct-2016): added trace for each event handler
  *   v1.01 (26-Oct-2016): added 'About' section in preferences
  *   v1 (2016 date unknown): working version, no version tracking up to this point
  *
@@ -37,7 +38,7 @@ preferences {
 	section("About") {
     	paragraph "Emulates a single presence sensor for all physical sensors: " +
         	"will set to 'not present' when nobody is home, or 'present' if at least one person is home"
-        paragraph "version 1.01"
+        paragraph "version 1.02"
     }
 	section("Physical Presence Sensors") {
 		input "presenceSensors", "capability.presenceSensor", multiple: true, required: true,
@@ -72,7 +73,8 @@ def uninstalled() {
 def initialize() {
 	log.info "initializing"
 	setPresence()
-	subscribe(presenceSensors, "presence", "presenceHandler")
+	subscribe(presenceSensors, "presence", presenceHandler)
+    subscribe(simulatedPresence, "presence", simHandler)
 }
 
 
@@ -80,7 +82,12 @@ def initialize() {
 //   ***   EVENT HANDLERS   ***
 
 def presenceHandler(evt) {
-	setPresence()
+	log.trace "presenceHandler>${evt.descriptionText}"
+    setPresence()
+}
+
+def simHandler(evt) {
+	log.info "simHandler>${evt.displayName} set to ${evt.value}"
 }
 
 

@@ -15,6 +15,7 @@
  *
  *  VERSION HISTORY
  *
+ *   v1.02 (26-Oct-2016): added trace for each event handler
  *   v1.01 (26-Oct-2016): added 'About' section in preferences
  *   v1 (2016 date unknown): working version, no version tracking up to this point
  *
@@ -36,7 +37,7 @@ definition(
 preferences {
 	section("About") {
     	paragraph "This SmartApp turns a light on/off based on detected motion"
-        paragraph "version 1.01"
+        paragraph "version 1.02"
     }
     section("When motion is detected on this sensor:") {
         input "theMotion", "capability.motionSensor", required: true, title: "Where?"
@@ -89,32 +90,36 @@ def initialize() {
 //   ***   EVENT HANDLERS   ***
 
 def motionDetectedHandler(evt) {
+    log.trace "motionDetectedHandler>${evt.descriptionText}"
     if (allOk) {
         theSwitch.on()
     }
 }
 
 def motionStoppedHandler(evt) {
+	log.trace "motionStoppedHandler>${evt.descriptionText}"
     runIn(minutes * 60, lightOff)
 }
 
 def switchOnHandler(evt) {
-	log.debug "switch turned on; enabling automation"
+	log.trace "switchOnHandler>${evt.descriptionText}"
+    log.info "switch turned on; enabling automation"
     state.enable = true
 }
 
 def switchOffHandler(evt) {
-	if (evt.isPhysical()) {
+	log.trace "switchOffHandler>${evt.descriptionText}"
+    if (evt.isPhysical()) {
     	//disable automation when switch is activated manually (i.e. prevent light from turning back on when movement is detected)
-        log.debug "switch physically turned off; disabling automation"
+        log.info "switch physically turned off; disabling automation"
         state.enable = false
     } else {
-    	log.debug "switch turned off by app"
+    	log.info "switch turned off by app"
     }
 }
 
 def locationPositionChange(evt) {
-	log.trace "locationChange()"
+	log.trace "locationChange>${evt.descriptionText}"
 	initialize()
 }
 
@@ -130,25 +135,25 @@ def lightOff() {
 //   ----------------
 //   ***   UTILS  ***
 
-private getAllOk() {
+def getAllOk() {
 	def result = darkOk && state.enable == true // && modeOk
     //log.debug "allOk :: $result"
     return result
 }
 
-/*private getModeOk() {
+/*def getModeOk() {
 	def result = !theModes || theModes.contains(location.mode)
 	log.debug "modeOk :: $result"
 	return result
 }*/
 
-private getDarkOk() {
+def getDarkOk() {
 	def result = !whenDark || itsDarkOut
 	//log.debug "darkOk :: $result"
 	return result
 }
 
-private getItsDarkOut() {
+def getItsDarkOut() {
     def sunTime = getSunriseAndSunset(sunsetOffset: "-00:30")
     def currentDTG = new Date()
     def result = false
