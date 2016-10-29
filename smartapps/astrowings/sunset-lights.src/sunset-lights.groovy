@@ -43,8 +43,8 @@ preferences {
         section("About") {
         	paragraph "This SmartApp turns on selected lights at sunset and turns them off at a specified time." +
             	"Different turn-off times can be configured for each day of the week, and they can be " +
-                "randomized within a specified window to simulate manual activation. " +
-                "Use it to automatically control exterior lights."
+                "randomized within a specified window to simulate manual activation."
+            paragraph "Suggested use: control exterior lights"
             paragraph "version 2"
         }
         section("Choose the lights to turn on") {
@@ -55,10 +55,10 @@ preferences {
         }
     }
 	page(name: "page2", title: "Sunset Lights - Turn OFF", nextPage: "page3") {
-    	section("Turn the lights off at this time (optional; lights will turn off 15 minutes before sunrise if no time is entered)") {
+    	section("Turn the lights off at this time (optional - lights will turn off 15 minutes before sunrise if no time is entered)") {
         	input "timeOff", "time", title: "Time to turn lights off?", required: false
         }
-    	section("Set a different time to turn off the lights on each day (optional; lights will turn off at the default time if not set)") {
+    	section("Set a different time to turn off the lights on each day (optional - lights will turn off at the default time if not set)") {
         	input "sundayOff", "time", title: "Sunday", required: false
             input "mondayOff", "time", title: "Monday", required: false
             input "tuesdayOff", "time", title: "Tuesday", required: false

@@ -64,7 +64,6 @@ def uninstalled() {
 def initialize() {
 	log.info "initializing"
 	subscribe(theswitch, "switch", runTest)
-	runTest()
 }
 
 
@@ -78,9 +77,8 @@ def runTest(evt) {
 //	log.debug "The runTest event dateValue is :: $evt.dateValue (Date)"
 //	log.debug "The runTest event isoDate is :: $evt.isoDate (String)"
 
-//	state.nowDate = new Date()
-	testSun()
-//  testDate()
+//	testSun()
+	testDate()
 //	testString()
 //  testParsing()
 //	testJava()
@@ -107,9 +105,11 @@ void testSun() {
 void testDate() {
 	log.info " *** DATE FORMAT ***"
     log.debug "new Date() :: ${new Date()}"
-    def nowDate = state.nowDate
+    def nowDate = new Date()
     log.debug "nowDate.format(\"E MMM dd HH:mm:ss z yyyy\") :: ${nowDate.format("E MMM dd HH:mm:ss z yyyy")}"
     log.debug "nowDate.format(\"EEEE hhmm a\") :: ${nowDate.format("EEEE hhmm a")}"
+    log.debug "new Date().format(\"E\") :: ${new Date().format("E")}"
+    log.debug "(new Date() + 1).format(\"E\") :: ${(new Date() + 1).format("E")}"
 }
 
 void testString() {
