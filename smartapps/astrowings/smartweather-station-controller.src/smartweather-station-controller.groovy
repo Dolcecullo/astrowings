@@ -19,7 +19,8 @@
  *  VERSION HISTORY
  *
  *  Version 1.51
- *   2016-10-30 - set updateInterval minimum value of 1 minute in scheduledEvent()
+ *   2016-10-30 - set updateInterval minimum value of 5 minutes in scheduledEvent()
+ *				  make device type compatible with SmartWeather Station Tile 2.0
  *   2016-02-12 - Changed scheduling API's (hopefully more resilient), added an option for users to specify update interval
  *   2016-01-20 - Kick-start timers on sunrise and sunset also
  *   2015-10-04 - Kick-start timers on each mode change to prevent them from dying
@@ -61,8 +62,8 @@ preferences {
         	"version 1.5"
     }
     section ("Weather Devices") {
-        input name: "weatherDevices", type: "device.smartweatherStationTile", title: "Select device(s)", description: "Select the Weather Tiles to update", required: true, multiple: true
-        input name: "updateInterval", type: "number", title: "Update frequency (minutes)", description: "How often do you want to update the weather information?", required: true, defaultValue: 5
+        input name: "weatherDevices", type: "device.smartWeatherStationTile2", title: "Select device(s)", description: "Select the Weather Tiles to update", required: true, multiple: true
+        input name: "updateFreq", type: "number", title: "Update frequency (min. 5 minutes)", description: "How often do you want to update the weather information?", required: true, defaultValue: 15
     }
 }
     
@@ -121,8 +122,12 @@ def sunriseHandler(evt) {
 //   ***   METHODS   ***
 
 def doRefresh() {
-    log.trace "doRefresh() - update frequency: $updateInterval minutes"
-    updateInterval = updateInterval < 1 ? 1 : updateInterval //set updateInterval minimum value of 1 minute
-    runIn(updateInterval*60, doRefresh)
+    log.trace "doRefresh() - refresh frequency setting: $updateFreq minutes"
+    def adjustedFreq = updateFreq
+    if (adjustedFreq < 5) {
+        //log.debug "refresh frequency adjusted to the minimum value of 5 minutes"
+        adjustedFreq = 5
+    }
+    runIn(adjustedFreq * 60, doRefresh)
     weatherDevices.refresh()
 }
