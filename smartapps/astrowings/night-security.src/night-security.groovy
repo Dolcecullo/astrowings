@@ -46,10 +46,10 @@ preferences {
 def topMenu() {
 	dynamicPage(name: "topMenu", uninstall: true, install: true) {
     	section("About"){
-        	paragraph "This SmartApp sends an alert when any of the selected sensors are triggered. " +
+        	paragraph title: "This SmartApp sends an alert when any of the selected sensors are triggered. " +
             	"It sends push notifications, SMS alerts, turns lights on, and flashes lights to alert the user of an intrusion. " +
-                "Can be used to monitor if someone (child, elderly) is attempting to leave the house."
-        	paragraph "version 1.02"
+                "Can be used to monitor if someone (child, elderly) is attempting to leave the house.",
+        		"version 1.02"
         }
         section("Setup Menu") {
             href(page: "sensorSelect", title: "Sensor Selection", description: sensorDesc)
@@ -83,9 +83,9 @@ def scheduling() {
         section(){
         	paragraph title: "Monitoring Schedule",
             	"Set the conditions for the monitoring window. These settings are cumulative " +
-            	"(e.g. selecting \"Dark out\" and \"Days of week (Monday)\" would only alert for " +
+            	"(e.g. selecting \"Dark out\" and \"Days of week: Monday\" would only alert for " +
                 "intrusions/triggers that occur during darkness on Monday, not anytime on Monday and " +
-                "anytime it's dark."
+                "anytime it's dark)"
         }
     	section("When the mode is set to...") {
         	input "theModes", "mode", title: "Select the mode(s)", multiple: true, required: false

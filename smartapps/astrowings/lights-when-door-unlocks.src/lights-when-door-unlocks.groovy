@@ -35,10 +35,10 @@ definition(
 //   ***   SETTING THE PREFERENCES   ***
 
 preferences {
-	section() {
-    	paragraph "This SmartApp turns a light on when a door is unlocked from outside (i.e. using the keypad). " +
-        	"Can be used to light-up an entrance for example."
-        paragraph "version 1.02"
+	section("About") {
+    	paragraph title: "This SmartApp turns a light on when a door is unlocked from outside (i.e. using the keypad). " +
+        	"Can be used to light-up an entrance for example.",
+        	"version 1.02"
     }
     section("When this door is unlocked using the keypad") {
         input "theLock", "capability.lock", required: true, title: "Which lock?"

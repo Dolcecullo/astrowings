@@ -36,9 +36,9 @@ definition(
 
 preferences {
 	section("About") {
-    	paragraph "This SmartApp sends a notification (or, optionally, a SMS) to notify" +
-        	"that a door is left open when leaving the house, left open for too long, or if it opens while away."
-        paragraph "version 1.02"
+    	paragraph title: "This SmartApp sends a notification (or, optionally, a SMS) to notify" +
+        	"that a door is left open when leaving the house, left open for too long, or if it opens while away.",
+        	"version 1.02"
     }
 	section("When I leave") {
 		input "myself", "capability.presenceSensor", title: "Who?", multiple: false, required: true

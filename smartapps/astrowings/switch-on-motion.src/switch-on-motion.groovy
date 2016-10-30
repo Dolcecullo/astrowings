@@ -36,8 +36,8 @@ definition(
 
 preferences {
 	section("About") {
-    	paragraph "This SmartApp turns a light on/off based on detected motion"
-        paragraph "version 1.02"
+    	paragraph title: "This SmartApp turns a light on/off based on detected motion",
+        	"version 1.02"
     }
     section("When motion is detected on this sensor:") {
         input "theMotion", "capability.motionSensor", required: true, title: "Where?"

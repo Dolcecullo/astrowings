@@ -36,8 +36,8 @@ definition(
 
 preferences {
 	section("About") {
-    	paragraph "This SmartApp sends a push notification if a lock gets unlocked or if the mode changes while the lock is unlocked."
-        paragraph "version 1.02"
+    	paragraph title: "This SmartApp sends a push notification if a lock gets unlocked or if the mode changes while the lock is unlocked.",
+        	"version 1.02"
     }
     section("Monitor this door lock") {
         input "theLock", "capability.lock", required: true, title: "Which lock?"

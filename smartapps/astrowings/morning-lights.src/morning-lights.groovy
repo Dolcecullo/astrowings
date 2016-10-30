@@ -35,11 +35,10 @@ definition(
 preferences {
 	page(name: "page1", title: "Morning Lights - Turn ON", nextPage: "page2", uninstall: true) {
         section("About") {
-        	paragraph "This SmartApp turns on selected lights at a specified time and turns them off at sunrise. " +
+        	paragraph title: "This SmartApp turns on selected lights at a specified time and turns them off at sunrise. " +
             	"Different turn-on times can be configured for each day of the week, and they can be " +
-                "randomized within a specified window to simulate manual activation."
-            paragraph "Suggested use: control exterior lights"
-            paragraph "version 1"
+                "randomized within a specified window to simulate manual activation.",
+				"version 1"
         }
         section("Choose the lights to turn on") {
             input "theLights", "capability.switch", title: "Lights", multiple: true, required: true

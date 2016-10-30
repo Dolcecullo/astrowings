@@ -36,8 +36,8 @@ definition(
 
 preferences {
 	section("About") {
-    	paragraph "This SmartApp turns on a light when someone arrives home and it's dark out. (e.g. to turn on a porch light)"
-        paragraph "version 1.02"
+    	paragraph title: "This SmartApp turns on a light when someone arrives home and it's dark out. (e.g. to turn on a porch light)",
+        	"version 1.02"
     }
     section("When any of these people arrive") {
         input "people", "capability.presenceSensor", title: "Who?", multiple: true

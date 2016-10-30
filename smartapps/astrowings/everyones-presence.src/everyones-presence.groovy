@@ -36,9 +36,9 @@ definition(
 
 preferences {
 	section("About") {
-    	paragraph "Emulates a single presence sensor for all physical sensors: " +
-        	"will set to 'not present' when nobody is home, or 'present' if at least one person is home"
-        paragraph "version 1.02"
+    	paragraph title: "Emulates a single presence sensor for all physical sensors: " +
+        	"will set to 'not present' when nobody is home, or 'present' if at least one person is home",
+        	"version 1.02"
     }
 	section("Physical Presence Sensors") {
 		input "presenceSensors", "capability.presenceSensor", multiple: true, required: true,

@@ -43,8 +43,8 @@ preferences {
 def prefs() {
 	dynamicPage(name: "prefs", uninstall: true, install: true) {
     	section("About"){
-        	paragraph "This SmartApp turns a light on/off simulate presence while away."
-            paragraph "version 1.1"
+        	paragraph title: "This SmartApp turns a light on/off simulate presence while away.",
+            	"version 1.1"
         }
         section("Select the light") {
             input "theLight", "capability.switch", title: "Which light?", multiple: false, required: true, submitOnChange: true
