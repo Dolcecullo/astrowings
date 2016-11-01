@@ -13,15 +13,17 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *
- *  VERSION HISTORY
- *
- *	 v2 (28-Oct-2016): add option to insert random delay between the switching of individual lights,
- *                     change method to evaluate which turn-off time to use
- *                     move off-time comparison to turnOn()
- *                     add option to apply random factor to ON time
+ *	VERSION HISTORY                                    */
+ 	 def versionNum() {	return "version 2.01" }       /*
+ 
+ *	 v2.01 (01-Nov-2016): standardize section headers
+ *	 v2.00 (28-Oct-2016): add option to insert random delay between the switching of individual lights,
+ *                        change method to evaluate which turn-off time to use
+ *                        move off-time comparison to turnOn()
+ *                        add option to apply random factor to ON time
  *   v1.02 (26-Oct-2016): added trace for each event handler
  *   v1.01 (26-Oct-2016): added 'About' section in preferences
- *   v1 (2016 date unknown): working version, no version tracking up to this point
+ *   v1.00 (2016 date unknown): working version, no version tracking up to this point
  *
 */
 definition(
@@ -35,8 +37,8 @@ definition(
     iconX3Url: "http://cdn.device-icons.smartthings.com/Lighting/light25-icn@3x.png")
 
 
-//   -----------------------------------
-//   ***   SETTING THE PREFERENCES   ***
+//   ---------------------------
+//   ***   APP PREFERENCES   ***
 
 preferences {
 	page(name: "page1", title: "Sunset Lights - Turn ON", nextPage: "page2", uninstall: true) {
@@ -87,6 +89,17 @@ preferences {
 }
 
 
+//   --------------------------------
+//   ***   CONSTANTS DEFINITIONS  ***
+
+private C_1() { return "this is constant1" }
+
+
+//   -----------------------------
+//   ***   PAGES DEFINITIONS   ***
+
+
+
 //   ----------------------------
 //   ***   APP INSTALLATION   ***
 
@@ -108,6 +121,7 @@ def uninstalled() {
 
 def initialize() {
 	log.info "initializing"
+    state.debugLevel = 0
     subscribe(location, "sunsetTime", sunsetTimeHandler)	//triggers at sunset, evt.value is the sunset String (time for next day's sunset)
     subscribe(location, "sunriseTime", sunriseTimeHandler)	//triggers at sunrise, evt.value is the sunrise String (time for next day's sunrise)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
@@ -232,17 +246,8 @@ def turnOff() {
 }
 
 
-//   ----------------
-//   ***   UTILS  ***
-
-def convertToHMS(ms) {
-    int hours = Math.floor(ms/1000/60/60)
-    int minutes = Math.floor((ms/1000/60) - (hours * 60))
-    int seconds = Math.floor((ms/1000) - (hours * 60 * 60) - (minutes * 60))
-    double millisec = ms-(hours*60*60*1000)-(minutes*60*1000)-(seconds*1000)
-    int tenths = (millisec/100).round(0)
-    return "${hours}h${minutes}m${seconds}.${tenths}s"
-}
+//   -------------------------
+//   ***   APP FUNCTIONS   ***
 
 def getDefaultTurnOffTime() {
     if (timeOff) {
@@ -308,4 +313,17 @@ def getWeekdayTurnOffTime() {
     	log.debug "DOW turn-off time not specified"
         return false
     }
+}
+
+
+//   ------------------------
+//   ***   COMMON UTILS   ***
+
+def convertToHMS(ms) {
+    int hours = Math.floor(ms/1000/60/60)
+    int minutes = Math.floor((ms/1000/60) - (hours * 60))
+    int seconds = Math.floor((ms/1000) - (hours * 60 * 60) - (minutes * 60))
+    double millisec = ms-(hours*60*60*1000)-(minutes*60*1000)-(seconds*1000)
+    int tenths = (millisec/100).round(0)
+    return "${hours}h${minutes}m${seconds}.${tenths}s"
 }

@@ -13,12 +13,14 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *
- *  VERSION HISTORY
- *
- *	 v1.1 (27-Oct-2016): change layout of preferences pages, default value for app name
+ *	VERSION HISTORY                                    */
+ 	 def versionNum() {	return "version 1.11" }       /*
+ 
+ *	 v1.11 (01-Nov-2016): standardize section headers
+ *	 v1.10 (27-Oct-2016): change layout of preferences pages, default value for app name
  *   v1.02 (26-Oct-2016): added trace for each event handler
  *   v1.01 (26-Oct-2016): added 'About' section in preferences
- *   v1 (2016 date unknown): working version, no version tracking up to this point
+ *   v1.00 (2016 date unknown): working version, no version tracking up to this point
  *
 */
 definition(
@@ -32,13 +34,23 @@ definition(
     iconX3Url: "http://cdn.device-icons.smartthings.com/Lighting/light17-icn@3x.png")
 
 
-//   -----------------------------------
-//   ***   SETTING THE PREFERENCES   ***
+//   ---------------------------
+//   ***   APP PREFERENCES   ***
 
 preferences {
 	page(name: "prefs")
 	page(name: "options")
 }
+
+
+//   --------------------------------
+//   ***   CONSTANTS DEFINITIONS  ***
+
+private C_1() { return "this is constant1" }
+
+
+//   -----------------------------
+//   ***   PAGES DEFINITIONS   ***
 
 def prefs() {
 	dynamicPage(name: "prefs", uninstall: true, install: true) {
@@ -118,8 +130,9 @@ def uninstalled() {
 
 def initialize() {
 	log.info "initializing"
-    theLight.off()
+    state.debugLevel = 0
     state.appOn = false
+    theLight.off()
     subscribeToEvents()
 	schedTurnOn()
 }
@@ -315,8 +328,8 @@ def terminate() {
 }
 
 
-//   ----------------
-//   ***   UTILS  ***
+//   -------------------------
+//   ***   APP FUNCTIONS   ***
 
 def getModeOk() {
 	def result = theModes?.contains(location.mode)
@@ -352,15 +365,6 @@ def getNowDOW() {
     def strDOW = javaDOW.format(new Date())
     //log.debug "strDOW :: $strDOW"
     return strDOW
-}
-
-def convertToHMS(ms) {
-    int hours = Math.floor(ms/1000/60/60)
-    int minutes = Math.floor((ms/1000/60) - (hours * 60))
-    int seconds = Math.floor((ms/1000) - (hours * 60 * 60) - (minutes * 60))
-    double millisec = ms-(hours*60*60*1000)-(minutes*60*1000)-(seconds*1000)
-    int tenths = (millisec/100).round(0)
-    return "${hours}h${minutes}m${seconds}.${tenths}s"
 }
 
 def schedOnDate() {
@@ -412,4 +416,17 @@ def schedOffDate() {
     }
     
     return offDate
+}
+
+
+//   ------------------------
+//   ***   COMMON UTILS   ***
+
+def convertToHMS(ms) {
+    int hours = Math.floor(ms/1000/60/60)
+    int minutes = Math.floor((ms/1000/60) - (hours * 60))
+    int seconds = Math.floor((ms/1000) - (hours * 60 * 60) - (minutes * 60))
+    double millisec = ms-(hours*60*60*1000)-(minutes*60*1000)-(seconds*1000)
+    int tenths = (millisec/100).round(0)
+    return "${hours}h${minutes}m${seconds}.${tenths}s"
 }

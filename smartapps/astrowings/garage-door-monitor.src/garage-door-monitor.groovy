@@ -13,11 +13,13 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *
- *  VERSION HISTORY
- *
+ *	VERSION HISTORY                                    */
+ 	 def versionNum() {	return "version 1.03" }       /*
+ 
+ *	 v1.03 (01-Nov-2016): standardize section headers
  *   v1.02 (26-Oct-2016): added trace for each event handler
  *   v1.01 (26-Oct-2016): added 'About' section in preferences
- *   v1 (2016 date unknown): working version, no version tracking up to this point
+ *   v1.00 (2016 date unknown): working version, no version tracking up to this point
  *
 */
 definition(
@@ -31,8 +33,8 @@ definition(
     iconX3Url: "http://cdn.device-icons.smartthings.com/Transportation/transportation12-icn@3x.png")
 
 
-//   -----------------------------------
-//   ***   SETTING THE PREFERENCES   ***
+//   ---------------------------
+//   ***   APP PREFERENCES   ***
 
 preferences {
 	section("About") {
@@ -62,6 +64,17 @@ preferences {
 //TODO: add option to send periodic reminders
 
 
+//   --------------------------------
+//   ***   CONSTANTS DEFINITIONS  ***
+
+private C_1() { return "this is constant1" }
+
+
+//   -----------------------------
+//   ***   PAGES DEFINITIONS   ***
+
+
+
 //   ----------------------------
 //   ***   APP INSTALLATION   ***
 
@@ -83,6 +96,7 @@ def uninstalled() {
 
 def initialize() {
 	log.info "initializing"
+    state.debugLevel = 0
     subscribe(myself, "presence.not present", iLeaveHandler)
     subscribe(everyone, "presence.not present", allLeaveHandler)
     subscribe(thedoor, "contact", doorHandler)
@@ -158,8 +172,8 @@ def sendText(msg) {
 }
 
 
-//   ----------------
-//   ***   UTILS  ***
+//   -------------------------
+//   ***   APP FUNCTIONS   ***
 
 def getEveryoneIsAway() {
     def result = true
@@ -178,3 +192,8 @@ def getImAway() {
     log.debug "imAway :: $result"
     return result
 }
+
+
+//   ------------------------
+//   ***   COMMON UTILS   ***
+

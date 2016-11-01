@@ -13,9 +13,11 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *
- *  VERSION HISTORY
- *
- *   v1 (29-Oct-2016): inital version base code adapted from 'Sunset Lights - v2'
+ *	VERSION HISTORY                                    */
+ 	 def versionNum() {	return "version 2.01" }       /*
+ 
+ *	 v2.01 (01-Nov-2016): standardize section headers
+ *   v2.00 (29-Oct-2016): inital version base code adapted from 'Sunset Lights - v2'
  *
 */
 definition(
@@ -29,8 +31,8 @@ definition(
     iconX3Url: "http://cdn.device-icons.smartthings.com/Lighting/light25-icn@3x.png")
 
 
-//   -----------------------------------
-//   ***   SETTING THE PREFERENCES   ***
+//   ---------------------------
+//   ***   APP PREFERENCES   ***
 
 preferences {
 	page(name: "page1", title: "Morning Lights - Turn ON", nextPage: "page2", uninstall: true) {
@@ -76,6 +78,17 @@ preferences {
 }
 
 
+//   --------------------------------
+//   ***   CONSTANTS DEFINITIONS  ***
+
+private C_1() { return "this is constant1" }
+
+
+//   -----------------------------
+//   ***   PAGES DEFINITIONS   ***
+
+
+
 //   ----------------------------
 //   ***   APP INSTALLATION   ***
 
@@ -97,6 +110,7 @@ def uninstalled() {
 
 def initialize() {
 	log.info "initializing"
+    state.debugLevel = 0
     subscribe(location, "sunriseTime", sunriseTimeHandler)	//triggers at sunrise, evt.value is the sunrise String (time for next day's sunrise)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
 
@@ -147,7 +161,7 @@ def schedTurnOff(sunriseString) {
 
 def schedTurnOn(datTurnOff) {
 	//fires at sunrise to schedule next day's turn-on
-    log.trace "schedTurnOn()"
+    log.trace "schedTurnOn(datTurnOff: ${datTurnOff})"
     
     def DOW_TurnOn = DOWTurnOnTime
     def default_TurnOn = defaultTurnOnTime
@@ -213,17 +227,8 @@ def turnOff() {
 }
 
 
-//   ----------------
-//   ***   UTILS  ***
-
-def convertToHMS(ms) {
-    int hours = Math.floor(ms/1000/60/60)
-    int minutes = Math.floor((ms/1000/60) - (hours * 60))
-    int seconds = Math.floor((ms/1000) - (hours * 60 * 60) - (minutes * 60))
-    double millisec = ms-(hours*60*60*1000)-(minutes*60*1000)-(seconds*1000)
-    int tenths = (millisec/100).round(0)
-    return "${hours}h${minutes}m${seconds}.${tenths}s"
-}
+//   -------------------------
+//   ***   APP FUNCTIONS   ***
 
 def getDefaultTurnOnTime() {
 //calculate default turn-on time
@@ -280,7 +285,7 @@ def getDOWTurnOnTime() {
         
         //apply random factor to turn-on time
 		if (randOn) {
-        	def random = new Random()
+            def random = new Random()
             def randOffset = random.nextInt(randOn)
             tmrOn = new Date(tmrOn.time - (randOn * 30000) + (randOffset * 60000))
             log.debug "randomized DOW turn-on time: $tmrOn"
@@ -292,4 +297,16 @@ def getDOWTurnOnTime() {
     	log.debug "DOW turn-on time not specified"
         return false
     }
+}
+
+//   ------------------------
+//   ***   COMMON UTILS   ***
+
+def convertToHMS(ms) {
+    int hours = Math.floor(ms/1000/60/60)
+    int minutes = Math.floor((ms/1000/60) - (hours * 60))
+    int seconds = Math.floor((ms/1000) - (hours * 60 * 60) - (minutes * 60))
+    double millisec = ms-(hours*60*60*1000)-(minutes*60*1000)-(seconds*1000)
+    int tenths = (millisec/100).round(0)
+    return "${hours}h${minutes}m${seconds}.${tenths}s"
 }

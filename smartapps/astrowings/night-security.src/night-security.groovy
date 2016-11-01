@@ -13,11 +13,13 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *
- *  VERSION HISTORY
- *
+ *	VERSION HISTORY                                    */
+ 	 def versionNum() {	return "version 1.03" }       /*
+ 
+ *	 v1.03 (01-Nov-2016): standardize section headers
  *   v1.02 (26-Oct-2016): added trace for each event handler
  *   v1.01 (26-Oct-2016): added 'About' section in preferences
- *   v1 (2016 date unknown): working version, no version tracking up to this point
+ *   v1.00 (2016 date unknown): working version, no version tracking up to this point
  *
 */
 definition(
@@ -31,8 +33,8 @@ definition(
     iconX3Url: "http://cdn.device-icons.smartthings.com/Weather/weather4-icn@3x.png")
 
 
-//   -----------------------------------
-//   ***   SETTING THE PREFERENCES   ***
+//   ---------------------------
+//   ***   APP PREFERENCES   ***
 
 preferences {
 	page(name: "topMenu")
@@ -42,6 +44,16 @@ preferences {
     page(name: "flashSettings")
     page(name: "switchSettings")
 }
+
+
+//   --------------------------------
+//   ***   CONSTANTS DEFINITIONS  ***
+
+private C_1() { return "this is constant1" }
+
+
+//   -----------------------------
+//   ***   PAGES DEFINITIONS   ***
 
 def topMenu() {
 	dynamicPage(name: "topMenu", uninstall: true, install: true) {
@@ -231,6 +243,7 @@ def uninstalled() {
 
 def initialize() {
 	log.info "initializing"
+    state.debugLevel = 0
     state.alarmTime = null
     flashLights?.off()
     turnOnLights?.off()
@@ -411,8 +424,8 @@ def deactivateLights() {
 }
 
 
-//   ----------------
-//   ***   UTILS  ***
+//   -------------------------
+//   ***   APP FUNCTIONS   ***
 
 def getItsDarkOut() {
     def sunTime = getSunriseAndSunset(sunsetOffset: 15)
@@ -518,3 +531,7 @@ def getAlarmOn() {
     log.debug "The alarm is currently ${result ? 'active' : 'inactive'}"
     return result
 }
+
+
+//   ------------------------
+//   ***   COMMON UTILS   ***

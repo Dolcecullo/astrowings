@@ -16,9 +16,11 @@
  *    https://community.smartthings.com/t/release-smart-weather-station-tile-updater-fix-broken-modes/8403
  *  
  * 
- *  VERSION HISTORY
- *
- *  Version 1.51
+ *	VERSION HISTORY                                    */
+ 	 def versionNum() {	return "version 1.52" }       /*
+ 
+ *	 v1.52 (01-Nov-2016): standardize section headers
+ *   v1.51 (30-Oct-2016): copied code from RBoy
  *   2016-10-30 - set updateInterval minimum value of 5 minutes in scheduledEvent()
  *				  make device type compatible with SmartWeather Station Tile 2.0
  *   2016-02-12 - Changed scheduling API's (hopefully more resilient), added an option for users to specify update interval
@@ -53,8 +55,8 @@ definition(
 )
 
 
-//   -----------------------------------
-//   ***   SETTING THE PREFERENCES   ***
+//   ---------------------------
+//   ***   APP PREFERENCES   ***
 
 preferences {
     section("About") {
@@ -67,6 +69,17 @@ preferences {
     }
 }
     
+
+//   --------------------------------
+//   ***   CONSTANTS DEFINITIONS  ***
+
+private C_1() { return "this is constant1" }
+
+
+//   -----------------------------
+//   ***   PAGES DEFINITIONS   ***
+
+
 
 //   ----------------------------
 //   ***   APP INSTALLATION   ***
@@ -89,6 +102,7 @@ def uninstalled() {
 
 def initialize() {
 	log.info "initializing"
+    state.debugLevel = 0
     subscribe(location, modeChangeHandler)
     subscribe(location, "sunset", sunsetHandler)
     subscribe(location, "sunrise", sunriseHandler)
@@ -131,3 +145,11 @@ def doRefresh() {
     runIn(adjustedFreq * 60, doRefresh)
     weatherDevices.refresh()
 }
+
+//   -------------------------
+//   ***   APP FUNCTIONS   ***
+
+
+
+//   ------------------------
+//   ***   COMMON UTILS   ***
