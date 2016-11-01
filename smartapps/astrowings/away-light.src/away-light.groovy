@@ -14,8 +14,9 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.11" }       /*
+ 	 def versionNum() {	return "version 1.20" }       /*
  
+ *	 v1.20 (01-Nov-2016): standardize pages layout
  *	 v1.11 (01-Nov-2016): standardize section headers
  *	 v1.10 (27-Oct-2016): change layout of preferences pages, default value for app name
  *   v1.02 (26-Oct-2016): added trace for each event handler
@@ -38,8 +39,10 @@ definition(
 //   ***   APP PREFERENCES   ***
 
 preferences {
-	page(name: "prefs")
-	page(name: "options")
+	page(name: "pageMain")
+	page(name: "pageSchedule")
+    page(name: "pageSettings")
+    page(name: "pageUninstall")
 }
 
 
@@ -52,54 +55,85 @@ private C_1() { return "this is constant1" }
 //   -----------------------------
 //   ***   PAGES DEFINITIONS   ***
 
-def prefs() {
-	dynamicPage(name: "prefs", uninstall: true, install: true) {
-    	section("About"){
-        	paragraph title: "This SmartApp turns a light on/off simulate presence while away.",
-            	"version 1.1"
+def pageMain() {
+	dynamicPage(name: "pageMain", install: true, uninstall: false) {
+    	section(){
+        	paragraph "", title: "This SmartApp turns a light on/off simulate presence while away."
         }
-        section("Select the light") {
+        section() {
             input "theLight", "capability.switch", title: "Which light?", multiple: false, required: true, submitOnChange: true
+            if (theLight) {
+                href "pageSchedule", title: "Set scheduling Options", required: false
+        	}
         }
-        if (theLight) {
-            section("Restrict automation to certain times (optional)") {
-                input "startTime", "time", title: "Start time?", required: false
-                input "endTime", "time", title: "End time?", required: false
-            }
-            section("Set additional scheduling options") {
-                href(page: "options", title: "Additional Options")
-            }
-            section("Only run in selected modes (automation disabled if none selected)") {
-                input "theModes", "mode", title: "Select the mode(s)", multiple: true, required: false
-            }
-            section() {
-                label title: "Assign a name", required: false, defaultValue: "Away Light - ${theLight.label}"
+		section() {
+			if (theLight) {
+            	href "pageSettings", title: "App settings", image: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png", required: false
             }
 		}
     }
 }
 
-def options() {
-	dynamicPage(name: "options") {
+def pageSchedule() {
+	dynamicPage(name: "pageSchedule", install: false, uninstall: false) {
         section(){
-        	paragraph title: "Additional Options",
-            	"Set additional scheduling options for the ${theLight.label ?: light}"
+        	paragraph title: "Scheduling Options",
+            	"Use the options on this page to set the scheduling options for the ${theLight.label}"
         }
-        section("Enable only for certain days of the week? (optional - will run every day if nothing selected)") {
-        	input "theDays", "enum", title: "On which days?", options: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], required: false, multiple: true
+        section("Restrict automation to certain times (optional)") {
+            input "startTime", "time", title: "Start time?", required: false
+            input "endTime", "time", title: "End time?", required: false
         }
-    	section("Only when it's dark out (between sunset and sunrise)") {
+    	section("Turn the light on only if it's dark out (based on sunset/sunrise)") {
         	input "bDark", "bool", title: "Yes/No?", required: false, submitOnChange: true
             if (bDark) {
-            	input "sunsetOffset", "number", title: "Sunset time offset (minutes)?", description: "Disable lights until x minutes after sunset", required: false
+            	input "sunsetOffset", "number", title: "Sunset time offset?", description: "Disable lights until x minutes after sunset", required: false
             }
         }
-        section("Set light on/off duration - use these settings to have the light turn on and off at the specified interval within the specified time window") {
+        section("Set light on/off duration - use these settings to have the light turn on and off within the activation period") {
             input "onFor", "number", title: "Stay on for (minutes)?", required: false //If set, the light will turn off after the amount of time specified (or at specified end time, whichever comes first)
             input "offFor", "number", title: "Leave off for (minutes)?", required: false //If set, the light will turn back on after the amount of time specified (unless the specified end time has passed)
         }
         section("Random factor - if set, randomize on/off times within the selected window") {
         	input "randWind", "number", title: "Random window (minutes)?", required: false
+        }
+        section("Enable only for certain days of the week? (optional - will run every day if nothing selected)") {
+        	input "theDays", "enum", title: "On which days?", options: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], required: false, multiple: true
+        }
+        section("Only run in selected modes (automation disabled if none selected)") {
+            input "theModes", "mode", title: "Select the mode(s)", multiple: true, required: false
+        }
+	}
+}
+
+def pageSettings() {
+	dynamicPage(name: "pageSettings", install: false, uninstall: false) {
+		section("About") {
+        	paragraph "Copyright ©2016 Phil Maynard\n${versionNum()}", title: app.name
+            //TODO: link to license
+		}
+   		section() {
+			label title: "Assign a name", defaultValue: "${app.name} - ${theLight.label}", required: false
+            href "pageUninstall", title: "Uninstall", description: "Uninstall this SmartApp", state: null, required: true
+		}
+        section("Debugging Options", hideable: true, hidden: true) {
+            input "debugging", "bool", title: "Enable debugging", defaultValue: false, required: false, submitOnChange: true
+            if (debugging) {
+                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false
+                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false
+                input "log#debug", "bool", title: "Log debug messages", defaultValue: true, required: false
+                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false
+                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false
+            }
+        }
+    }
+}
+
+def pageUninstall() {
+	dynamicPage(name: "pageUninstall", title: "Uninstall", install: false, uninstall: true) {
+		section() {
+        	paragraph parent ? "CAUTION: You are about to unschedule the '${theLight.label}'. This action is irreversible. If you want to proceed, tap on the 'Remove' button below." : "CAUTION: You are about to completely remove the SmartApp '${app.name}' and all of its schedules. This action is irreversible. If you want to proceed, tap on the 'Remove' button below.",
+                required: true, state: null
         }
 	}
 }
@@ -429,4 +463,69 @@ def convertToHMS(ms) {
     double millisec = ms-(hours*60*60*1000)-(minutes*60*1000)-(seconds*1000)
     int tenths = (millisec/100).round(0)
     return "${hours}h${minutes}m${seconds}.${tenths}s"
+}
+
+def debug(message, shift = null, lvl = null, err = null) {
+	def debugging = settings.debugging
+	if (!debugging) {
+		return
+	}
+	lvl = lvl ?: "debug"
+	if (!settings["log#$lvl"]) {
+		return
+	}
+	
+    def maxLevel = 4
+	def level = state.debugLevel ?: 0
+	def levelDelta = 0
+	def prefix = "║"
+	def pad = "░"
+	
+    //shift is:
+	//	 0 - initialize level, level set to 1
+	//	 1 - start of routine, level up
+	//	-1 - end of routine, level down
+	//	 anything else - nothing happens
+	
+    switch (shift) {
+		case 0:
+			level = 0
+			prefix = ""
+			break
+		case 1:
+			level += 1
+			prefix = "╚"
+			pad = "═"
+			break
+		case -1:
+			levelDelta = -(level > 0 ? 1 : 0)
+			pad = "═"
+			prefix = "╔"
+			break
+	}
+
+	if (level > 0) {
+		prefix = prefix.padLeft(level, "║").padRight(maxLevel, pad)
+	}
+
+	level += levelDelta
+	state.debugLevel = level
+
+	if (debugging) {
+		prefix += " "
+	} else {
+		prefix = ""
+	}
+
+	if (lvl == "info") {
+		log.info "◦◦$prefix$message", err
+	} else if (lvl == "trace") {
+		log.trace "◦$prefix$message", err
+	} else if (lvl == "warn") {
+		log.warn "◦$prefix$message", err
+	} else if (lvl == "error") {
+		log.error "◦$prefix$message", err
+	} else {
+		log.debug "$prefix$message", err
+	}
 }

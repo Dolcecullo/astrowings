@@ -14,8 +14,9 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 2.01" }       /*
+ 	 def versionNum() {	return "version 2.10" }       /*
  
+ *   v2.10 (01-Nov-2016): standardize pages layout
  *	 v2.01 (01-Nov-2016): standardize section headers
  *	 v2.00 (28-Oct-2016): add option to insert random delay between the switching of individual lights,
  *                        change method to evaluate which turn-off time to use
@@ -41,22 +42,54 @@ definition(
 //   ***   APP PREFERENCES   ***
 
 preferences {
-	page(name: "page1", title: "Sunset Lights - Turn ON", nextPage: "page2", uninstall: true) {
-        section("About") {
-        	paragraph title: "This SmartApp turns on selected lights at sunset and turns them off at a specified time." +
+	page(name: "pageMain")
+    page(name: "pageSchedule")
+    page(name: "pageRandom")
+    page(name: "pageSettings")
+    page(name: "pageUninstall")
+}
+
+
+//   --------------------------------
+//   ***   CONSTANTS DEFINITIONS  ***
+
+private C_1() { return "this is constant1" }
+
+
+//   -----------------------------
+//   ***   PAGES DEFINITIONS   ***
+
+def pageMain() {
+    dynamicPage(name: "pageMain", install: true, uninstall: false) {
+    	section(){
+        	paragraph "", title: "This SmartApp turns on selected lights at sunset and turns them off at a specified time." +
             	"Different turn-off times can be configured for each day of the week, and they can be " +
-                "randomized within a specified window to simulate manual activation.",
-            	"version 2"
+                "randomized within a specified window to simulate manual activation."
         }
-        section("Choose the lights to turn on") {
-            input "theLights", "capability.switch", title: "Lights", multiple: true, required: true
+        section() {
+            input "theLights", "capability.switch", title: "Which lights?", description: "Choose the lights to turn on", multiple: true, required: true, submitOnChange: true
+            if (theLights) {
+                href "pageSchedule", title: "Set scheduling options", required: false
+                href "pageRandom", title: "Configure random scheduling", required: false
+        	}
+        }
+		section() {
+			if (theLights) {
+            	href "pageSettings", title: "App settings", image: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png", required: false
+            }
+		}
+    }
+}
+
+def pageSchedule() {
+    dynamicPage(name: "pageSchedule", install: false, uninstall: false) {
+        section(){
+        	paragraph title: "Scheduling Options", "Use the options on this page to set the scheduling preferences."
         }
         section("Set the amount of time after sunset when the lights will turn on") {
             input "offset", "number", title: "Minutes (optional)", required: false
         }
-    }
-	page(name: "page2", title: "Sunset Lights - Turn OFF", nextPage: "page3") {
-    	section("Turn the lights off at this time (optional - lights will turn off 15 minutes before sunrise if no time is entered)") {
+    	section("Turn the lights off at this time (optional - lights will turn off 15 minutes before next sunrise if no time is entered)") {
         	input "timeOff", "time", title: "Time to turn lights off?", required: false
         }
     	section("Set a different time to turn off the lights on each day (optional - lights will turn off at the default time if not set)") {
@@ -69,8 +102,17 @@ preferences {
             input "saturdayOff", "time", title: "Saturday", required: false
         }
 	}
-	page(name: "page3", title: "Random Factor", install: true) {
-    	section("Optionally, specify a window around the scheduled time when the lights will turn on/off " +
+}
+
+def pageRandom() {
+    dynamicPage(name: "pageRandom", install: false, uninstall: false) {
+        section(){
+        	paragraph title: "Random Scheduling",
+            	"Use the options on this page to add a random factor to " +
+                "the lights' switching so the timing varies slightly " +
+                "from one day to another (it looks more 'human' that way)."
+        }
+    	section("Specify a window around the scheduled time when the lights will turn on/off " +
         	"(e.g. a 30-minute window would have the lights switch sometime between " +
             "15 minutes before and 15 minutes after the scheduled time.)") {
             input "randOn", "number", title: "Random ON window (minutes)?", required: false
@@ -85,19 +127,40 @@ preferences {
             input "offDelay", "bool", title: "Delay switch-off?", required: false
             input "delaySeconds", "number", title: "Delay switching by up to (seconds)?", required: true, defaultValue: 15
         }
+	}
+}
+
+def pageSettings() {
+	dynamicPage(name: "pageSettings", install: false, uninstall: false) {
+		section("About") {
+        	paragraph "Copyright ©2016 Phil Maynard\n${versionNum()}", title: app.name
+            //TODO: link to license
+		}
+   		section() {
+			label title: "Assign a name", defaultValue: "${app.name}", required: false
+            href "pageUninstall", title: "Uninstall", description: "Uninstall this SmartApp", state: null, required: true
+		}
+        section("Debugging Options", hideable: true, hidden: true) {
+            input "debugging", "bool", title: "Enable debugging", defaultValue: false, required: false, submitOnChange: true
+            if (debugging) {
+                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false
+                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false
+                input "log#debug", "bool", title: "Log debug messages", defaultValue: true, required: false
+                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false
+                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false
+            }
+        }
     }
 }
 
-
-//   --------------------------------
-//   ***   CONSTANTS DEFINITIONS  ***
-
-private C_1() { return "this is constant1" }
-
-
-//   -----------------------------
-//   ***   PAGES DEFINITIONS   ***
-
+def pageUninstall() {
+	dynamicPage(name: "pageUninstall", title: "Uninstall", install: false, uninstall: true) {
+		section() {
+        	paragraph "CAUTION: You are about to completely remove the SmartApp '${app.name}'. This action is irreversible. If you want to proceed, tap on the 'Remove' button below.",
+                required: true, state: null
+        }
+	}
+}
 
 
 //   ----------------------------
@@ -326,4 +389,69 @@ def convertToHMS(ms) {
     double millisec = ms-(hours*60*60*1000)-(minutes*60*1000)-(seconds*1000)
     int tenths = (millisec/100).round(0)
     return "${hours}h${minutes}m${seconds}.${tenths}s"
+}
+
+def debug(message, shift = null, lvl = null, err = null) {
+	def debugging = settings.debugging
+	if (!debugging) {
+		return
+	}
+	lvl = lvl ?: "debug"
+	if (!settings["log#$lvl"]) {
+		return
+	}
+	
+    def maxLevel = 4
+	def level = state.debugLevel ?: 0
+	def levelDelta = 0
+	def prefix = "║"
+	def pad = "░"
+	
+    //shift is:
+	//	 0 - initialize level, level set to 1
+	//	 1 - start of routine, level up
+	//	-1 - end of routine, level down
+	//	 anything else - nothing happens
+	
+    switch (shift) {
+		case 0:
+			level = 0
+			prefix = ""
+			break
+		case 1:
+			level += 1
+			prefix = "╚"
+			pad = "═"
+			break
+		case -1:
+			levelDelta = -(level > 0 ? 1 : 0)
+			pad = "═"
+			prefix = "╔"
+			break
+	}
+
+	if (level > 0) {
+		prefix = prefix.padLeft(level, "║").padRight(maxLevel, pad)
+	}
+
+	level += levelDelta
+	state.debugLevel = level
+
+	if (debugging) {
+		prefix += " "
+	} else {
+		prefix = ""
+	}
+
+	if (lvl == "info") {
+		log.info "◦◦$prefix$message", err
+	} else if (lvl == "trace") {
+		log.trace "◦$prefix$message", err
+	} else if (lvl == "warn") {
+		log.warn "◦$prefix$message", err
+	} else if (lvl == "error") {
+		log.error "◦$prefix$message", err
+	} else {
+		log.debug "$prefix$message", err
+	}
 }

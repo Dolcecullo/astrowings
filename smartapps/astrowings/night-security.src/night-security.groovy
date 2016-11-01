@@ -14,8 +14,9 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.03" }       /*
+ 	 def versionNum() {	return "version 1.10" }       /*
  
+ *   v1.10 (01-Nov-2016): standardize pages layout
  *	 v1.03 (01-Nov-2016): standardize section headers
  *   v1.02 (26-Oct-2016): added trace for each event handler
  *   v1.01 (26-Oct-2016): added 'About' section in preferences
@@ -37,12 +38,12 @@ definition(
 //   ***   APP PREFERENCES   ***
 
 preferences {
-	page(name: "topMenu")
-	page(name: "sensorSelect", hideWhenEmpty: true)
-    page(name: "scheduling")
-    page(name: "notifyMethod")
-    page(name: "flashSettings")
-    page(name: "switchSettings")
+	page(name: "pageMain")
+	page(name: "pageSensors", hideWhenEmpty: true)
+    page(name: "pageSchedule")
+    page(name: "pageNotify")
+    page(name: "pageFlash")
+    page(name: "pageSwitch")
 }
 
 
@@ -55,27 +56,26 @@ private C_1() { return "this is constant1" }
 //   -----------------------------
 //   ***   PAGES DEFINITIONS   ***
 
-def topMenu() {
-	dynamicPage(name: "topMenu", uninstall: true, install: true) {
-    	section("About"){
-        	paragraph title: "This SmartApp sends an alert when any of the selected sensors are triggered. " +
+def pageMain() {
+	dynamicPage(name: "pageMain", install: true, uninstall: false) {
+    	section(){
+        	paragraph "", title: "This SmartApp sends an alert when any of the selected sensors are triggered. " +
             	"It sends push notifications, SMS alerts, turns lights on, and flashes lights to alert the user of an intrusion. " +
-                "Can be used to monitor if someone (child, elderly) is attempting to leave the house.",
-        		"version 1.02"
+                "Can be used to monitor if someone (child, elderly) is attempting to leave the house."
         }
-        section("Setup Menu") {
-            href(page: "sensorSelect", title: "Sensor Selection", description: sensorDesc)
-            href(page: "scheduling", title: "Scheduling Options", description: "Set the conditions for the monitoring window")
-            href(page: "notifyMethod", title: "Notification Method", description: "Configure the notification method")
+        section("Configuration") {
+            href(page: "pageSensors", title: "Sensor Selection", description: sensorDesc)
+            href(page: "pageSchedule", title: "Scheduling Options", description: "Set the conditions for the monitoring window")
+            href(page: "pageNotify", title: "Notification Method", description: "Configure the notification method")
 		}
-        section() {
-        	label title: "Assign a name", required: false
-        }
+		section() {
+            href "pageSettings", title: "App settings", image: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png", required: false
+		}
 	}
 }
 
-def sensorSelect() {
-	dynamicPage(name: "sensorSelect") {
+def pageSensors() {
+	dynamicPage(name: "pageSensors", install: false, uninstall: false) {
         section(){
         	paragraph title: "Sensor Selection",
             	"Select the various sensors you want to monitor (i.e. triggers)."
@@ -90,16 +90,16 @@ def sensorSelect() {
 	}
 }
 
-def scheduling() {
-	dynamicPage(name: "scheduling") {
+def pageSchedule() {
+	dynamicPage(name: "pageSchedule", install: false, uninstall: false) {
         section(){
         	paragraph title: "Monitoring Schedule",
-            	"Set the conditions for the monitoring window. These settings are cumulative " +
+            	"Set the conditions for the monitoring window. These settings are the 'and' type " +
             	"(e.g. selecting \"Dark out\" and \"Days of week: Monday\" would only alert for " +
-                "intrusions/triggers that occur during darkness on Monday, not anytime on Monday and " +
+                "intrusions/triggers that occur during darkness on Monday, not anytime on Monday or " +
                 "anytime it's dark)"
         }
-    	section("When the mode is set to...") {
+    	section("When the mode is set to... (any mode if none selected)") {
         	input "theModes", "mode", title: "Select the mode(s)", multiple: true, required: false
         }
     	section("When it's dark out (between sunset and sunrise)") {
@@ -108,7 +108,7 @@ def scheduling() {
         section("When someone is home") {
         	input "thePresence", "capability.presenceSensor", title: "Who?", multiple: true, required: false
         }
-        section("On certain days of the week") {
+        section("On certain days of the week (any day if none selected)") {
         	input "theDays", "enum", title: "On which days?", options: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], required: false, multiple: true
         }
         section("Between certain times") {
@@ -121,14 +121,11 @@ def scheduling() {
 	}
 }
 
-def notifyMethod() {
-	dynamicPage(name: "notifyMethod") {
+def pageNotify() {
+	dynamicPage(name: "pageNotify", install: false, uninstall: false) {
         section(){
         	paragraph title: "Notification Method",
             	"Configure the method used to notify of a trigger condition."
-        }
-        section("Set the cooldown period") {
-        	input "coolDown", "number", title: "Do not trigger another alarm within? (minutes)", required: false
         }
         section("Send a push notification") {
         	input "pushYesNo", "bool", title: "Yes/No?", required: false
@@ -142,81 +139,104 @@ def notifyMethod() {
         section("Flash a light") {
             input "flashYesNo", "bool", title: "Yes/No?", required: false, submitOnChange: true
 	        if (flashYesNo) {
-        		href(page: "flashSettings", title: "Settings")
+        		href(page: "pageFlash", title: "Flasher settings")
             }
         }
         section("Turn a light/switch on") {
         	input "lightYesNo", "bool", title: "Yes/No?", required: false, submitOnChange: true
 	        if (lightYesNo) {
-            	href(page: "switchSettings", title: "Settings")
+            	href(page: "pageSwitch", title: "Switch settings")
             }
+        }
+        section("Set the cooldown period") {
+        	input "coolDown", "number", title: "Do not trigger another alarm within? (minutes)", required: false
         }
     }
 }
 
-def flashSettings() {
-	dynamicPage(name: "flashSettings") {
+def pageFlash() {
+	dynamicPage(name: "pageFlash", install: false, uninstall: false) {
         section(){
-        	paragraph title: "Light Flash Settings",
+        	paragraph title: "Configure flasher settings",
             	"Configure the frequency and duration to have a light flash when an alarm condition is detected."
         }
         section("Choose the light(s)") {
-        	input "flashLights", "capability.switch", title: "Which?", multiple: true
+        	input "flashLights", "capability.switch", title: "Which?", multiple: true, submitOnChange: true
         }
-        section("Set the flash interval") {
-        	input "flashOnFor", "number", title: "How many seconds ON? (default = 1)", required: false
-            input "flashOffFor", "number", title: "How many seconds OFF? (default = 1)", required: false
-        }
-        section("Set the number of flash cycles") {
-        	input "flashCycles", "number", title: "How many cycles? (default = 3)", required: false
-        }
-        section("Leave light(s) on after the flashing duration") {
-        	input "flashLeaveOn", "bool", title: "Yes/No?", submitOnChange: true, required: false, defaultValue: false
-            if (flashLeaveOn) {
-            	input "flashLeaveDuration", "number", title: "For how long (minutes)?", required: false
-                input "flashOffSun", "bool", title: "Turn off at sunrise?", defaultValue: true
+        if (flashLights) {
+            section("Set the flash interval") {
+                input "flashOnFor", "number", title: "How many seconds ON? (default = 1)", required: false
+                input "flashOffFor", "number", title: "How many seconds OFF? (default = 1)", required: false
+            }
+            section("Set the number of flash cycles") {
+                input "flashCycles", "number", title: "How many cycles? (default = 3)", required: false //TODO: change default to 5 (use constant)
+            }
+            section("Leave light(s) on after the flashing duration") {
+                input "flashLeaveOn", "bool", title: "Yes/No?", submitOnChange: true, required: false, defaultValue: false
+                if (flashLeaveOn) {
+                    input "flashLeaveDuration", "number", title: "For how long (minutes)?", required: false
+                    input "flashOffSun", "bool", title: "Turn off at sunrise?", defaultValue: true, required: false //TODO: remove this option
+                }
             }
         }
     }
 }
 
-def switchSettings() {
-	dynamicPage(name: "switchSettings") {
+def pageSwitch() {
+	dynamicPage(name: "pageSwitch", install: false, uninstall: false) {
         section(){
         	paragraph title: "Configure switch on/off settings",
-            	"Configure the settings on this page to turn on a light/switch when an alarm condition is detected."
+            	"Configure the settings on this page to turn a light (or switch) on when an alarm condition is detected."
         }
         section("Choose the light(s)") {
-        	input "turnOnLights", "capability.switch", title: "Which?", multiple: true
+        	input "turnOnLights", "capability.switch", title: "Which?", multiple: true, submitOnChange: true
         }
-        section("Set the light(s) to turn off automatically") {
-        	input "turnOnDurationYN", "bool", title: "After a predetermined duration?", submitOnChange: true, required: false, defaultValue: false
-            if (turnOnDurationYN) {
-            	input "turnOnMinutes", "number", title: "Minutes?", required: true
+        if (turnOnLights) {
+            section("Set the light(s) to turn off automatically") {
+                input "turnOnDurationYN", "bool", title: "After a predetermined duration?", submitOnChange: true, required: false, defaultValue: false
+                if (turnOnDurationYN) {
+                    input "turnOnMinutes", "number", title: "How long (minutes)?", required: true
+                }
+                input "turnOffTimeYN", "bool", title: "At a specific time?", submitOnChange: true, required: false, defaultValue: false
+                if (turnOffTimeYN) {
+                    input "turnOffTime", "time", title: "What time?", required: true
+                }
+                input "turnOnSun", "bool", title: "At sunrise?", defaultValue: true, required: false //TODO: remove this option
             }
-        	input "turnOffTimeYN", "bool", title: "At a specific time?", submitOnChange: true, required: false, defaultValue: false
-            if (turnOffTimeYN) {
-            	input "turnOffTime", "time", title: "What time?", required: true
-            }
-            input "turnOnSun", "bool", title: "At sunrise?", defaultValue: true, required: false
         }
     }
 }
 
-def getSensorDesc() {
-	if (theContacts || theMotions || theSmoke || theCO || theWater) {
-    	def numSensors =
-        	(theContacts?.size() ?: 0) +
-            (theMotions?.size() ?: 0) +
-            (theSmoke?.size() ?: 0) +
-            (theCO?.size() ?: 0) +
-            (theWater?.size() ?: 0)
-    	//log.debug "${(theContacts?.size() ?: 0)}, ${(theMotions?.size() ?: 0)}, ${(theSmoke?.size() ?: 0)}, ${(theCO?.size() ?: 0)}, ${(theWater?.size() ?: 0)}"
-        //log.debug "number of sensors: $numSensors"
-        return "$numSensors sensors selected"
-    } else {
-    	return "Select the sensors to monitor"
+def pageSettings() {
+	dynamicPage(name: "pageSettings", install: false, uninstall: false) {
+		section("About") {
+        	paragraph "Copyright ©2016 Phil Maynard\n${versionNum()}", title: app.name
+            //TODO: link to license
+		}
+   		section() {
+			label title: "Assign a name", defaultValue: "${app.name}", required: false
+            href "pageUninstall", title: "Uninstall", description: "Uninstall this SmartApp", state: null, required: true
+		}
+        section("Debugging Options", hideable: true, hidden: true) {
+            input "debugging", "bool", title: "Enable debugging", defaultValue: false, required: false, submitOnChange: true
+            if (debugging) {
+                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false
+                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false
+                input "log#debug", "bool", title: "Log debug messages", defaultValue: true, required: false
+                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false
+                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false
+            }
+        }
     }
+}
+
+def pageUninstall() {
+	dynamicPage(name: "pageUninstall", title: "Uninstall", install: false, uninstall: true) {
+		section() {
+        	paragraph "CAUTION: You are about to completely remove the SmartApp '${app.name}'. This action is irreversible. If you want to proceed, tap on the 'Remove' button below.",
+                required: true, state: null
+        }
+	}
 }
 
 
@@ -427,6 +447,22 @@ def deactivateLights() {
 //   -------------------------
 //   ***   APP FUNCTIONS   ***
 
+def getSensorDesc() {
+	if (theContacts || theMotions || theSmoke || theCO || theWater) {
+    	def numSensors =
+        	(theContacts?.size() ?: 0) +
+            (theMotions?.size() ?: 0) +
+            (theSmoke?.size() ?: 0) +
+            (theCO?.size() ?: 0) +
+            (theWater?.size() ?: 0)
+    	//log.debug "${(theContacts?.size() ?: 0)}, ${(theMotions?.size() ?: 0)}, ${(theSmoke?.size() ?: 0)}, ${(theCO?.size() ?: 0)}, ${(theWater?.size() ?: 0)}"
+        //log.debug "number of sensors: $numSensors"
+        return "$numSensors sensors selected"
+    } else {
+    	return "Select the sensors to monitor"
+    }
+}
+
 def getItsDarkOut() {
     def sunTime = getSunriseAndSunset(sunsetOffset: 15)
     def currentDTG = new Date()
@@ -535,3 +571,68 @@ def getAlarmOn() {
 
 //   ------------------------
 //   ***   COMMON UTILS   ***
+
+def debug(message, shift = null, lvl = null, err = null) {
+	def debugging = settings.debugging
+	if (!debugging) {
+		return
+	}
+	lvl = lvl ?: "debug"
+	if (!settings["log#$lvl"]) {
+		return
+	}
+	
+    def maxLevel = 4
+	def level = state.debugLevel ?: 0
+	def levelDelta = 0
+	def prefix = "║"
+	def pad = "░"
+	
+    //shift is:
+	//	 0 - initialize level, level set to 1
+	//	 1 - start of routine, level up
+	//	-1 - end of routine, level down
+	//	 anything else - nothing happens
+	
+    switch (shift) {
+		case 0:
+			level = 0
+			prefix = ""
+			break
+		case 1:
+			level += 1
+			prefix = "╚"
+			pad = "═"
+			break
+		case -1:
+			levelDelta = -(level > 0 ? 1 : 0)
+			pad = "═"
+			prefix = "╔"
+			break
+	}
+
+	if (level > 0) {
+		prefix = prefix.padLeft(level, "║").padRight(maxLevel, pad)
+	}
+
+	level += levelDelta
+	state.debugLevel = level
+
+	if (debugging) {
+		prefix += " "
+	} else {
+		prefix = ""
+	}
+
+	if (lvl == "info") {
+		log.info "◦◦$prefix$message", err
+	} else if (lvl == "trace") {
+		log.trace "◦$prefix$message", err
+	} else if (lvl == "warn") {
+		log.warn "◦$prefix$message", err
+	} else if (lvl == "error") {
+		log.error "◦$prefix$message", err
+	} else {
+		log.debug "$prefix$message", err
+	}
+}

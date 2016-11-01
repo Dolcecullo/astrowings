@@ -17,8 +17,9 @@
  *  
  * 
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.52" }       /*
+ 	 def versionNum() {	return "version 1.60" }       /*
  
+ *   v1.60 (01-Nov-2016): standardize pages layout
  *	 v1.52 (01-Nov-2016): standardize section headers
  *   v1.51 (30-Oct-2016): copied code from RBoy
  *   2016-10-30 - set updateInterval minimum value of 5 minutes in scheduledEvent()
@@ -59,14 +60,9 @@ definition(
 //   ***   APP PREFERENCES   ***
 
 preferences {
-    section("About") {
-    	paragraph title: "This SmartApp updates SmartWeather Station Tile devices at specified intervals.",
-        	"version 1.5"
-    }
-    section ("Weather Devices") {
-        input name: "weatherDevices", type: "device.smartWeatherStationTile2", title: "Select device(s)", description: "Select the Weather Tiles to update", required: true, multiple: true
-        input name: "updateFreq", type: "number", title: "Update frequency (min. 5 minutes)", description: "How often do you want to update the weather information?", required: true, defaultValue: 15
-    }
+	page(name: "pageMain")
+    page(name: "pageSettings")
+    page(name: "pageUninstall")
 }
     
 
@@ -79,6 +75,55 @@ private C_1() { return "this is constant1" }
 //   -----------------------------
 //   ***   PAGES DEFINITIONS   ***
 
+preferences {
+}
+
+def pageMain() {
+    dynamicPage(name: "pageMain", install: true, uninstall: false) {
+    	section(){
+        	paragraph "", title: "This SmartApp updates SmartWeather Station Tile devices at specified intervals."
+        }
+        section ("Weather Devices") {
+            input name: "weatherDevices", type: "device.smartWeatherStationTile2", title: "Select device(s)", description: "Select the Weather Tiles to update", required: true, multiple: true
+            input name: "updateFreq", type: "number", title: "Update frequency (min. 5 minutes)", description: "How often do you want to update the weather information?", required: true, defaultValue: 15
+        }
+		section() {
+            href "pageSettings", title: "App settings", image: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png", required: false
+		}
+    }
+}
+
+def pageSettings() {
+	dynamicPage(name: "pageSettings", install: false, uninstall: false) {
+		section("About") {
+        	paragraph "Copyright ©2016 Phil Maynard\n${versionNum()}", title: app.name
+            //TODO: link to license
+		}
+   		section() {
+			label title: "Assign a name", defaultValue: "${app.name}", required: false
+            href "pageUninstall", title: "Uninstall", description: "Uninstall this SmartApp", state: null, required: true
+		}
+        section("Debugging Options", hideable: true, hidden: true) {
+            input "debugging", "bool", title: "Enable debugging", defaultValue: false, required: false, submitOnChange: true
+            if (debugging) {
+                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false
+                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false
+                input "log#debug", "bool", title: "Log debug messages", defaultValue: true, required: false
+                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false
+                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false
+            }
+        }
+    }
+}
+
+def pageUninstall() {
+	dynamicPage(name: "pageUninstall", title: "Uninstall", install: false, uninstall: true) {
+		section() {
+        	paragraph "CAUTION: You are about to completely remove the SmartApp '${app.name}'. This action is irreversible. If you want to proceed, tap on the 'Remove' button below.",
+                required: true, state: null
+        }
+	}
+}
 
 
 //   ----------------------------
@@ -153,3 +198,68 @@ def doRefresh() {
 
 //   ------------------------
 //   ***   COMMON UTILS   ***
+
+def debug(message, shift = null, lvl = null, err = null) {
+	def debugging = settings.debugging
+	if (!debugging) {
+		return
+	}
+	lvl = lvl ?: "debug"
+	if (!settings["log#$lvl"]) {
+		return
+	}
+	
+    def maxLevel = 4
+	def level = state.debugLevel ?: 0
+	def levelDelta = 0
+	def prefix = "║"
+	def pad = "░"
+	
+    //shift is:
+	//	 0 - initialize level, level set to 1
+	//	 1 - start of routine, level up
+	//	-1 - end of routine, level down
+	//	 anything else - nothing happens
+	
+    switch (shift) {
+		case 0:
+			level = 0
+			prefix = ""
+			break
+		case 1:
+			level += 1
+			prefix = "╚"
+			pad = "═"
+			break
+		case -1:
+			levelDelta = -(level > 0 ? 1 : 0)
+			pad = "═"
+			prefix = "╔"
+			break
+	}
+
+	if (level > 0) {
+		prefix = prefix.padLeft(level, "║").padRight(maxLevel, pad)
+	}
+
+	level += levelDelta
+	state.debugLevel = level
+
+	if (debugging) {
+		prefix += " "
+	} else {
+		prefix = ""
+	}
+
+	if (lvl == "info") {
+		log.info "◦◦$prefix$message", err
+	} else if (lvl == "trace") {
+		log.trace "◦$prefix$message", err
+	} else if (lvl == "warn") {
+		log.warn "◦$prefix$message", err
+	} else if (lvl == "error") {
+		log.error "◦$prefix$message", err
+	} else {
+		log.debug "$prefix$message", err
+	}
+}

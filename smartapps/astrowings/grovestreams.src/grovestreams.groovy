@@ -16,48 +16,32 @@
  *    https://www.grovestreams.com/developers/getting_started_smartthings.html
  *  
  * 
- *	VERSION HISTORY                                       */
- 	 def versionNum() {	return "version 1.01" }          /*
+ *	VERSION HISTORY                                    */
+ 	 def versionNum() {	return "version 1.10" }       /*
  
+ *   v1.10 (01-Nov-2016): standardize pages layout
  *	 v1.01 (01-Nov-2016): standardize section headers
  *   v1.00 (30-Oct-2016): copied code from example (https://www.grovestreams.com/developers/getting_started_smartthings.html)
  *
 */
 definition(
-                name: "GroveStreams",
-                namespace: "astrowings",
-                author: "Jason Steele",
-                description: "Log to GroveStreams",
-                category: "Convenience",
-                iconUrl: "http://cdn.device-icons.smartthings.com/Office/office8-icn.png",
-                iconX2Url: "http://cdn.device-icons.smartthings.com/Office/office8-icn@2x.png",
-                iconX3Url: "http://cdn.device-icons.smartthings.com/Office/office8-icn@3x.png")
+    name: "GroveStreams",
+    namespace: "astrowings",
+    author: "Jason Steele",
+    description: "Log to GroveStreams",
+    category: "Convenience",
+    iconUrl: "http://cdn.device-icons.smartthings.com/Office/office8-icn.png",
+    iconX2Url: "http://cdn.device-icons.smartthings.com/Office/office8-icn@2x.png",
+    iconX3Url: "http://cdn.device-icons.smartthings.com/Office/office8-icn@3x.png")
 
 
 //   ---------------------------
 //   ***   APP PREFERENCES   ***
 
 preferences {
-    section("About") {
-        paragraph title: "This SmartApp logs events from selected sensors to the GroveStreams data analytics platform",
-            "version 1"
-    }
-    section("Log devices...") {
-        input "temperatures", "capability.temperatureMeasurement", title: "Temperatures", required:false, multiple: true
-        input "humidities", "capability.relativeHumidityMeasurement", title: "Humidities", required: false, multiple: true
-        input "contacts", "capability.contactSensor", title: "Doors open/close", required: false, multiple: true
-        input "accelerations", "capability.accelerationSensor", title: "Accelerations", required: false, multiple: true
-        input "motions", "capability.motionSensor", title: "Motions", required: false, multiple: true
-        input "presence", "capability.presenceSensor", title: "Presence", required: false, multiple: true
-        input "switches", "capability.switch", title: "Switches", required: false, multiple: true
-        input "waterSensors", "capability.waterSensor", title: "Water sensors", required: false, multiple: true
-        input "batteries", "capability.battery", title: "Batteries", required:false, multiple: true
-        input "powers", "capability.powerMeter", title: "Power Meters", required:false, multiple: true
-        input "energies", "capability.energyMeter", title: "Energy Meters", required:false, multiple: true
-    }
-    section ("GroveStreams Feed PUT API key...") {
-        input "apiKey", "text", title: "API key"
-    }
+	page(name: "pageMain")
+    page(name: "pageSettings")
+    page(name: "pageUninstall")
 }
 
 
@@ -70,6 +54,64 @@ private C_1() { return "this is constant1" }
 //   -----------------------------
 //   ***   PAGES DEFINITIONS   ***
 
+def pageMain() {
+    dynamicPage(name: "pageMain", install: true, uninstall: false) {
+    	section(){
+        	paragraph "", title: "This SmartApp logs events from selected sensors to the GroveStreams data analytics platform"
+        }
+        section("Log devices...") { //TODO: move section to its own page
+            input "temperatures", "capability.temperatureMeasurement", title: "Temperatures", required:false, multiple: true
+            input "humidities", "capability.relativeHumidityMeasurement", title: "Humidities", required: false, multiple: true
+            input "contacts", "capability.contactSensor", title: "Doors open/close", required: false, multiple: true
+            input "accelerations", "capability.accelerationSensor", title: "Accelerations", required: false, multiple: true
+            input "motions", "capability.motionSensor", title: "Motions", required: false, multiple: true
+            input "presence", "capability.presenceSensor", title: "Presence", required: false, multiple: true
+            input "switches", "capability.switch", title: "Switches", required: false, multiple: true
+            input "waterSensors", "capability.waterSensor", title: "Water sensors", required: false, multiple: true
+            input "batteries", "capability.battery", title: "Batteries", required:false, multiple: true
+            input "powers", "capability.powerMeter", title: "Power Meters", required:false, multiple: true
+            input "energies", "capability.energyMeter", title: "Energy Meters", required:false, multiple: true
+        }
+		section() {
+            href "pageSettings", title: "App settings", image: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png", required: false
+		}
+    }
+}
+
+def pageSettings() {
+	dynamicPage(name: "pageSettings", install: false, uninstall: false) {
+		section("About") {
+        	paragraph "Copyright ©2016 Phil Maynard\n${versionNum()}", title: app.name
+            //TODO: link to license
+		}
+        section ("GroveStreams Feed PUT API key") {
+            input "apiKey", "text", title: "Enter API key"
+        }
+   		section() {
+			label title: "Assign a name", defaultValue: "${app.name}", required: false
+            href "pageUninstall", title: "Uninstall", description: "Uninstall this SmartApp", state: null, required: true
+		}
+        section("Debugging Options", hideable: true, hidden: true) {
+            input "debugging", "bool", title: "Enable debugging", defaultValue: false, required: false, submitOnChange: true
+            if (debugging) {
+                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false
+                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false
+                input "log#debug", "bool", title: "Log debug messages", defaultValue: true, required: false
+                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false
+                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false
+            }
+        }
+    }
+}
+
+def pageUninstall() {
+	dynamicPage(name: "pageUninstall", title: "Uninstall", install: false, uninstall: true) {
+		section() {
+        	paragraph "CAUTION: You are about to completely remove the SmartApp '${app.name}'. This action is irreversible. If you want to proceed, tap on the 'Remove' button below.",
+                required: true, state: null
+        }
+	}
+}
 
 
 //   ----------------------------
@@ -202,3 +244,68 @@ private sendValue(evt, Closure convert) {
 
 //   ------------------------
 //   ***   COMMON UTILS   ***
+
+def debug(message, shift = null, lvl = null, err = null) {
+	def debugging = settings.debugging
+	if (!debugging) {
+		return
+	}
+	lvl = lvl ?: "debug"
+	if (!settings["log#$lvl"]) {
+		return
+	}
+	
+    def maxLevel = 4
+	def level = state.debugLevel ?: 0
+	def levelDelta = 0
+	def prefix = "║"
+	def pad = "░"
+	
+    //shift is:
+	//	 0 - initialize level, level set to 1
+	//	 1 - start of routine, level up
+	//	-1 - end of routine, level down
+	//	 anything else - nothing happens
+	
+    switch (shift) {
+		case 0:
+			level = 0
+			prefix = ""
+			break
+		case 1:
+			level += 1
+			prefix = "╚"
+			pad = "═"
+			break
+		case -1:
+			levelDelta = -(level > 0 ? 1 : 0)
+			pad = "═"
+			prefix = "╔"
+			break
+	}
+
+	if (level > 0) {
+		prefix = prefix.padLeft(level, "║").padRight(maxLevel, pad)
+	}
+
+	level += levelDelta
+	state.debugLevel = level
+
+	if (debugging) {
+		prefix += " "
+	} else {
+		prefix = ""
+	}
+
+	if (lvl == "info") {
+		log.info "◦◦$prefix$message", err
+	} else if (lvl == "trace") {
+		log.trace "◦$prefix$message", err
+	} else if (lvl == "warn") {
+		log.warn "◦$prefix$message", err
+	} else if (lvl == "error") {
+		log.error "◦$prefix$message", err
+	} else {
+		log.debug "$prefix$message", err
+	}
+}
