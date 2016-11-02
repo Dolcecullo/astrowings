@@ -70,7 +70,6 @@ preferences {
 //   --------------------------------
 //   ***   CONSTANTS DEFINITIONS  ***
 
-private C_1() { return "this is constant1" }
 
 
 //   -----------------------------
@@ -86,7 +85,7 @@ def pageMain() {
         }
         section ("Weather Devices") {
             input name: "weatherDevices", type: "device.smartWeatherStationTile2", title: "Select device(s)", description: "Select the Weather Tiles to update", required: true, multiple: true
-            input name: "updateFreq", type: "number", title: "Update frequency (min. 5 minutes)", description: "How often do you want to update the weather information?", required: true, defaultValue: 15
+            input name: "updateFreq", type: "number", title: "Update frequency (min. 5 minutes)", description: "How often do you want to update the weather information?", required: true, defaultValue: 15 //TODO: use constant for default and minimum
         }
 		section() {
             href "pageSettings", title: "App settings", image: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png", required: false
@@ -197,9 +196,9 @@ def doRefresh() {
 
     debug "refresh frequency setting (updateFreq): $updateFreq minutes"
 	def adjustedFreq = updateFreq
-    if (adjustedFreq < 5) { //TODO: replace '5' with constant
+    if (adjustedFreq < 5) { //TODO: replace '5'(minimum value) with constant
         //debug "refresh frequency adjusted to the minimum value of 5 minutes"
-        adjustedFreq = 5
+        adjustedFreq = 5 //TODO: replace '5'(minimum value) with constant
     }
     runIn(adjustedFreq * 60, doRefresh)
     weatherDevices.refresh()

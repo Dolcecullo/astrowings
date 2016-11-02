@@ -48,7 +48,6 @@ preferences {
 //   --------------------------------
 //   ***   CONSTANTS DEFINITIONS  ***
 
-private C_1() { return "this is constant1" }
 
 
 //   -----------------------------
@@ -272,7 +271,7 @@ def schedTurnOn(datTurnOff) {
 def turnOn() {
     debug "executing turnOn()", "trace", 1
     def newDelay = 0L
-    def delayMS = (onDelay && delaySeconds) ? delaySeconds * 1000 : 5 //ensure positive number for delayMS
+    def delayMS = (onDelay && delaySeconds) ? delaySeconds * 1000 : 5 //ensure delayMS != 0
     def random = new Random()
     theLights.each { theLight ->
         if (theLight.currentSwitch != "on") {
@@ -289,7 +288,7 @@ def turnOn() {
 def turnOff() {
     debug "executing turnOff()", "trace", 1
     def newDelay = 0L
-    def delayMS = (offDelay && delaySeconds) ? delaySeconds * 1000 : 5 //ensure positive number for delayMS
+    def delayMS = (offDelay && delaySeconds) ? delaySeconds * 1000 : 5 //ensure delayMS != 0
     def random = new Random()
     theLights.each { theLight ->
         if (theLight.currentSwitch != "off") {

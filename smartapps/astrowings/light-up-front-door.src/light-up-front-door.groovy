@@ -49,7 +49,6 @@ preferences {
 //   --------------------------------
 //   ***   CONSTANTS DEFINITIONS  ***
 
-private C_1() { return "this is constant1" }
 
 
 //   -----------------------------

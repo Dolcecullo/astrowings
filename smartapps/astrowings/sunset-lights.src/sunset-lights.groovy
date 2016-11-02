@@ -90,7 +90,7 @@ def pageSchedule() {
         section("Set the amount of time after sunset when the lights will turn on") {
             input "offset", "number", title: "Minutes (optional)", required: false
         }
-    	section("Turn the lights off at this time (optional - lights will turn off 15 minutes before next sunrise if no time is entered)") {
+    	section("Turn the lights off at this time (optional - lights will turn off 15 minutes before next sunrise if no time is entered)") { //TODO: use constant for fefault value
         	input "timeOff", "time", title: "Time to turn lights off?", required: false
         }
     	section("Set a different time to turn off the lights on each day (optional - lights will turn off at the default time if not set)") {
@@ -270,7 +270,7 @@ def scheduleTurnOff(sunriseString) {
     	debug "user didn't specify turn-off time; using sunrise time", "info"
         def datSunrise = Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", sunriseString)
         debug "sunrise date : $datSunrise"
-        datTurnOff = new Date(datSunrise.time - (15 * 60 * 1000)) //set turn-off time to 15 minutes before sunrise
+        datTurnOff = new Date(datSunrise.time - (15 * 60 * 1000)) //set turn-off time to 15 minutes before sunrise //TODO: use constant for fefault value
     }
     state.turnOff = datTurnOff.time //store the scheduled OFF time in State so we can use it later to compare it to the ON time
 	debug "scheduling lights OFF for: ${datTurnOff}", "info"
@@ -285,14 +285,14 @@ def turnOn() {
     //lights would still turn on at 20:23, but they wouldn't turn off until the next day at 20:00.
     debug "executing turnOn()", "trace", 1
 	
-    def nowTime = now() + (15 * 60 * 1000) //making sure lights will stay on for at least 15 min
+    def nowTime = now() + (15 * 60 * 1000) //making sure lights will stay on for at least 15 min //TODO: use constant for fefault value
     def offTime = state.turnOff //retrieving the turn-off time from State
     if (offTime < nowTime) {
 		debug "scheduled turn-off time has already passed; turn-on cancelled", "info"
 	} else {
         debug "turning lights on", "info"
         def newDelay = 0L
-        def delayMS = (onDelay && delaySeconds) ? delaySeconds * 1000 : 5 //ensure positive number for delayMS
+        def delayMS = (onDelay && delaySeconds) ? delaySeconds * 1000 : 5 //ensure delayMS != 0
         def random = new Random()
         theLights.each { theLight ->
             if (theLight.currentSwitch != "on") {
@@ -310,7 +310,7 @@ def turnOn() {
 def turnOff() {
     debug "executing turnOff()", "trace", 1
     def newDelay = 0L
-    def delayMS = (offDelay && delaySeconds) ? delaySeconds * 1000 : 5 //ensure positive number for delayMS
+    def delayMS = (offDelay && delaySeconds) ? delaySeconds * 1000 : 5 //ensure delayMS != 0
     def random = new Random()
     theLights.each { theLight ->
         if (theLight.currentSwitch != "off") {

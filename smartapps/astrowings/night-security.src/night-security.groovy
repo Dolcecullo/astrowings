@@ -51,7 +51,6 @@ preferences {
 //   --------------------------------
 //   ***   CONSTANTS DEFINITIONS  ***
 
-private C_1() { return "this is constant1" }
 
 
 //   -----------------------------
@@ -166,8 +165,8 @@ def pageFlash() {
         }
         if (flashLights) {
             section("Set the flash interval") {
-                input "flashOnFor", "number", title: "How many seconds ON? (default = 1)", required: false
-                input "flashOffFor", "number", title: "How many seconds OFF? (default = 1)", required: false
+                input "flashOnFor", "number", title: "How many seconds ON? (default = 1)", required: false //TODO: use constant for default
+                input "flashOffFor", "number", title: "How many seconds OFF? (default = 1)", required: false //TODO: use constant for default
             }
             section("Set the number of flash cycles") {
                 input "flashCycles", "number", title: "How many cycles? (default = 3)", required: false //TODO: change default to 5 (use constant)
@@ -357,9 +356,9 @@ def alarmHandler(triggerDevice, triggerTime) {
 def activateFlash() {
     debug "executing activateFlash()", "trace", 1
 	def doFlash = true
-	def onFor = flashOnFor ? flashOnFor * 1000 : 1000
-	def offFor = flashOffFor ? flashOffFor * 1000 : 1000
-	def numFlashes = flashCycles ?: 3
+	def onFor = flashOnFor ? flashOnFor * 1000 : 1000 //TODO: use constant for default
+	def offFor = flashOffFor ? flashOffFor * 1000 : 1000 //TODO: use constant for default
+	def numFlashes = flashCycles ?: 3 //TODO: use constant for default
 	def sequenceTime = (numFlashes) * (onFor + offFor) + offFor
 
 	if (state.flashLastActivated) {
