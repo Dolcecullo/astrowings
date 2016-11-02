@@ -14,8 +14,9 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.10" }       /*
+ 	 def versionNum() {	return "version 1.20" }       /*
  
+ *   v1.20 (02-Nov-2016): implement multi-level debug logging function
  *   v1.10 (01-Nov-2016): standardize pages layout
  *	 v1.03 (01-Nov-2016): standardize section headers
  *   v1.02 (26-Oct-2016): added trace for each event handler
@@ -113,12 +114,12 @@ def pageUninstall() {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-	log.info "installed with settings: $settings"
+	debug "installed with settings: ${settings}", "trace"
     initialize()
 }
 
 def updated() {
-    log.info "updated with settings $settings"
+    debug "updated with settings ${settings}", "trace"
 	unsubscribe()
     unschedule()
     initialize()
@@ -126,14 +127,23 @@ def updated() {
 
 def uninstalled() {
 	switchOff()
-    log.info "uninstalled"
+    state.debugLevel = 0
+    debug "application uninstalled", "trace"
 }
 
 def initialize() {
-	log.info "initializing"
     state.debugLevel = 0
+    debug "initializing", "trace", 1
+    subscribeToEvents()
+    debug "initialization complete", "trace", -1
+}
+
+def subscribeToEvents() {
+    debug "subscribing to events", "trace", 1
     subscribe(theLock, "lock.unlocked", unlockHandler)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
+    //TODO: subscribe to lights on/off events IF commanded by this app (and log events)
+    debug "subscriptions complete", "trace", -1
 }
 
 
@@ -141,25 +151,26 @@ def initialize() {
 //   ***   EVENT HANDLERS   ***
 
 def locationPositionChange(evt) {
-	log.trace "locationPositionChange>${evt.descriptionText}"
+    debug "locationPositionChange(${evt.descriptionText})", "warn"
 	initialize()
 }
 
 def unlockHandler(evt) {
-	log.trace "unlockHandler>${evt.descriptionText}"
+    debug "unlockHandler event: ${evt.descriptionText}", "trace", 1
     if (allOk) {
     	def unlockText = evt.descriptionText
         if (unlockText.contains("was unlocked with code")) {
-            log.debug "${unlockText}; turning the light on"
+            debug "${unlockText}; turning the lights on", "info"
             switchOn()
-            log.debug "scheduling the light to turn off in ${leaveOn} minutes"
+            debug "scheduling the lights to turn off in ${leaveOn} minutes", "info"
             runIn(leaveOn * 60, switchOff)
         } else {
-        	log.debug "door wasn't unlocked using the keypad; doing nothing"
+        	debug "door wasn't unlocked using the keypad; doing nothing", "info"
         }
     } else {
-    	//log.debug "conditions not met; doing nothing" //TODO: why?
+    	debug "conditions not met; doing nothing", "info" //TODO: why?
     }
+    debug "unlockHandler complete", "trace", -1
 }
 
 
@@ -167,12 +178,15 @@ def unlockHandler(evt) {
 //   ***   METHODS   ***
 
 def switchOn() {
+    debug "executing switchOn()", "trace", 1
 	theSwitch.on()
+    debug "switchOn() complete", "trace", -1
 }
 
 def switchOff() {
-	log.debug "turning the light off"
+    debug "executing switchOff()", "trace", 1
 	theSwitch.off()
+    debug "switchOff() complete", "trace", -1
 }
 
 
@@ -181,34 +195,30 @@ def switchOff() {
 
 def getAllOk() {
 	def result = theSwitch.currentSwitch == "off" && darkOk
-    log.debug "allOk :: ${result}"
+    debug ">> allOk : ${result}"
     return result
 }
 
-/*def getModeOk() {
-	def result = !theModes || theModes.contains(location.mode)
-	log.debug "modeOk :: $result"
-	return result
-}*/
-
 def getDarkOk() {
 	def result = !whenDark || itsDarkOut
-	//log.debug "darkOk :: $result"
+	debug ">> darkOk : ${result}"
 	return result
 }
 
 def getItsDarkOut() {
-    def sunTime = getSunriseAndSunset(sunsetOffset: "00:30")
-    def currentDTG = new Date()
+    def sunTime = getSunriseAndSunset(sunsetOffset: "00:30") //TODO: convert '00:30' to variable (user setting) or  constant
+    def nowDate = new Date()
     def result = false
-
-	if(sunTime.sunrise < currentDTG && sunTime.sunset > currentDTG){
-    	log.debug "it's daytime"
+    def desc = ""
+	
+    if(sunTime.sunrise < nowDate && sunTime.sunset > nowDate){
+    	desc = "it's daytime"
         result = false
     } else {
-    	log.debug "it's nighttime"
+    	desc = "it's nighttime"
         result = true
     }
+    debug ">> itsDarkOut : $result ($desc)"
     return result
 }
 
@@ -216,7 +226,7 @@ def getItsDarkOut() {
 //   ------------------------
 //   ***   COMMON UTILS   ***
 
-def debug(message, shift = null, lvl = null, err = null) {
+def debug(message, lvl = null, shift = null, err = null) {
 	def debugging = settings.debugging
 	if (!debugging) {
 		return
@@ -268,14 +278,14 @@ def debug(message, shift = null, lvl = null, err = null) {
 		prefix = ""
 	}
 
-	if (lvl == "info") {
-		log.info "◦◦$prefix$message", err
+    if (lvl == "info") {
+        log.info ": :$prefix$message", err
 	} else if (lvl == "trace") {
-		log.trace "◦$prefix$message", err
+        log.trace "::$prefix$message", err
 	} else if (lvl == "warn") {
-		log.warn "◦$prefix$message", err
+		log.warn "::$prefix$message", err
 	} else if (lvl == "error") {
-		log.error "◦$prefix$message", err
+		log.error "::$prefix$message", err
 	} else {
 		log.debug "$prefix$message", err
 	}

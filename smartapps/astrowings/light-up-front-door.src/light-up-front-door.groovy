@@ -14,8 +14,9 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.10" }       /*
+ 	 def versionNum() {	return "version 1.20" }       /*
  
+ *   v1.20 (02-Nov-2016): implement multi-level debug logging function
  *   v1.10 (01-Nov-2016): standardize pages layout
  *	 v1.03 (01-Nov-2016): standardize section headers
  *   v1.02 (26-Oct-2016): added trace for each event handler
@@ -111,26 +112,35 @@ def pageUninstall() {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-	log.info "installed with settings: $settings"
+	debug "installed with settings: ${settings}", "trace"
     initialize()
 }
 
 def updated() {
-    log.info "updated with settings $settings"
+    debug "updated with settings ${settings}", "trace"
 	unsubscribe()
     unschedule()
     initialize()
 }
 
 def uninstalled() {
-    log.info "uninstalled"
+    state.debugLevel = 0
+    debug "application uninstalled", "trace"
 }
 
 def initialize() {
-	log.info "initializing"
     state.debugLevel = 0
+    debug "initializing", "trace", 1
+    subscribeToEvents()
+    debug "initialization complete", "trace", -1
+}
+
+def subscribeToEvents() {
+    debug "subscribing to events", "trace", 1
 	subscribe(people, "presence.present", presenceHandler)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
+    //TODO: subscribe to lights on/off events IF commanded by this app (and log events)
+    debug "subscriptions complete", "trace", -1
 }
 
 
@@ -138,19 +148,20 @@ def initialize() {
 //   ***   EVENT HANDLERS   ***
 
 def presenceHandler(evt) {
-    log.trace "presenceHandler>${evt.descriptionText}"
-    log.debug "$evt.displayName has arrived"
-    //turn on the light only if it's currently off
-    if (itsDarkOut && (theLight.currentSwitch != "on")) {
-        log.debug "do turn on $theLight.displayName"
+    debug "presenceHandler event: ${evt.descriptionText}", "trace", 1
+    debug "$evt.displayName has arrived", "info"
+
+	if (itsDarkOut && (theLight.currentSwitch != "on")) {
+        debug "call to turn on the $theLight.displayName"
         turnOn()
     } else {
-        log.debug "do nothing"
+        debug "conditions not met; do nothing"
     }
+    debug "presenceHandler complete", "trace", -1
 }
 
 def locationPositionChange(evt) {
-	log.trace "locationPositionChange>${evt.descriptionText}"
+    debug "locationPositionChange(${evt.descriptionText})", "warn"
 	initialize()
 }
 
@@ -159,15 +170,17 @@ def locationPositionChange(evt) {
 //   ***   METHODS   ***
 
 def turnOn() {
-    log.debug "turning on $theLight.displayName"
+    debug "executing turnOn()", "trace", 1
     theLight.on()
-    log.debug "scheduling $theLight.displayName to turn off in $leaveOn minutes"
+    debug "scheduling $theLight.displayName to turn off in $leaveOn minutes", "info"
     runIn(60 * leaveOn, turnOff)
+    debug "turnOn() complete", "trace", -1
 }
 
 def turnOff() {
-    log.debug "turning off $theLight.displayName"
+    debug "executing turnOff()", "trace", 1
     theLight.off()
+    debug "turnOff() complete", "trace", -1
 }
 
 
@@ -175,21 +188,19 @@ def turnOff() {
 //   ***   APP FUNCTIONS   ***
 
 def getItsDarkOut() {
-    def sunTime = getSunriseAndSunset(sunsetOffset: 15)
-    def currentDTG = new Date()
+    def sunTime = getSunriseAndSunset(sunsetOffset: 15) //TODO: convert '15' to variable (user setting) or  constant
+    def nowDate = new Date()
     def result = false
-	//log.debug "sunTime.sunrise: $sunTime.sunrise"
-	//log.debug "sunTime.sunset: $sunTime.sunset (with 15 min offset)"
-    //log.debug "unx_sunTime.sunset: ${sunTime.sunset.time}"
-    //log.debug "dat_unx_sunTime.sunset: ${new Date(sunTime.sunset.time)}"
-
-	if(sunTime.sunrise < currentDTG && sunTime.sunset > currentDTG){
-    	log.debug "it's daytime"
+    def desc = ""
+	
+    if(sunTime.sunrise < nowDate && sunTime.sunset > nowDate){
+    	desc = "it's daytime"
         result = false
     } else {
-    	log.debug "it's nighttime"
+    	desc = "it's nighttime"
         result = true
     }
+    debug ">> itsDarkOut : $result ($desc)"
     return result
 }
 
@@ -197,7 +208,7 @@ def getItsDarkOut() {
 //   ------------------------
 //   ***   COMMON UTILS   ***
 
-def debug(message, shift = null, lvl = null, err = null) {
+def debug(message, lvl = null, shift = null, err = null) {
 	def debugging = settings.debugging
 	if (!debugging) {
 		return
@@ -249,14 +260,14 @@ def debug(message, shift = null, lvl = null, err = null) {
 		prefix = ""
 	}
 
-	if (lvl == "info") {
-		log.info "◦◦$prefix$message", err
+    if (lvl == "info") {
+        log.info ": :$prefix$message", err
 	} else if (lvl == "trace") {
-		log.trace "◦$prefix$message", err
+        log.trace "::$prefix$message", err
 	} else if (lvl == "warn") {
-		log.warn "◦$prefix$message", err
+		log.warn "::$prefix$message", err
 	} else if (lvl == "error") {
-		log.error "◦$prefix$message", err
+		log.error "::$prefix$message", err
 	} else {
 		log.debug "$prefix$message", err
 	}

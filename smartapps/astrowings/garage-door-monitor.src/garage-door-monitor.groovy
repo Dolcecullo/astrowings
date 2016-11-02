@@ -14,8 +14,9 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.10" }       /*
+ 	 def versionNum() {	return "version 1.20" }       /*
  
+ *   v1.20 (02-Nov-2016): implement multi-level debug logging function
  *   v1.10 (01-Nov-2016): standardize pages layout
  *	 v1.03 (01-Nov-2016): standardize section headers
  *   v1.02 (26-Oct-2016): added trace for each event handler
@@ -121,28 +122,36 @@ def pageUninstall() {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-	log.info "installed with settings $settings"
+	debug "installed with settings: ${settings}", "trace"
 	initialize()
 }
 
 def updated() {
-    log.info "updated with settings $settings"
+    debug "updated with settings ${settings}", "trace"
 	unsubscribe()
     unschedule()
     initialize()
 }
 
 def uninstalled() {
-    log.info "uninstalled"
+    state.debugLevel = 0
+    debug "application uninstalled", "trace"
 }
 
 def initialize() {
-	log.info "initializing"
     state.debugLevel = 0
+    debug "initializing", "trace", 1
+    subscribeToEvents()
+    debug "initialization complete", "trace", -1
+}
+
+def subscribeToEvents() {
+    debug "subscribing to events", "trace", 1
     subscribe(myself, "presence.not present", iLeaveHandler)
     subscribe(everyone, "presence.not present", allLeaveHandler)
     subscribe(thedoor, "contact", doorHandler)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
+    debug "subscriptions complete", "trace", -1
 }
 
 
@@ -150,44 +159,47 @@ def initialize() {
 //   ***   EVENT HANDLERS   ***
 
 def iLeaveHandler(evt) {
-    log.trace "iLeaveHandler>${evt.descriptionText}"
+    debug "iLeaveHandler event: ${evt.descriptionText}", "trace", 1
     if (thedoor.currentContact == "open") {
     	def message = "${evt.device} has left the house and the ${thedoor.device} is ${thedoor.currentContact}."
-        log.warn message
-        sendText(message)
+        debug "sendPush : $message", "warn"
         sendPush(message)
+        sendText(message)
     }
+    debug "iLeaveHandler complete", "trace", -1
 }
 
 def allLeaveHandler(evt) {
-    log.trace "allLeaveHandler>${evt.descriptionText}"
+    debug "allLeaveHandler event: ${evt.descriptionText}", "trace", 1
     if (thedoor.currentContact == "open") {
         if (everyoneIsAway) {
             def message = "Everyone has left the house and the ${thedoor.device} is ${thedoor.currentContact}."
-            log.warn message
-            sendText(message)
+            debug "sendPush : $message", "warn"
             sendPush(message)
+            sendText(message)
 		} else {
-            log.debug "The ${thedoor.device} is ${thedoor.currentContact} but not everyone is away; doing nothing"
+            debug "The ${thedoor.device} is ${thedoor.currentContact} but not everyone is away; doing nothing", "info"
         }
     }
+    debug "allLeaveHandler complete", "trace", -1
 }
 
 def doorHandler(evt) {
-	log.trace "doorHandler>${evt.descriptionText}"
+    debug "doorHandler event: ${evt.descriptionText}", "trace", 1
     if (evt.value == "open" && warnOpening && imAway) {
     	def message = "The ${thedoor.device} was opened."
-        log.warn message
-        sendText(message)
+        debug "sendPush : $message", "warn"
         sendPush(message)
+        sendText(message)
 	} else if (evt.value == "open" && maxOpenMinutes) {
-    	log.info "The ${thedoor.device} was opened; scheduling a check in $maxOpenMinutes minutes to see if it's still open."
+    	debug "The ${thedoor.device} was opened; scheduling a check in $maxOpenMinutes minutes to see if it's still open.", "info"
     	runIn(60 * maxOpenMinutes, checkOpen)
     }
+    debug "doorHandler complete", "trace", -1
 }
 
 def locationPositionChange(evt) {
-	log.trace "locationPositionChange>${evt.descriptionText}"
+    debug "locationPositionChange(${evt.descriptionText})", "warn"
 	initialize()
 }
 
@@ -196,21 +208,27 @@ def locationPositionChange(evt) {
 //   ***   METHODS   ***
 
 def checkOpen() {
+    debug "executing checkOpen()", "trace", 1
     if (thedoor.currentContact == "open") {
     	def message = "The ${thedoor.device} has been opened for $maxOpenMinutes minutes."
-        log.warn message
-		sendText(message)
+        debug "sendPush : $message", "warn"
         sendPush(message)
+		sendText(message)
     } else {
-    	log.info "The ${thedoor.device} is no longer open."
+    	debug "The ${thedoor.device} is no longer open.", "info"
     }
+    debug "checkOpen() complete", "trace", -1
 }
 
 def sendText(msg) {
+    debug "executing sendText(msg: ${msg})", "trace", 1
 	if (phone) {
-		log.debug "sending SMS"
+		debug "sending SMS", "info"
 		sendSms(phone, msg)
-	}
+	} else {
+    	debug "SMS number not configured", "info"
+    }
+    debug "sendText() complete", "trace", -1
 }
 
 
@@ -225,13 +243,13 @@ def getEveryoneIsAway() {
             break
         }
     }
-    log.debug "everyoneIsAway: $result"
+    debug ">> everyoneIsAway : $result"
     return result
 }
 
 def getImAway() {
 	def result = !(myself.currentPresence == "present")
-    log.debug "imAway :: $result"
+    debug ">> imAway : $result"
     return result
 }
 
@@ -239,7 +257,7 @@ def getImAway() {
 //   ------------------------
 //   ***   COMMON UTILS   ***
 
-def debug(message, shift = null, lvl = null, err = null) {
+def debug(message, lvl = null, shift = null, err = null) {
 	def debugging = settings.debugging
 	if (!debugging) {
 		return
@@ -291,14 +309,14 @@ def debug(message, shift = null, lvl = null, err = null) {
 		prefix = ""
 	}
 
-	if (lvl == "info") {
-		log.info "◦◦$prefix$message", err
+    if (lvl == "info") {
+        log.info ": :$prefix$message", err
 	} else if (lvl == "trace") {
-		log.trace "◦$prefix$message", err
+        log.trace "::$prefix$message", err
 	} else if (lvl == "warn") {
-		log.warn "◦$prefix$message", err
+		log.warn "::$prefix$message", err
 	} else if (lvl == "error") {
-		log.error "◦$prefix$message", err
+		log.error "::$prefix$message", err
 	} else {
 		log.debug "$prefix$message", err
 	}

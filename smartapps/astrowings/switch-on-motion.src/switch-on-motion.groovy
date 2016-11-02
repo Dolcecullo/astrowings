@@ -14,8 +14,9 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.10" }       /*
+ 	 def versionNum() {	return "version 1.20" }       /*
  
+ *   v1.20 (02-Nov-2016): implement multi-level debug logging function
  *   v1.10 (01-Nov-2016): standardize pages layout
  *	 v1.03 (01-Nov-2016): standardize section headers
  *   v1.02 (26-Oct-2016): added trace for each event handler
@@ -115,12 +116,12 @@ def pageUninstall() {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-	log.info "installed with settings: $settings"
+	debug "installed with settings: ${settings}", "trace"
     initialize()
 }
 
 def updated() {
-    log.info "updated with settings $settings"
+    debug "updated with settings ${settings}", "trace"
 	unsubscribe()
     unschedule()
     initialize()
@@ -128,18 +129,27 @@ def updated() {
 
 def uninstalled() {
 	lightOff()
-    log.info "uninstalled"
+    state.debugLevel = 0
+    debug "application uninstalled", "trace"
 }
 
 def initialize() {
-	log.info "initializing"
     state.debugLevel = 0
+    debug "initializing", "trace", 1
+    subscribeToEvents()
     state.enable = true
+    debug "initialization complete", "trace", -1
+}
+
+def subscribeToEvents() {
+    debug "subscribing to events", "trace", 1
     subscribe(theMotion, "motion.active", motionDetectedHandler)
     subscribe(theMotion, "motion.inactive", motionStoppedHandler)
     subscribe(theSwitch, "switch.on", switchOnHandler)
     subscribe(theSwitch, "switch.off", switchOffHandler)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
+    //TODO: subscribe to lights on/off events IF commanded by this app (and log events)
+    debug "subscriptions complete", "trace", -1
 }
 
 
@@ -147,36 +157,40 @@ def initialize() {
 //   ***   EVENT HANDLERS   ***
 
 def motionDetectedHandler(evt) {
-    log.trace "motionDetectedHandler>${evt.descriptionText}"
+    debug "motionDetectedHandler event: ${evt.descriptionText}", "trace", 1
     if (allOk) {
         theSwitch.on()
     }
+    debug "motionDetectedHandler complete", "trace", -1
 }
 
 def motionStoppedHandler(evt) {
-	log.trace "motionStoppedHandler>${evt.descriptionText}"
+    debug "motionStoppedHandler event: ${evt.descriptionText}", "trace", 1
     runIn(minutes * 60, lightOff)
+    debug "motionStoppedHandler complete", "trace", -1
 }
 
 def switchOnHandler(evt) {
-	log.trace "switchOnHandler>${evt.descriptionText}"
-    log.info "switch turned on; enabling automation"
+    debug "switchOnHandler event: ${evt.descriptionText}", "trace", 1
+    debug "switch turned on; enabling automation", "info"
     state.enable = true
+    debug "switchOnHandler complete", "trace", -1
 }
 
 def switchOffHandler(evt) {
-	log.trace "switchOffHandler>${evt.descriptionText}"
+    debug "switchOffHandler event: ${evt.descriptionText}", "trace", 1
     if (evt.isPhysical()) {
     	//disable automation when switch is activated manually (i.e. prevent light from turning back on when movement is detected)
-        log.info "switch physically turned off; disabling automation"
+        debug "switch physically turned off; disabling automation", "info"
         state.enable = false
     } else {
-    	log.info "switch turned off by app"
+    	debug "switch turned off by app", "info"
     }
+    debug "switchOffHandler complete", "trace", -1
 }
 
 def locationPositionChange(evt) {
-	log.trace "locationChange>${evt.descriptionText}"
+    debug "locationPositionChange(${evt.descriptionText})", "warn"
 	initialize()
 }
 
@@ -185,7 +199,9 @@ def locationPositionChange(evt) {
 //   ***   METHODS   ***
 
 def lightOff() {
+    debug "executing lightOff()", "trace", 1
    	theSwitch.off()
+    debug "lightOff() complete", "trace", -1
 }
 
 
@@ -193,35 +209,31 @@ def lightOff() {
 //   ***   APP FUNCTIONS   ***
 
 def getAllOk() {
-	def result = darkOk && state.enable == true // && modeOk
-    //log.debug "allOk :: $result"
+	def result = darkOk && state.enable == true
+    debug ">> allOk : $result"
     return result
 }
 
-/*def getModeOk() {
-	def result = !theModes || theModes.contains(location.mode)
-	log.debug "modeOk :: $result"
-	return result
-}*/
-
 def getDarkOk() {
 	def result = !whenDark || itsDarkOut
-	//log.debug "darkOk :: $result"
+	debug ">> darkOk : $result"
 	return result
 }
 
 def getItsDarkOut() {
-    def sunTime = getSunriseAndSunset(sunsetOffset: "-00:30")
-    def currentDTG = new Date()
+    def sunTime = getSunriseAndSunset(sunsetOffset: "00:30") //TODO: convert '00:30' to variable (user setting) or  constant
+    def nowDate = new Date()
     def result = false
-
-	if(sunTime.sunrise < currentDTG && sunTime.sunset > currentDTG){
-    	//log.debug "it's daytime"
+    def desc = ""
+	
+    if(sunTime.sunrise < nowDate && sunTime.sunset > nowDate){
+    	desc = "it's daytime"
         result = false
     } else {
-    	//log.debug "it's nighttime"
+    	desc = "it's nighttime"
         result = true
     }
+    debug ">> itsDarkOut : $result ($desc)"
     return result
 }
 
@@ -229,7 +241,7 @@ def getItsDarkOut() {
 //   ------------------------
 //   ***   COMMON UTILS   ***
 
-def debug(message, shift = null, lvl = null, err = null) {
+def debug(message, lvl = null, shift = null, err = null) {
 	def debugging = settings.debugging
 	if (!debugging) {
 		return
@@ -281,14 +293,14 @@ def debug(message, shift = null, lvl = null, err = null) {
 		prefix = ""
 	}
 
-	if (lvl == "info") {
-		log.info "◦◦$prefix$message", err
+    if (lvl == "info") {
+        log.info ": :$prefix$message", err
 	} else if (lvl == "trace") {
-		log.trace "◦$prefix$message", err
+        log.trace "::$prefix$message", err
 	} else if (lvl == "warn") {
-		log.warn "◦$prefix$message", err
+		log.warn "::$prefix$message", err
 	} else if (lvl == "error") {
-		log.error "◦$prefix$message", err
+		log.error "::$prefix$message", err
 	} else {
 		log.debug "$prefix$message", err
 	}

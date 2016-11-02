@@ -14,8 +14,9 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.10" }       /*
+ 	 def versionNum() {	return "version 1.20" }       /*
  
+ *   v1.20 (02-Nov-2016): implement multi-level debug logging function
  *   v1.10 (01-Nov-2016): standardize pages layout
  *	 v1.03 (01-Nov-2016): standardize section headers
  *   v1.02 (26-Oct-2016): added trace for each event handler
@@ -109,27 +110,35 @@ def pageUninstall() {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-	log.info "installed with settings: $settings"
+	debug "installed with settings: ${settings}", "trace"
     initialize()
 }
 
 def updated() {
-    log.info "updated with settings $settings"
+    debug "updated with settings ${settings}", "trace"
 	unsubscribe()
     //unschedule()
     initialize()
 }
 
 def uninstalled() {
-	log.info "uninstalled"
+    state.debugLevel = 0
+    debug "application uninstalled", "trace"
 }
 
 def initialize() {
-	log.info "initializing"
     state.debugLevel = 0
+    debug "initializing", "trace", 1
+    subscribeToEvents()
+    debug "initialization complete", "trace", -1
+}
+
+def subscribeToEvents() {
+    debug "subscribing to events", "trace", 1
     subscribe(theLock, "lock.unlocked", unlockHandler)
     subscribe(location, modeChangeHandler)
     subscribe(location, "position", locationPositionChange) //update settings if the hub location changes
+    debug "subscriptions complete", "trace", -1
 }
 
 
@@ -137,23 +146,25 @@ def initialize() {
 //   ***   EVENT HANDLERS   ***
 
 def unlockHandler(evt) {
-	log.trace "unlockHandler>${evt.descriptionText}"
+    debug "unlockHandler event: ${evt.descriptionText}", "trace", 1
     def unlockText = evt.descriptionText
-	log.debug unlockText
+	debug "sendPush : $unlockText", "warn"
 	sendPush(unlockText)
+    debug "unlockHandler complete", "trace", -1
 }
 
 def modeChangeHandler(evt) {
-	log.trace "modeChangeHandler>${evt.descriptionText}"
+    debug "modeChangeHandler event: ${evt.descriptionText}", "trace", 1
     if (theLock.currentLock == "unlocked") {
     	def unlockedMsg = "The mode changed to $location.currentMode and the $theLock.label is $theLock.currentLock"
-        log.debug unlockedMsg
+        debug "sendPush : $unlockedMsg", "warn"
         sendPush(unlockedMsg)
     }
+    debug "modeChangeHandler complete", "trace", -1
 }
 
 def locationPositionChange(evt) {
-	log.trace "locationPositionChange>${evt.descriptionText}"
+    debug "locationPositionChange(${evt.descriptionText})", "warn"
 	initialize()
 }
 
@@ -166,7 +177,7 @@ def locationPositionChange(evt) {
 //   ------------------------
 //   ***   COMMON UTILS   ***
 
-def debug(message, shift = null, lvl = null, err = null) {
+def debug(message, lvl = null, shift = null, err = null) {
 	def debugging = settings.debugging
 	if (!debugging) {
 		return
@@ -218,14 +229,14 @@ def debug(message, shift = null, lvl = null, err = null) {
 		prefix = ""
 	}
 
-	if (lvl == "info") {
-		log.info "◦◦$prefix$message", err
+    if (lvl == "info") {
+        log.info ": :$prefix$message", err
 	} else if (lvl == "trace") {
-		log.trace "◦$prefix$message", err
+        log.trace "::$prefix$message", err
 	} else if (lvl == "warn") {
-		log.warn "◦$prefix$message", err
+		log.warn "::$prefix$message", err
 	} else if (lvl == "error") {
-		log.error "◦$prefix$message", err
+		log.error "::$prefix$message", err
 	} else {
 		log.debug "$prefix$message", err
 	}

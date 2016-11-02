@@ -14,8 +14,9 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 2.10" }       /*
+ 	 def versionNum() {	return "version 2.20" }       /*
  
+ *   v2.20 (02-Nov-2016): implement multi-level debug logging function
  *   v2.10 (01-Nov-2016): standardize pages layout
  *	 v2.01 (01-Nov-2016): standardize section headers
  *	 v2.00 (28-Oct-2016): add option to insert random delay between the switching of individual lights,
@@ -167,31 +168,39 @@ def pageUninstall() {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-	log.info "installed with settings $settings"
+	debug "installed with settings: ${settings}", "trace"
 	initialize()
 }
 
 def updated() {
-    log.info "updated with settings $settings"
+    debug "updated with settings ${settings}", "trace"
 	unsubscribe()
     unschedule()
     initialize()
 }
 
 def uninstalled() {
-    log.info "uninstalled"
+    state.debugLevel = 0
+    debug "application uninstalled", "trace"
 }
 
 def initialize() {
-	log.info "initializing"
     state.debugLevel = 0
+    debug "initializing", "trace", 1
+	subscribeToEvents()
+	scheduleTurnOn(location.currentValue("sunsetTime"))
+    scheduleTurnOff(location.currentValue("sunriseTime"))
+    //TODO: subscribe to lights on/off events IF commanded by this app (and log events)
+    debug "initialization complete", "trace", -1
+}
+
+def subscribeToEvents() {
+    debug "subscribing to events", "trace", 1
     subscribe(location, "sunsetTime", sunsetTimeHandler)	//triggers at sunset, evt.value is the sunset String (time for next day's sunset)
     subscribe(location, "sunriseTime", sunriseTimeHandler)	//triggers at sunrise, evt.value is the sunrise String (time for next day's sunrise)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
-
-	//schedule it to run today too
-	scheduleTurnOn(location.currentValue("sunsetTime"))
-    scheduleTurnOff(location.currentValue("sunriseTime"))
+    //TODO: subscribe to lights on/off events IF commanded by this app (and log events)
+    debug "subscriptions complete", "trace", -1
 }
 
 
@@ -199,21 +208,21 @@ def initialize() {
 //   ***   EVENT HANDLERS   ***
 
 def sunsetTimeHandler(evt) {
-    log.trace "sunsetTimeHandler>${evt.descriptionText}"
-    def sunsetTimeHandlerMsg = "triggered sunsetTimeHandler; next sunset will be ${evt.value}"
-    log.debug sunsetTimeHandlerMsg
+    debug "sunsetTimeHandler event: ${evt.descriptionText}", "trace", 1
+    debug = "next sunset will be ${evt.value}"
 	scheduleTurnOn(evt.value)
+    debug "sunsetTimeHandler complete", "trace", -1
 }
 
 def sunriseTimeHandler(evt) {
-    log.trace "sunriseTimeHandler>${evt.descriptionText}"
-    def sunriseTimeHandlerMsg = "triggered sunriseTimeHandler; next sunrise will be ${evt.value}"
-    log.debug sunriseTimeHandlerMsg
+    debug "sunriseTimeHandler event: ${evt.descriptionText}", "trace", 1
+    debug "next sunrise will be ${evt.value}"
     scheduleTurnOff(evt.value)
+    debug "sunriseTimeHandler complete", "trace", -1
 }    
 
 def locationPositionChange(evt) {
-	log.trace "locationChange>${evt.descriptionText}"
+    debug "locationPositionChange(${evt.descriptionText})", "warn"
 	initialize()
 }
 
@@ -222,10 +231,10 @@ def locationPositionChange(evt) {
 //   ***   METHODS   ***
 
 def scheduleTurnOn(sunsetString) {
-	log.trace "scheduleTurnOn(sunsetString: ${sunsetString})"
+    debug "executing scheduleTurnOn(sunsetString: ${sunsetString})", "trace", 1
 	
     def datSunset = Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", sunsetString)
-    log.debug "sunset date: ${datSunset}"
+    debug "sunset date: ${datSunset}"
 
     //calculate the offset
     def offsetTurnOn = offset ? offset * 60 * 1000 : 0 //convert offset to ms
@@ -239,31 +248,34 @@ def scheduleTurnOn(sunsetString) {
 	}
     
 	//schedule this to run once (it will trigger again at next sunset)
-	log.info "scheduling lights ON for: ${datTurnOn}"
+	debug "scheduling lights ON for: ${datTurnOn}", "info"
     runOnce(datTurnOn, turnOn, [overwrite: false])
+    debug "scheduleTurnOn() complete", "trace", -1
 }
 
 def scheduleTurnOff(sunriseString) {
+    debug "executing scheduleTurnOff(sunriseString: ${sunriseString})", "trace", 1
     def DOW_TurnOff = weekdayTurnOffTime
     def default_TurnOff = defaultTurnOffTime
     def datTurnOff
 
     //select which turn-off time to use (1st priority: weekday-specific, 2nd: default, 3rd: sunrise)
     if (DOW_TurnOff) {
-    	log.info "using the weekday turn-off time"
+    	debug "using the weekday turn-off time", "info"
         datTurnOff = DOW_TurnOff
     } else if (default_TurnOff) {
-    	log.info "using the default turn-off time"
+    	debug "using the default turn-off time", "info"
     	datTurnOff = default_TurnOff
     } else {
-    	log.info "user didn't specify turn-off time; using sunrise time"
+    	debug "user didn't specify turn-off time; using sunrise time", "info"
         def datSunrise = Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", sunriseString)
-        log.debug "sunrise: $datSunrise"
+        debug "sunrise date : $datSunrise"
         datTurnOff = new Date(datSunrise.time - (15 * 60 * 1000)) //set turn-off time to 15 minutes before sunrise
     }
     state.turnOff = datTurnOff.time //store the scheduled OFF time in State so we can use it later to compare it to the ON time
-	log.info "scheduling lights OFF for: ${datTurnOff}"
+	debug "scheduling lights OFF for: ${datTurnOff}", "info"
     runOnce(datTurnOff, turnOff, [overwrite: false])
+    debug "scheduleTurnOff() complete", "trace", -1
 }
 
 def turnOn() {
@@ -271,41 +283,45 @@ def turnOn() {
     //scheduled to turn on at 20:23 based on the sunset time, but the user had them set to turn
     //off at 20:00, the turn-off will fire before the lights are turned on. In that case, the
     //lights would still turn on at 20:23, but they wouldn't turn off until the next day at 20:00.
-	def nowTime = now() + (15 * 60 * 1000) //making sure lights will stay on for at least 15 min
+    debug "executing turnOn()", "trace", 1
+	
+    def nowTime = now() + (15 * 60 * 1000) //making sure lights will stay on for at least 15 min
     def offTime = state.turnOff //retrieving the turn-off time from State
     if (offTime < nowTime) {
-		log.info "scheduled turn-off time has already passed; turn-on cancelled"
+		debug "scheduled turn-off time has already passed; turn-on cancelled", "info"
 	} else {
-        log.info "turning lights on"
+        debug "turning lights on", "info"
         def newDelay = 0L
         def delayMS = (onDelay && delaySeconds) ? delaySeconds * 1000 : 5 //ensure positive number for delayMS
         def random = new Random()
         theLights.each { theLight ->
             if (theLight.currentSwitch != "on") {
-				log.info "turning on the ${theLight.label} in ${convertToHMS(newDelay)}"
+				debug "turning on the ${theLight.label} in ${convertToHMS(newDelay)}", "info"
                 theLight.on(delay: newDelay)
                 newDelay += random.nextInt(delayMS) //calculate random delay before turning on next light
             } else {
-            	log.info "the ${theLight.label} is already on; doing nothing"
+            	debug "the ${theLight.label} is already on; doing nothing", "info"
             }
         }
     }
+    debug "turnOn() complete", "trace", -1
 }
 
 def turnOff() {
-    log.info "turning lights off"
+    debug "executing turnOff()", "trace", 1
     def newDelay = 0L
     def delayMS = (offDelay && delaySeconds) ? delaySeconds * 1000 : 5 //ensure positive number for delayMS
     def random = new Random()
     theLights.each { theLight ->
         if (theLight.currentSwitch != "off") {
-            log.info "turning off the ${theLight.label} in ${convertToHMS(newDelay)}"
+            debug "turning off the ${theLight.label} in ${convertToHMS(newDelay)}", "info"
             theLight.off(delay: newDelay)
             newDelay += random.nextInt(delayMS) //calculate random delay before turning off next light
         } else {
-            log.info "the ${theLight.label} is already off; doing nothing"
+            debug "the ${theLight.label} is already off; doing nothing", "info"
         }
     }
+    debug "turnOff() complete", "trace", -1
 }
 
 
@@ -313,6 +329,7 @@ def turnOff() {
 //   ***   APP FUNCTIONS   ***
 
 def getDefaultTurnOffTime() {
+	debug "start evaluating defaultTurnOffTime", "trace", 1
     if (timeOff) {
     	//convert preset time to today's date
         def default_TurnOffTime = timeTodayAfter(new Date(), timeOff, location.timeZone)
@@ -322,21 +339,23 @@ def getDefaultTurnOffTime() {
 	    	def random = new Random()
 			def randOffset = random.nextInt(randOff)
             default_TurnOffTime = new Date(default_TurnOffTime.time - (randOff * 30000) + (randOffset * 60000))
-            log.debug "randomized default turn-off time: $default_TurnOffTime"
+            debug "randomized default turn-off time: $default_TurnOffTime"
         } else {
-        	log.debug "default turn-off time: $default_TurnOffTime"
+        	debug "default turn-off time: $default_TurnOffTime"
         }
         return default_TurnOffTime
     } else {
-        log.debug "default turn-off time not specified"
+        debug "default turn-off time not specified"
         return false
 	}
+	debug "finished evaluating defaultTurnOffTime", "trace", -1
 }
 
 def getWeekdayTurnOffTime() {
-//calculate weekday-specific offtime
-//this executes at sunrise, so when the sun rises on Tuesday, it will
-//schedule the lights' turn-off time for Tuesday night
+    //calculate weekday-specific offtime
+    //this executes at sunrise, so when the sun rises on Tuesday, it will
+    //schedule the lights' turn-off time for Tuesday night
+	debug "start evaluating weekdayTurnOffTime", "trace", 1
 
 	def nowDOW = new Date().format("E") //find out current day of week
 
@@ -367,15 +386,16 @@ def getWeekdayTurnOffTime() {
         	def random = new Random()
             def randOffset = random.nextInt(randOff)
             DOW_TurnOffTime = new Date(DOW_TurnOffTime.time - (randOff * 30000) + (randOffset * 60000))
-            log.debug "randomized DOW turn-off time: $DOW_TurnOffTime"
+            debug "randomized DOW turn-off time: $DOW_TurnOffTime"
         } else {
-        	log.debug "DOW turn-off time: $DOW_TurnOffTime"
+        	debug "DOW turn-off time: $DOW_TurnOffTime"
         }
         return DOW_TurnOffTime
     } else {
-    	log.debug "DOW turn-off time not specified"
+    	debug "DOW turn-off time not specified"
         return false
     }
+	debug "finished evaluating weekdayTurnOffTime", "trace", -1
 }
 
 
@@ -391,7 +411,7 @@ def convertToHMS(ms) {
     return "${hours}h${minutes}m${seconds}.${tenths}s"
 }
 
-def debug(message, shift = null, lvl = null, err = null) {
+def debug(message, lvl = null, shift = null, err = null) {
 	def debugging = settings.debugging
 	if (!debugging) {
 		return
@@ -443,14 +463,14 @@ def debug(message, shift = null, lvl = null, err = null) {
 		prefix = ""
 	}
 
-	if (lvl == "info") {
-		log.info "◦◦$prefix$message", err
+    if (lvl == "info") {
+        log.info ": :$prefix$message", err
 	} else if (lvl == "trace") {
-		log.trace "◦$prefix$message", err
+        log.trace "::$prefix$message", err
 	} else if (lvl == "warn") {
-		log.warn "◦$prefix$message", err
+		log.warn "::$prefix$message", err
 	} else if (lvl == "error") {
-		log.error "◦$prefix$message", err
+		log.error "::$prefix$message", err
 	} else {
 		log.debug "$prefix$message", err
 	}

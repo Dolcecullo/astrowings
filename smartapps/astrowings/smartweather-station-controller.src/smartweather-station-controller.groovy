@@ -17,8 +17,9 @@
  *  
  * 
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.60" }       /*
+ 	 def versionNum() {	return "version 1.70" }       /*
  
+ *   v1.70 (02-Nov-2016): implement multi-level debug logging function
  *   v1.60 (01-Nov-2016): standardize pages layout
  *	 v1.52 (01-Nov-2016): standardize section headers
  *   v1.51 (30-Oct-2016): copied code from RBoy
@@ -130,28 +131,36 @@ def pageUninstall() {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-	log.info "installed with settings: $settings"
+	debug "installed with settings: ${settings}", "trace"
     initialize()
 }
 
 def updated() {
-    log.info "updated with settings $settings"
+    debug "updated with settings ${settings}", "trace"
 	unsubscribe()
     unschedule()
     initialize()
 }
 
 def uninstalled() {
-    log.info "uninstalled"
+    state.debugLevel = 0
+    debug "application uninstalled", "trace"
 }
 
 def initialize() {
-	log.info "initializing"
     state.debugLevel = 0
+    debug "initializing", "trace", 1
+    subscribeToEvents()
+    doRefresh()
+    debug "initialization complete", "trace", -1
+}
+
+def subscribeToEvents() {
+    debug "subscribing to events", "trace", 1
     subscribe(location, modeChangeHandler)
     subscribe(location, "sunset", sunsetHandler)
     subscribe(location, "sunrise", sunriseHandler)
-    doRefresh()
+    debug "subscriptions complete", "trace", -1
 }
 
 
@@ -159,21 +168,24 @@ def initialize() {
 //   ***   EVENT HANDLERS   ***
 
 def modeChangeHandler(evt) {
-    log.trace "modeChangeHandler>${evt.descriptionText}"
-    log.info "kick-starting the refresh schedule due to mode change"
+    debug "modeChangeHandler event: ${evt.descriptionText}", "trace", 1
+    debug "kick-starting the refresh schedule due to mode change", "info"
     doRefresh()
+    debug "modeChangeHandler complete", "trace", -1
 }
 
 def sunsetHandler(evt) {
-    log.trace "sunsetHandler>${evt.descriptionText}"
-    log.info "kick-starting the refresh schedule due to sunset event"
+    debug "sunsetHandler event: ${evt.descriptionText}", "trace", 1
+    debug "kick-starting the refresh schedule due to sunset event", "info"
     doRefresh()
+    debug "sunsetHandler complete", "trace", -1
 }
 
 def sunriseHandler(evt) {
-    log.trace "sunriseHandler>${evt.descriptionText}"
-    log.info "kick-starting the refresh schedule due to sunrise event"
+    debug "sunriseHandler event: ${evt.descriptionText}", "trace", 1
+    debug "kick-starting the refresh schedule due to sunrise event", "info"
     doRefresh()
+    debug "sunriseHandler complete", "trace", -1
 }
 
 
@@ -181,14 +193,17 @@ def sunriseHandler(evt) {
 //   ***   METHODS   ***
 
 def doRefresh() {
-    log.trace "doRefresh() - refresh frequency setting: $updateFreq minutes"
-    def adjustedFreq = updateFreq
-    if (adjustedFreq < 5) {
-        //log.debug "refresh frequency adjusted to the minimum value of 5 minutes"
+    debug "executing doRefresh()", "trace", 1
+
+    debug "refresh frequency setting (updateFreq): $updateFreq minutes"
+	def adjustedFreq = updateFreq
+    if (adjustedFreq < 5) { //TODO: replace '5' with constant
+        //debug "refresh frequency adjusted to the minimum value of 5 minutes"
         adjustedFreq = 5
     }
     runIn(adjustedFreq * 60, doRefresh)
     weatherDevices.refresh()
+    debug "doRefresh() complete", "trace", -1
 }
 
 //   -------------------------
@@ -199,7 +214,7 @@ def doRefresh() {
 //   ------------------------
 //   ***   COMMON UTILS   ***
 
-def debug(message, shift = null, lvl = null, err = null) {
+def debug(message, lvl = null, shift = null, err = null) {
 	def debugging = settings.debugging
 	if (!debugging) {
 		return
@@ -251,14 +266,14 @@ def debug(message, shift = null, lvl = null, err = null) {
 		prefix = ""
 	}
 
-	if (lvl == "info") {
-		log.info "◦◦$prefix$message", err
+    if (lvl == "info") {
+        log.info ": :$prefix$message", err
 	} else if (lvl == "trace") {
-		log.trace "◦$prefix$message", err
+        log.trace "::$prefix$message", err
 	} else if (lvl == "warn") {
-		log.warn "◦$prefix$message", err
+		log.warn "::$prefix$message", err
 	} else if (lvl == "error") {
-		log.error "◦$prefix$message", err
+		log.error "::$prefix$message", err
 	} else {
 		log.debug "$prefix$message", err
 	}

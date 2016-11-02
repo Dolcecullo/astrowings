@@ -14,8 +14,9 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.10" }       /*
+ 	 def versionNum() {	return "version 1.20" }       /*
  
+ *   v1.20 (02-Nov-2016): implement multi-level debug logging function
  *   v1.10 (01-Nov-2016): standardize pages layout
  *	 v1.03 (01-Nov-2016): standardize section headers
  *   v1.02 (26-Oct-2016): added trace for each event handler
@@ -110,27 +111,35 @@ def pageUninstall() {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-	log.info "installed with settings: $settings"
+	debug "installed with settings: ${settings}", "trace"
     initialize()
 }
 
 def updated() {
-    log.info "updated with settings $settings"
+    debug "updated with settings ${settings}", "trace"
 	unsubscribe()
     //unschedule()
     initialize()
 }
 
 def uninstalled() {
-    log.info "uninstalled"
+    state.debugLevel = 0
+    debug "application uninstalled", "trace"
 }
 
 def initialize() {
-	log.info "initializing"
     state.debugLevel = 0
+    debug "initializing", "trace", 1
 	setPresence()
 	subscribe(presenceSensors, "presence", presenceHandler)
     subscribe(simulatedPresence, "presence", simHandler)
+    subscribe(location, "position", locationPositionChange) //update settings if the hub location changes
+    debug "initialization complete", "trace", -1
+}
+
+def subscribeToEvents() {
+    debug "subscribing to events", "trace", 1
+    debug "subscriptions complete", "trace", -1
 }
 
 
@@ -138,12 +147,18 @@ def initialize() {
 //   ***   EVENT HANDLERS   ***
 
 def presenceHandler(evt) {
-	log.trace "presenceHandler>${evt.descriptionText}"
+    debug "presenceHandler event: ${evt.descriptionText}", "trace", 1
     setPresence()
+    debug "presenceHandler complete", "trace", -1
 }
 
 def simHandler(evt) {
-	log.info "simHandler>${evt.displayName} set to ${evt.value}"
+	debug "simHandler event: ${evt.displayName} set to ${evt.value}", "info"
+}
+
+def locationPositionChange(evt) {
+    debug "locationPositionChange(${evt.descriptionText})", "warn"
+	initialize()
 }
 
 
@@ -151,6 +166,7 @@ def simHandler(evt) {
 //   ***   METHODS   ***
 
 def setPresence(){
+    debug "executing setPresence()", "trace", 1
 	def presentCount = 0
     presenceSensors.each {
     	if (it.currentValue("presence") == "present") {
@@ -158,19 +174,20 @@ def setPresence(){
         }
     }
     
-    log.debug("presentCount: ${presentCount}, simulatedPresence: ${simulatedPresence.currentValue("presence")}")
+    debug("presentCount: ${presentCount}, simulatedPresence: ${simulatedPresence.currentValue("presence")}")
     
     if (presentCount > 0) {
     	if (simulatedPresence.currentValue("presence") != "present") {
     		simulatedPresence.arrived()
-            log.debug("Arrived")
+            debug "Arrived"
         }
     } else {
     	if (simulatedPresence.currentValue("presence") != "not present") {
     		simulatedPresence.departed()
-            log.debug("Departed")
+            debug "Departed"
         }
     }
+    debug "setPresence() complete", "trace", -1
 }
 
 
@@ -182,7 +199,7 @@ def setPresence(){
 //   ------------------------
 //   ***   COMMON UTILS   ***
 
-def debug(message, shift = null, lvl = null, err = null) {
+def debug(message, lvl = null, shift = null, err = null) {
 	def debugging = settings.debugging
 	if (!debugging) {
 		return
@@ -234,14 +251,14 @@ def debug(message, shift = null, lvl = null, err = null) {
 		prefix = ""
 	}
 
-	if (lvl == "info") {
-		log.info "◦◦$prefix$message", err
+    if (lvl == "info") {
+        log.info ": :$prefix$message", err
 	} else if (lvl == "trace") {
-		log.trace "◦$prefix$message", err
+        log.trace "::$prefix$message", err
 	} else if (lvl == "warn") {
-		log.warn "◦$prefix$message", err
+		log.warn "::$prefix$message", err
 	} else if (lvl == "error") {
-		log.error "◦$prefix$message", err
+		log.error "::$prefix$message", err
 	} else {
 		log.debug "$prefix$message", err
 	}

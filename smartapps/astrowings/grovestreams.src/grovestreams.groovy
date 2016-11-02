@@ -17,8 +17,9 @@
  *  
  * 
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.10" }       /*
+ 	 def versionNum() {	return "version 1.20" }       /*
  
+ *   v1.20 (02-Nov-2016): implement multi-level debug logging function
  *   v1.10 (01-Nov-2016): standardize pages layout
  *	 v1.01 (01-Nov-2016): standardize section headers
  *   v1.00 (30-Oct-2016): copied code from example (https://www.grovestreams.com/developers/getting_started_smartthings.html)
@@ -118,23 +119,30 @@ def pageUninstall() {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-	log.info "installed with settings: $settings"
+	debug "installed with settings: ${settings}", "trace"
     initialize()
 }
  
 def updated() {
-    log.info "updated with settings $settings"
+    debug "updated with settings ${settings}", "trace"
 	unsubscribe()
     initialize()
 }
  
 def uninstalled() {
-    log.info "uninstalled"
+    state.debugLevel = 0
+    debug "application uninstalled", "trace"
 }
 
 def initialize() {
-	log.info "initializing"
     state.debugLevel = 0
+    debug "initializing", "trace", 1
+    subscribeToEvents()
+    debug "initialization complete", "trace", -1
+}
+
+def subscribeToEvents() {
+    debug "subscribing to events", "trace", 1
     subscribe(temperatures, "temperature", handleTemperatureEvent)
     subscribe(waterSensors, "water", handleWaterEvent)
     subscribe(humidities, "humidity", handleHumidityEvent)
@@ -146,6 +154,7 @@ def initialize() {
     subscribe(batteries, "battery", handleBatteryEvent)
     subscribe(powers, "power", handlePowerEvent)
     subscribe(energies, "energy", handleEnergyEvent)
+    debug "subscriptions complete", "trace", -1
 }
 
 
@@ -205,7 +214,7 @@ private sendValue(evt, Closure convert) {
     def streamId = evt.name
     def value = convert(evt.value)
 
-    log.debug "Logging to GroveStreams ${compId}, ${streamId} = ${value}"
+    debug "logging to GroveStreams ${compId}, ${streamId} = ${value}", "info"
 
     def url = "https://grovestreams.com/api/feed?api_key=${apiKey}&compId=${compId}&${streamId}=${value}"
 
@@ -221,17 +230,17 @@ private sendValue(evt, Closure convert) {
 
         httpPut(putParams) { response ->
             if (response.status != 200 ) {
-                log.debug "GroveStreams logging failed, status = ${response.status}"
+                debug "GroveStreams logging failed, status = ${response.status}", "error"
             }
         }
     
     } catch (groovyx.net.http.ResponseParseException e) {
         // ignore error 200, bogus exception
         if (e.statusCode != 200) {
-            log.error "Grovestreams: ${e}"
+            debug "Grovestreams exception: ${e}", "error"
         }
     } catch (Exception e) {
-        log.error "Grovestreams: ${e}"
+        debug "Grovestreams exception:: ${e}", "error"
     }
 
 }
@@ -245,7 +254,7 @@ private sendValue(evt, Closure convert) {
 //   ------------------------
 //   ***   COMMON UTILS   ***
 
-def debug(message, shift = null, lvl = null, err = null) {
+def debug(message, lvl = null, shift = null, err = null) {
 	def debugging = settings.debugging
 	if (!debugging) {
 		return
@@ -297,14 +306,14 @@ def debug(message, shift = null, lvl = null, err = null) {
 		prefix = ""
 	}
 
-	if (lvl == "info") {
-		log.info "◦◦$prefix$message", err
+    if (lvl == "info") {
+        log.info ": :$prefix$message", err
 	} else if (lvl == "trace") {
-		log.trace "◦$prefix$message", err
+        log.trace "::$prefix$message", err
 	} else if (lvl == "warn") {
-		log.warn "◦$prefix$message", err
+		log.warn "::$prefix$message", err
 	} else if (lvl == "error") {
-		log.error "◦$prefix$message", err
+		log.error "::$prefix$message", err
 	} else {
 		log.debug "$prefix$message", err
 	}

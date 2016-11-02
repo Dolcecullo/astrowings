@@ -14,8 +14,9 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.10" }       /*
+ 	 def versionNum() {	return "version 1.20" }       /*
  
+ *   v1.20 (02-Nov-2016): implement multi-level debug logging function
  *   v1.10 (01-Nov-2016): standardize pages layout
  *	 v1.03 (01-Nov-2016): standardize section headers
  *   v1.02 (26-Oct-2016): added trace for each event handler
@@ -244,12 +245,12 @@ def pageUninstall() {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-	log.info "installed with settings $settings"
+	debug "installed with settings: ${settings}", "trace"
 	initialize()
 }
 
 def updated() {
-    log.info "updated with settings $settings"
+    debug "updated with settings ${settings}", "trace"
 	unsubscribe()
     unschedule()
     initialize()
@@ -258,21 +259,25 @@ def updated() {
 def uninstalled() {
     flashLights?.off()
     turnOnLights?.off()
-    log.info "uninstalled"
+    state.debugLevel = 0
+    debug "application uninstalled", "trace"
 }
 
 def initialize() {
-	log.info "initializing"
     state.debugLevel = 0
+    debug "initializing", "trace", 1
     state.alarmTime = null
     flashLights?.off()
     turnOnLights?.off()
     subscribeToEvents()
+    debug "initialization complete", "trace", -1
 }
 
 def subscribeToEvents() {
+    debug "subscribing to events", "trace", 1
 	subscribe(location, "mode", modeChangeHandler)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
+    //TODO: subscribe to lights on/off events IF commanded by this app (and log events)
 	if (theContacts) {
 		subscribe(theContacts, "contact.open", intrusionHandler)
     }
@@ -288,6 +293,7 @@ def subscribeToEvents() {
     if (theWater) {
     	subscribe(theWater, "water.wet", intrusionHandler)
     }
+    debug "subscriptions complete", "trace", -1
 }
 
 
@@ -295,20 +301,21 @@ def subscribeToEvents() {
 //   ***   EVENT HANDLERS   ***
 
 def intrusionHandler(evt) {
-	log.trace "intrusionHandler>${evt.descriptionText}"
+    debug "intrusionHandler event: ${evt.descriptionText}", "trace", 1
     if (monitorOn) {
     	def triggerDevice = evt.device
         def triggerTime = evt.date
         state.alarmTime = now()
-    	log.warn "An intrusion was detected ($triggerDevice at $triggerTime); triggering the alarm"
+    	debug "an intrusion was detected ($triggerDevice at $triggerTime); triggering the alarm", "warn"
         alarmHandler(triggerDevice, triggerTime)
     } else {
-    	log.info "An intrusion was detected but the monitoring conditions are not met; doing nothing" //TODO: why are the conditions not met? return monitorOn as map of conditions
+    	debug "an intrusion was detected but the monitoring conditions are not met; doing nothing", "info" //TODO: why are the conditions not met? return monitorOn as map of conditions
     }
+    debug "intrusionHandler complete", "trace", -1
 }
 
 def modeChangeHandler(evt) {
-	log.trace "modeChangeHandler>${evt.descriptionText}"
+    debug "modeChangeHandler event: ${evt.descriptionText}", "trace", 1
     if (!modeOk && alarmOn) {
     	if (state.alarmFlash == "on") {
         	deactivateFlash()
@@ -317,10 +324,11 @@ def modeChangeHandler(evt) {
         	deactivateLights()
         }
 	}
+    debug "modeChangeHandler complete", "trace", -1
 }
 
 def locationPositionChange(evt) {
-	log.trace "locationPositionChange>${evt.descriptionText}"
+    debug "locationPositionChange(${evt.descriptionText})", "warn"
 	initialize()
 }
 
@@ -329,6 +337,7 @@ def locationPositionChange(evt) {
 //   ***   METHODS   ***
 
 def alarmHandler(triggerDevice, triggerTime) {
+    debug "executing alarmHandler(triggerDevice: ${triggerDevice}, triggerTime: ${triggerTime})", "trace", 1
 	def alarmMsg = "Intrusion detected by $triggerDevice at $triggerTime"
 	if (pushYesNo) {
     	sendPush(alarmMsg)
@@ -342,9 +351,11 @@ def alarmHandler(triggerDevice, triggerTime) {
     if (lightYesNo) {
     	activateLights()
     }
+    debug "alarmHandler() complete", "trace", -1
 }
 
 def activateFlash() {
+    debug "executing activateFlash()", "trace", 1
 	def doFlash = true
 	def onFor = flashOnFor ? flashOnFor * 1000 : 1000
 	def offFor = flashOffFor ? flashOffFor * 1000 : 1000
@@ -357,7 +368,7 @@ def activateFlash() {
 	}
 
 	if (doFlash) {
-    	log.debug "starting lights flash"
+    	debug "starting lights flash", "info"
 		state.flashLastActivated = now()
         state.alarmFlash = "on"
 		def initialActionOn = flashLights.collect{it.currentSwitch != "on"}
@@ -381,32 +392,35 @@ def activateFlash() {
 			delay += offFor
 		}
         if (flashLeaveOn) {
-        	log.debug "setting turn-on delay to leave flasher lights on after flash"
+        	debug "setting turn-on delay to leave flasher lights on after flash", "info"
         	flashLights.on(delay: sequenceTime)
             if (flashLeaveDuration) {
-            	log.debug "setting turn-off delay to turn flasher lights off after $flashLeaveDuration minutes"
+            	debug "setting turn-off delay to turn flasher lights off after $flashLeaveDuration minutes", "info"
             	def flashOffDelay = flashLeaveDuration * 60 * 1000
             	flashLights.off(delay: sequenceTime + flashOffDelay)
             }
             if (flashOffSun) {
 				def strSunriseTime = location.currentValue("sunriseTime")
         		def datSunriseTime = Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", strSunriseTime)
-                log.debug "scheduling flasher lights to turn off at sunrise ($datSunriseTime)"
+                debug "scheduling flasher lights to turn off at sunrise ($datSunriseTime)", "info"
                 runOnce(datSunriseTime, deactivateFlash)
             }
         } else {
         	state.alarmFlash = "off"
         }
 	}
+    debug "activateFlash() complete", "trace", -1
 }
 
 def deactivateFlash() {
+    debug "executing deactivateFlash()", "trace", 1
 	flashLights.off()
     state.alarmFlash = "off"
+    debug "deactivateFlash() complete", "trace", -1
 }
 
-def activateLights(evt) {
-	log.debug "turning lights on"
+def activateLights() {
+    debug "executing activateLights()", "trace", 1
     state.alarmLights = "on"
     turnOnLights.on()
 	
@@ -415,32 +429,34 @@ def activateLights(evt) {
     if (turnOnDurationYN) { //check for preset duration
     	def unxDurationEnd = now() + (60 * 1000 * turnOnMinutes)
         def datDurationEnd = new Date(unxDurationEnd)
-        log.debug "end of preset duration :: $datDurationEnd"
+        debug "end of preset duration : $datDurationEnd"
         listOffTimes << datDurationEnd
 	}
     if (turnOffTimeYN) { //check for preset off time
     	def datTurnOffTime = timeToday(turnOffTime, location.timeZone)
-        log.debug "preset turn-off time :: $datTurnOffTime"
+        debug "preset turn-off time : $datTurnOffTime"
         listOffTimes << datTurnOffTime
     }
     if (turnOnSun) {
         def strSunriseTime = location.currentValue("sunriseTime")
         def datSunriseTime = Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", strSunriseTime)
-        log.debug "sunrise time :: $datSunriseTime"
+        debug "sunrise time : $datSunriseTime"
         listOffTimes << datSunriseTime
     }
     if (listOffTimes.size() > 0) {
     	def LightsOnEnd = listOffTimes.min()
-        log.debug "the min time from $listOffTimes is $LightsOnEnd"
-        log.info "scheduling deactivateLights at $LightsOnEnd"
+        debug "the min time from $listOffTimes is $LightsOnEnd"
+        debug "scheduling deactivateLights at $LightsOnEnd", "info"
         runOnce(LightsOnEnd, deactivateLights)
     }
+    debug "activateLights() complete", "trace", -1
 }
 
 def deactivateLights() {
-	log.info "turning lights off"
+    debug "executing deactivateLights()", "trace", 1
     turnOnLights.off()
     state.alarmLights = "off"
+    debug "deactivateLights() complete", "trace", -1
 }
 
 
@@ -448,56 +464,56 @@ def deactivateLights() {
 //   ***   APP FUNCTIONS   ***
 
 def getSensorDesc() {
-	if (theContacts || theMotions || theSmoke || theCO || theWater) {
-    	def numSensors =
+		if (theContacts || theMotions || theSmoke || theCO || theWater) {
+    	def result = ""
+        def numSensors =
         	(theContacts?.size() ?: 0) +
             (theMotions?.size() ?: 0) +
             (theSmoke?.size() ?: 0) +
             (theCO?.size() ?: 0) +
             (theWater?.size() ?: 0)
-    	//log.debug "${(theContacts?.size() ?: 0)}, ${(theMotions?.size() ?: 0)}, ${(theSmoke?.size() ?: 0)}, ${(theCO?.size() ?: 0)}, ${(theWater?.size() ?: 0)}"
-        //log.debug "number of sensors: $numSensors"
-        return "$numSensors sensors selected"
+    	//debug "${(theContacts?.size() ?: 0)}, ${(theMotions?.size() ?: 0)}, ${(theSmoke?.size() ?: 0)}, ${(theCO?.size() ?: 0)}, ${(theWater?.size() ?: 0)}"
+        //debug "number of sensors: $numSensors"
+        result = "$numSensors sensors selected"
     } else {
-    	return "Select the sensors to monitor"
+    	result = "Select the sensors to monitor"
     }
+        return result
+        debug ">> sensorDesc : $result"
 }
 
 def getItsDarkOut() {
-    def sunTime = getSunriseAndSunset(sunsetOffset: 15)
-    def currentDTG = new Date()
+    def sunTime = getSunriseAndSunset(sunsetOffset: 15) //TODO: convert '15' to variable (user setting) or  constant
+    def nowDate = new Date()
     def result = false
-	//log.debug "currentDTG: $currentDTG"
-	//log.debug "sunTime.sunrise: $sunTime.sunrise"
-	//log.debug "sunTime.sunset: $sunTime.sunset (with 15 min offset)"
-    //log.debug "unx_sunTime.sunset: ${sunTime.sunset.time}"
-    //log.debug "dat_unx_sunTime.sunset: ${new Date(sunTime.sunset.time)}"
-
-	if(sunTime.sunrise < currentDTG && sunTime.sunset > currentDTG){
-    	//log.debug "it's daytime"
+    def desc = ""
+	
+    if(sunTime.sunrise < nowDate && sunTime.sunset > nowDate){
+    	desc = "it's daytime"
         result = false
     } else {
-    	//log.debug "it's nighttime"
+    	desc = "it's nighttime"
         result = true
     }
+    debug ">> itsDarkOut : $result ($desc)"
     return result
 }
 
 def getMonitorOn() {
 	def result = modeOk && darkOk && someoneHome && daysOk && timeOk && coolDownOk
-    log.debug "MonitorOn :: $result"
+    debug ">> monitorOn : $result"
     return result
 }
 
 def getModeOk() {
 	def result = !theModes || theModes.contains(location.mode)
-	log.debug "modeOk :: $result"
+	debug ">> modeOk : $result"
 	return result
 }
 
 def getDarkOk() {
 	def result = !theSun || itsDarkOut
-	log.debug "darkOk :: $result"
+	debug ">> darkOk : $result"
 	return result
 }
 
@@ -506,7 +522,7 @@ def getSomeoneHome() {
     if(thePresence?.findAll {it?.currentPresence == "present"}) {
 		result = true
 	}
-	log.debug "someoneHome :: $result"
+	debug ">> someoneHome : $result"
 	return result
 }
 
@@ -514,10 +530,9 @@ def getDaysOk() {
 	def result = true
 	if (theDays) {
         def strDOW = nowDOW
-        //log.debug "strDOW :: $strDOW"
 		result = theDays.contains(strDOW)
 	}
-	log.debug "daysOk :: $result"
+	debug ">> daysOk : $result"
 	return result
 }
 
@@ -526,14 +541,14 @@ def getNowDOW() {
     def javaDate = new java.text.SimpleDateFormat("EEEE, dd MMM yyyy @ HH:mm:ss")
     def javaDOW = new java.text.SimpleDateFormat("EEEE")
     if (location.timeZone) {
-    	//log.debug "location.timeZone = true"
+    	//debug "location.timeZone = true"
         javaDOW.setTimeZone(location.timeZone)
     } else {
-        //log.debug "location.timeZone = false"
+        //debug "location.timeZone = false"
         //javaDate.setTimeZone(TimeZone.getTimeZone("America/Edmonton"))
     }
     def strDOW = javaDOW.format(new Date())
-    log.debug "strDOW :: $strDOW"
+    debug ">> nowDOW : $strDOW"
     return strDOW
 }
 
@@ -542,10 +557,10 @@ def getTimeOk() {
     if (theTimes) {
     	def start = timeToday(startTime, location.timeZone)
         def stop = timeToday(endTime, location.timeZone)
-        //log.debug "today's time window is from $start to $stop (current ime is ${new Date()})"
+        //debug "today's time window is from $start to $stop (current ime is ${new Date()})"
 		result = timeOfDayIsBetween(start, stop, new Date(), location.timeZone)
 	}
-	log.debug "timeOk :: $result"
+	debug ">> timeOk : $result"
 	return result
 }
 
@@ -556,7 +571,7 @@ def getCoolDownOk() {
         def elapsed = now() - state.alarmTime
 		result = elapsed > delay
     }
-    log.debug "coolDownOk :: $result"
+    debug ">> coolDownOk : $result"
     return result
 }
 
@@ -564,7 +579,7 @@ def getAlarmOn() {
 	def alarmFlash = state.alarmFlash
     def alarmLights = state.alarmLights
     def result = (alarmFlash == "on" || alarmLights == "on")
-    log.debug "The alarm is currently ${result ? 'active' : 'inactive'}"
+    debug ">> alarmOn : $result"
     return result
 }
 
@@ -572,7 +587,7 @@ def getAlarmOn() {
 //   ------------------------
 //   ***   COMMON UTILS   ***
 
-def debug(message, shift = null, lvl = null, err = null) {
+def debug(message, lvl = null, shift = null, err = null) {
 	def debugging = settings.debugging
 	if (!debugging) {
 		return
@@ -624,14 +639,14 @@ def debug(message, shift = null, lvl = null, err = null) {
 		prefix = ""
 	}
 
-	if (lvl == "info") {
-		log.info "◦◦$prefix$message", err
+    if (lvl == "info") {
+        log.info ": :$prefix$message", err
 	} else if (lvl == "trace") {
-		log.trace "◦$prefix$message", err
+        log.trace "::$prefix$message", err
 	} else if (lvl == "warn") {
-		log.warn "◦$prefix$message", err
+		log.warn "::$prefix$message", err
 	} else if (lvl == "error") {
-		log.error "◦$prefix$message", err
+		log.error "::$prefix$message", err
 	} else {
 		log.debug "$prefix$message", err
 	}
