@@ -233,7 +233,7 @@ def locationPositionChange(evt) {
 //   ***   METHODS   ***
 
 def scheduleTurnOn(sunsetString) {
-    debug "executing scheduleTurnOn(sunsetString: ${sunsetString})", "trace", 1
+    debug "executing scheduleTurnOn(sunsetString: ${sunsetString})", "trace", 1 //TODO: enable use of illuminance device instead of sunset
 	
     def datSunset = Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", sunsetString)
     debug "sunset date: ${datSunset}"
