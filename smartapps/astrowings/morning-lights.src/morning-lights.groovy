@@ -214,7 +214,7 @@ def locationPositionChange(evt) {
 //   ***   METHODS   ***
 
 def schedTurnOff(sunriseString) {
-    debug "executing schedTurnOff(sunriseString: ${sunriseString})", "trace", 1
+    debug "executing schedTurnOff(sunriseString: ${sunriseString})", "trace", 1 //TODO: enable use of illuminance device instead of sunrise
 	
     def datTurnOff = Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", sunriseString)
     debug "sunrise date : ${datTurnOff}"
