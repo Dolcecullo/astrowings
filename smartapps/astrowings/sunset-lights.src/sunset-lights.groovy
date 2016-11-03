@@ -6,7 +6,8 @@
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0                                       */
+ 	       def urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }      /*
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
@@ -14,8 +15,9 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 2.20" }       /*
- 
+ 	 def versionNum() {	return "version 2.21" }       /*
+ *
+ *   v2.21 (02-Nov-2016): add link for Apache license
  *   v2.20 (02-Nov-2016): implement multi-level debug logging function
  *   v2.10 (01-Nov-2016): standardize pages layout
  *	 v2.01 (01-Nov-2016): standardize section headers
@@ -70,8 +72,8 @@ def pageMain() {
         section() {
             input "theLights", "capability.switch", title: "Which lights?", description: "Choose the lights to turn on", multiple: true, required: true, submitOnChange: true
             if (theLights) {
-                href "pageSchedule", title: "Set scheduling options", required: false
-                href "pageRandom", title: "Configure random scheduling", required: false
+                href "pageSchedule", title: "Set scheduling options", required: false //TODO: state
+                href "pageRandom", title: "Configure random scheduling", required: false //TODO: state
         	}
         }
 		section() {
@@ -88,7 +90,7 @@ def pageSchedule() {
         	paragraph title: "Scheduling Options", "Use the options on this page to set the scheduling preferences."
         }
         section("Set the amount of time after sunset when the lights will turn on") {
-            input "offset", "number", title: "Minutes (optional)", required: false
+            input "offset", "number", title: "Minutes (optional)", required: false //TODO: allow negative
         }
     	section("Turn the lights off at this time (optional - lights will turn off 15 minutes before next sunrise if no time is entered)") { //TODO: use constant for fefault value
         	input "timeOff", "time", title: "Time to turn lights off?", required: false
@@ -116,8 +118,8 @@ def pageRandom() {
     	section("Specify a window around the scheduled time when the lights will turn on/off " +
         	"(e.g. a 30-minute window would have the lights switch sometime between " +
             "15 minutes before and 15 minutes after the scheduled time.)") {
-            input "randOn", "number", title: "Random ON window (minutes)?", required: false
-            input "randOff", "number", title: "Random OFF window (minutes)?", required: false
+            input "randOn", "number", title: "Random ON window (minutes)?", required: false //TODO: valid range
+            input "randOff", "number", title: "Random OFF window (minutes)?", required: false //TODO: valid range
         }
         section("The settings above are used to randomize preset times such that lights will " +
         	"turn on/off at slightly different times from one day to another, but if multiples lights " +
@@ -126,7 +128,7 @@ def pageRandom() {
             "This option can be used independently of the ones above.") {
             input "onDelay", "bool", title: "Delay switch-on?", required: false
             input "offDelay", "bool", title: "Delay switch-off?", required: false
-            input "delaySeconds", "number", title: "Delay switching by up to (seconds)?", required: true, defaultValue: 15
+            input "delaySeconds", "number", title: "Delay switching by up to (seconds)?", required: true, defaultValue: 10 //TODO: specify valid range, not required (move default value to method), description default value, use constant for default value
         }
 	}
 }
@@ -135,7 +137,7 @@ def pageSettings() {
 	dynamicPage(name: "pageSettings", install: false, uninstall: false) {
 		section("About") {
         	paragraph "Copyright ©2016 Phil Maynard\n${versionNum()}", title: app.name
-            //TODO: link to license
+            href name: "hrefLicense", title: "License", description: "Apache License", url: urlApache()
 		}
    		section() {
 			label title: "Assign a name", defaultValue: "${app.name}", required: false
