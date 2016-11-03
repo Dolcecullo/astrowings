@@ -6,7 +6,8 @@
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0                                       */
+ 	       def urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }      /*
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
@@ -14,8 +15,9 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.20" }       /*
+ 	 def versionNum() {	return "version 1.21" }       /*
  
+ *   v1.21 (02-Nov-2016): add link for Apache license
  *   v1.20 (02-Nov-2016): implement multi-level debug logging function
  *   v1.10 (01-Nov-2016): standardize pages layout
  *	 v1.03 (01-Nov-2016): standardize section headers
@@ -45,6 +47,8 @@ preferences {
     page(name: "pageNotify")
     page(name: "pageFlash")
     page(name: "pageSwitch")
+    page(name: "pageSettings")
+    page(name: "pageUninstall")
 }
 
 
@@ -64,9 +68,9 @@ def pageMain() {
                 "Can be used to monitor if someone (child, elderly) is attempting to leave the house."
         }
         section("Configuration") {
-            href(page: "pageSensors", title: "Sensor Selection", description: sensorDesc)
-            href(page: "pageSchedule", title: "Scheduling Options", description: "Set the conditions for the monitoring window")
-            href(page: "pageNotify", title: "Notification Method", description: "Configure the notification method")
+            href(page: "pageSensors", title: "Sensor Selection", description: sensorDesc) //TODO: state
+            href(page: "pageSchedule", title: "Scheduling Options", description: "Set the conditions for the monitoring window") //TODO: state
+            href(page: "pageNotify", title: "Notification Method", description: "Configure the notification method") //TODO: state
 		}
 		section() {
             href "pageSettings", title: "App settings", image: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png", required: false
@@ -139,13 +143,13 @@ def pageNotify() {
         section("Flash a light") {
             input "flashYesNo", "bool", title: "Yes/No?", required: false, submitOnChange: true
 	        if (flashYesNo) {
-        		href(page: "pageFlash", title: "Flasher settings")
+        		href(page: "pageFlash", title: "Flasher settings") //TODO: state
             }
         }
         section("Turn a light/switch on") {
         	input "lightYesNo", "bool", title: "Yes/No?", required: false, submitOnChange: true
 	        if (lightYesNo) {
-            	href(page: "pageSwitch", title: "Switch settings")
+            	href(page: "pageSwitch", title: "Switch settings") //TODO: state
             }
         }
         section("Set the cooldown period") {
@@ -165,16 +169,16 @@ def pageFlash() {
         }
         if (flashLights) {
             section("Set the flash interval") {
-                input "flashOnFor", "number", title: "How many seconds ON? (default = 1)", required: false //TODO: use constant for default
-                input "flashOffFor", "number", title: "How many seconds OFF? (default = 1)", required: false //TODO: use constant for default
+                input "flashOnFor", "number", title: "How many seconds ON? (default = 1)", required: false //TODO: use constant for default, specify valid range
+                input "flashOffFor", "number", title: "How many seconds OFF? (default = 1)", required: false //TODO: use constant for default, specify valid range
             }
             section("Set the number of flash cycles") {
-                input "flashCycles", "number", title: "How many cycles? (default = 3)", required: false //TODO: change default to 5 (use constant)
+                input "flashCycles", "number", title: "How many cycles? (default = 3)", required: false //TODO: change default to 5 (use constant), specify valid range
             }
             section("Leave light(s) on after the flashing duration") {
                 input "flashLeaveOn", "bool", title: "Yes/No?", submitOnChange: true, required: false, defaultValue: false
                 if (flashLeaveOn) {
-                    input "flashLeaveDuration", "number", title: "For how long (minutes)?", required: false
+                    input "flashLeaveDuration", "number", title: "For how long (minutes)?", description: "Leave on until mode change if not set", required: false
                     input "flashOffSun", "bool", title: "Turn off at sunrise?", defaultValue: true, required: false //TODO: remove this option
                 }
             }
@@ -211,7 +215,7 @@ def pageSettings() {
 	dynamicPage(name: "pageSettings", install: false, uninstall: false) {
 		section("About") {
         	paragraph "Copyright ©2016 Phil Maynard\n${versionNum()}", title: app.name
-            //TODO: link to license
+            href name: "hrefLicense", title: "License", description: "Apache License", url: urlApache()
 		}
    		section() {
 			label title: "Assign a name", defaultValue: "${app.name}", required: false
