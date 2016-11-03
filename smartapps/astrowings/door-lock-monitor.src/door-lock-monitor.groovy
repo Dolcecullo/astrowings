@@ -6,7 +6,8 @@
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0                                       */
+ 	       def urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }      /*
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
@@ -14,8 +15,10 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.20" }       /*
- 
+ 	 def versionNum() {	return "version 1.31" }       /*
+ *
+ *	 v1.31 (03-Nov-2016): add options for notification conditions
+ *                        add link for Apache license
  *   v1.20 (02-Nov-2016): implement multi-level debug logging function
  *   v1.10 (01-Nov-2016): standardize pages layout
  *	 v1.03 (01-Nov-2016): standardize section headers
@@ -42,6 +45,7 @@ definition(
 preferences {
 	page(name: "pageMain")
     page(name: "pageSettings")
+    page(name: "pageNotify")
     page(name: "pageUninstall")
 }
 
@@ -56,7 +60,6 @@ preferences {
 
 def pageMain() {
     //TODO: add the option to enable based on presence
-	//TODO: add options for notification conditions
     dynamicPage(name: "pageMain", install: true, uninstall: false) {
     	section(){
         	paragraph "", title: "This SmartApp sends a push notification if a lock gets unlocked or if the mode changes while the lock is unlocked."
@@ -66,9 +69,22 @@ def pageMain() {
         }
 		section() {
 			if (theLock) {
-            	href "pageSettings", title: "App settings", image: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png", required: false
+            	href "pageNotify", title: "Notification Options", required: false
+                href "pageSettings", title: "App settings", image: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png", required: false
             }
 		}
+    }
+}
+
+def pageNotify() {
+	dynamicPage(name: "pageNotify", install: false, uninstall: false) {
+        section(){
+        	paragraph title: "Notification Options"
+        }
+        section() {
+            input "pushUnlock", "bool", title: "Send push nofication when door gets unlocked", defaultValue: true, required: false
+            input "pushMode", "bool", title: "Send push nofication if door is left unlocked at mode change", defaultValue: true, required: false
+        }
     }
 }
 
@@ -76,7 +92,7 @@ def pageSettings() {
 	dynamicPage(name: "pageSettings", install: false, uninstall: false) {
 		section("About") {
         	paragraph "Copyright ©2016 Phil Maynard\n${versionNum()}", title: app.name
-            //TODO: link to license
+            href name: "hrefLicense", title: "License", description: "Apache License", url: urlApache()
 		}
    		section() {
 			mode title: "Set for specific mode(s)"
@@ -117,7 +133,6 @@ def installed() {
 def updated() {
     debug "updated with settings ${settings}", "trace"
 	unsubscribe()
-    //unschedule()
     initialize()
 }
 
@@ -147,18 +162,22 @@ def subscribeToEvents() {
 
 def unlockHandler(evt) {
     debug "unlockHandler event: ${evt.descriptionText}", "trace", 1
-    def unlockText = evt.descriptionText
-	debug "sendPush : $unlockText", "warn"
-	sendPush(unlockText)
+    def warnUnlock = evt.descriptionText
+	debug "warnUnlock : $warnUnlock", "warn"
+	if (pushUnlock) {
+    	sendPush(warnUnlock)
+    }
     debug "unlockHandler complete", "trace", -1
 }
 
 def modeChangeHandler(evt) {
     debug "modeChangeHandler event: ${evt.descriptionText}", "trace", 1
     if (theLock.currentLock == "unlocked") {
-    	def unlockedMsg = "The mode changed to $location.currentMode and the $theLock.label is $theLock.currentLock"
-        debug "sendPush : $unlockedMsg", "warn"
-        sendPush(unlockedMsg)
+    	def warnMode = "The mode changed to $location.currentMode and the $theLock.label is $theLock.currentLock"
+        debug "warnMode : $warnMode", "warn"
+        if (pushMode) {
+        	sendPush(warnMode)
+        }
     }
     debug "modeChangeHandler complete", "trace", -1
 }
@@ -167,6 +186,11 @@ def locationPositionChange(evt) {
     debug "locationPositionChange(${evt.descriptionText})", "warn"
 	initialize()
 }
+
+
+//   -------------------
+//   ***   METHODS   ***
+
 
 
 //   -------------------------
