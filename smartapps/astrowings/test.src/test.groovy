@@ -6,7 +6,8 @@
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0                                       */
+ 	       def urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }      /*
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
@@ -14,8 +15,8 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version #" }          /*
- 
+ 	 def versionNum() {	return "version 0.1" }          /*
+ *
  *   31-Oct-2016 : v# - most recent release changes
  *   28-Oct-2016 : v# - previous release changes
  *
@@ -54,16 +55,16 @@ private		getSOME_CONSTANT()	{ return "this is some constant" }
 
 //TODO: implement href state (exemple: https://github.com/SmartThingsCommunity/Code/blob/master/smartapps/preferences/page-params-by-href.groovy)
 def pageMain() {
-	dynamicPage(name: "pageMain", title: "Main", install: true, uninstall: false) {
-        section() {
-        	paragraph title: "This is the intro section (paragraph title)", "paragraph content"
+	dynamicPage(name: "pageMain", title: "Main", install: true, uninstall: false) { //with 'install: true', clicking 'Done' installs/updates the app
+    	section(){
+        	paragraph "", title: "This SmartApp is used for various tests."
         }
         section("Inputs") {
-            input "theSwitch", "capability.switch",
-            	title: "Title",
-                description: "description",
-                multiple: false,
-                required: true,
+            input "theSwitches", "capability.switch",
+            	title: "Select the switches",
+                description: "A long input description will not wrap over multiple lines",
+                multiple: true,
+                required: false,
                 submitOnChange: false
         }
 		section() {
@@ -75,9 +76,13 @@ def pageMain() {
 def pageSettings() {
 	dynamicPage(name: "pageSettings", title: "Settings", install: false, uninstall: false) { //with 'install: false', clicking 'Done' goes back to previous page
 		section("About") {
-			paragraph versionNum(), title: "Version"
+        	paragraph "Copyright ©2016 Phil Maynard\n${versionNum()}", title: app.name
+            href name: "hrefLicense", title: "License", description: "Apache License", url: urlApache()
             paragraph stateCap(), title: "Memory Usage"
-			label name: "name", title: "Name", state: (name ? "complete" : null), defaultValue: app.name, required: false
+		}
+   		section() {
+			label name: "name", title: "Assign a name", defaultValue: app.name, required: false, state: (name ? "complete" : null)
+            href "pageUninstall", title: "Uninstall", description: "Uninstall this SmartApp", state: null, required: true
 		}
         section("Debugging Options", hideable: true, hidden: true) {
             input "debugging", "bool", title: "Enable debugging", defaultValue: false, required: false, submitOnChange: true
@@ -89,16 +94,14 @@ def pageSettings() {
                 input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false
             }
         }
-   		section("Remove Test") {
-			href "pageRemove", title: "href Title", description: "Remove Test", required: false
-		}
     }
 }
 
-def pageRemove() {
-	dynamicPage(name: "pageRemove", title: "Remove", install: true, uninstall: true) { //with 'install: true', clicking 'Done' installs the app
-		section("Test") {
-        	paragraph "testing", title: "warning"
+def pageUninstall() {
+	dynamicPage(name: "pageUninstall", title: "Uninstall", install: false, uninstall: true) {
+		section() {
+        	paragraph "CAUTION: You are about to completely remove the SmartApp '${app.name}'. This action is irreversible. If you want to proceed, tap on the 'Remove' button below.",
+                required: true, state: null
         }
 	}
 }
@@ -108,78 +111,99 @@ def pageRemove() {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-    state.debugLevel = 0
-    debug "begin installed()","trace",1
-    debug "installed with settings: $settings","info"
+	debug "installed with settings: ${settings}", "trace"
 	initialize()
-    debug "end installed()","trace",-1
 }
 
 def updated() {
-    state.debugLevel = 0
-    debug "begin updated()","trace",1
-    debug "updated with settings: $settings","info"
+    debug "updated with settings ${settings}", "trace"
 	unsubscribe()
     //unschedule()
     initialize()
-    debug "end updated()","trace",-1
 }
 
 def uninstalled() {
-    debug "uninstalled","trace"
+    //theLights?.off()
+    state.debugLevel = 0
+    debug "application uninstalled", "trace"
 }
 
 def initialize() {
-	debug "begin initialize()","trace",1
-    debug "initializing","info"
-	debugTest()
+    state.debugLevel = 0
+    debug "initializing", "trace", 1
+    //theLights?.off()
     subscribeToEvents()
-    debug "end initialize()","trace",-1
+    debug "initialization complete", "trace", -1
+    testStart()
 }
 
 def subscribeToEvents() {
-	debug "begin subscribeToEvents()","trace",1
-	//subscribe(theSwitch, "switch", eventProperties)
-    //subscribe(theSwitch, "switch", eventTest)
-    subscribe(theSwitch, "switch", debugTest)
-    debug "end subscribeToEvents()","trace",-1
+    debug "subscribing to events", "trace", 1
+	//subscribe(theSwitch, "switch", testProperties)
+    subscribe(theSwitch, "switch", switchEvent)
+    debug "subscriptions complete", "trace", -1
 }
 
 //   --------------------------
 //   ***   EVENT HANDLERS   ***
 
-void eventProperties(evt) {
-    log.trace "eventProperties>data:${evt.data}"
-    log.trace "eventProperties>description:${evt.description}"
-    log.trace "eventProperties>descriptionText:${evt.descriptionText}"
-    log.trace "eventProperties>device:${evt.device}"
-    log.trace "eventProperties>displayName:${evt.displayName}"
-    log.trace "eventProperties>deviceId:${evt.deviceId}"
-    log.trace "eventProperties>name:${evt.name}"
-    log.trace "eventProperties>source:${evt.source}"
-    log.trace "eventProperties>stringValue:${evt.stringValue}"
-    log.trace "eventProperties>unit:${evt.unit}"
-    log.trace "eventProperties>value:${evt.value}"
-    log.trace "eventProperties>isDigital:${evt.isDigital()}"
-    log.trace "eventProperties>isPhysical:${evt.isPhysical()}"
-    log.trace "eventProperties>isStateChange:${evt.isStateChange()}"
+def switchEvent(evt) {
+    debug "switchEvent event: ${evt.descriptionText}", "trace", 1
+	debug "switch event"
+    debug "switchEvent complete", "trace", -1
 }
 
-def eventTest(evt) {
-	debug "switch event"
+def testProperties(evt) {
+	debug "testProperties event: ${evt.descriptionText}", "trace", 1
+    debug "eventProperties>data:${evt.data}"
+    debug "eventProperties>description:${evt.description}"
+    debug "eventProperties>descriptionText:${evt.descriptionText}"
+    debug "eventProperties>device:${evt.device}"
+    debug "eventProperties>displayName:${evt.displayName}"
+    debug "eventProperties>deviceId:${evt.deviceId}"
+    debug "eventProperties>name:${evt.name}"
+    debug "eventProperties>source:${evt.source}"
+    debug "eventProperties>stringValue:${evt.stringValue}"
+    debug "eventProperties>unit:${evt.unit}"
+    debug "eventProperties>value:${evt.value}"
+    debug "eventProperties>isDigital:${evt.isDigital()}"
+    debug "eventProperties>isPhysical:${evt.isPhysical()}"
+    debug "eventProperties>isStateChange:${evt.isStateChange()}"
+	debug "testProperties complete", "trace", -1
 }
+
 
 //   -------------------
 //   ***   METHODS   ***
 
+def testStart() {
+	debug "executing testStart()", "trace", 1
+	listDevices()
+	debug "testStart() complete", "trace", -1
+}
+
+def listDevices() {
+	debug "executing listDevices()", "trace", 1
+    def switchQty = theSwitches ? theSwitches.size() : 0
+    debug "switchQty:$switchQty"
+    if (switchQty == 1) {
+        debug "1 switch selected"
+    } else if (switchQty > 1) {
+        debug "${switchQty} switches selected"
+    } else {
+        debug "no switches selected"
+    }
+	debug "listDevices() complete", "trace", -1
+}
+
 def debugTest() {
-	debug "begin debugTest()","trace",1
+	debug "executing debugTest()", "trace", 1
     debug "constant1 : ${C_1()}"//			-> this is constant1 
     debug "constant2a: ${C_2}"//			-> null
     debug "constant2b: ${c_2}"//			-> this is constant2 
     debug "constant3 : ${SOME_CONSTANT}"//	-> this is some constant
    	debug "a random number between 4 and 16 could be: ${randomWithRange(4, 16)}"
-    debug "end debugTest()","trace",-1
+	debug "debugTest() complete", "trace", -1
 }
 
 //   ------------------------
