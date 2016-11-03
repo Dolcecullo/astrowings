@@ -79,7 +79,8 @@ def pageSettings() {
             //TODO: link to license
 		}
    		section() {
-			label title: "Assign a name", defaultValue: "${app.name} - ${theLock.label}", required: false
+			mode title: "Set for specific mode(s)"
+            label title: "Assign a name", defaultValue: "${app.name} - ${theLock.label}", required: false
             href "pageUninstall", title: "Uninstall", description: "Uninstall this SmartApp", state: null, required: true
 		}
         section("Debugging Options", hideable: true, hidden: true) {
