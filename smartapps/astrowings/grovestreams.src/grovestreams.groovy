@@ -6,7 +6,8 @@
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0                                       */
+ 	       def urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }      /*
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
@@ -17,8 +18,9 @@
  *  
  * 
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.20" }       /*
- 
+ 	 def versionNum() { return "version 1.21" }       /*
+ * 
+ *   v1.21 (02-Nov-2016): add link for Apache license
  *   v1.20 (02-Nov-2016): implement multi-level debug logging function
  *   v1.10 (01-Nov-2016): standardize pages layout
  *	 v1.01 (01-Nov-2016): standardize section headers
@@ -41,6 +43,7 @@ definition(
 
 preferences {
 	page(name: "pageMain")
+    page(name: "pageSensors")
     page(name: "pageSettings")
     page(name: "pageUninstall")
 }
@@ -59,7 +62,18 @@ def pageMain() {
     	section(){
         	paragraph "", title: "This SmartApp logs events from selected sensors to the GroveStreams data analytics platform"
         }
-        section("Log devices...") { //TODO: move section to its own page
+		section() {
+            href "pageSensors", title: "Sensors", description: "Select the sensors/devices to monitor & log", required: false //TODO: make required true, state based on sensors selected, change description to # sensors
+		}
+		section() {
+            href "pageSettings", title: "App settings", image: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png", required: false
+		}
+    }
+}
+
+def pageSensors() {
+	dynamicPage(name: "pageSensors", install: false, uninstall: false) {
+        section("Log devices...") {
             input "temperatures", "capability.temperatureMeasurement", title: "Temperatures", required:false, multiple: true
             input "humidities", "capability.relativeHumidityMeasurement", title: "Humidities", required: false, multiple: true
             input "contacts", "capability.contactSensor", title: "Doors open/close", required: false, multiple: true
@@ -71,10 +85,8 @@ def pageMain() {
             input "batteries", "capability.battery", title: "Batteries", required:false, multiple: true
             input "powers", "capability.powerMeter", title: "Power Meters", required:false, multiple: true
             input "energies", "capability.energyMeter", title: "Energy Meters", required:false, multiple: true
+            //TODO: count selected sensors
         }
-		section() {
-            href "pageSettings", title: "App settings", image: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png", required: false
-		}
     }
 }
 
@@ -82,7 +94,7 @@ def pageSettings() {
 	dynamicPage(name: "pageSettings", install: false, uninstall: false) {
 		section("About") {
         	paragraph "Copyright ©2016 Phil Maynard\n${versionNum()}", title: app.name
-            //TODO: link to license
+            href name: "hrefLicense", title: "License", description: "Apache License", url: urlApache()
 		}
         section ("GroveStreams Feed PUT API key") {
             input "apiKey", "text", title: "Enter API key"
