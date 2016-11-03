@@ -6,7 +6,8 @@
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0                                       */
+ 	       def urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }      /*
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
@@ -17,8 +18,9 @@
  *  
  * 
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.70" }       /*
- 
+ 	 def versionNum() {	return "version 1.71" }       /*
+ *
+ *   v1.71 (02-Nov-2016): add link for Apache license
  *   v1.70 (02-Nov-2016): implement multi-level debug logging function
  *   v1.60 (01-Nov-2016): standardize pages layout
  *	 v1.52 (01-Nov-2016): standardize section headers
@@ -97,7 +99,7 @@ def pageSettings() {
 	dynamicPage(name: "pageSettings", install: false, uninstall: false) {
 		section("About") {
         	paragraph "Copyright ©2016 Phil Maynard\n${versionNum()}", title: app.name
-            //TODO: link to license
+            href name: "hrefLicense", title: "License", description: "Apache License", url: urlApache()
 		}
    		section() {
 			label title: "Assign a name", defaultValue: "${app.name}", required: false
