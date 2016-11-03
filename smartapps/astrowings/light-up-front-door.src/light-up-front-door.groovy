@@ -67,7 +67,7 @@ def pageMain() {
                 "device to use (if none selected, sunset/sunrise times will be used instead.",
                 hideWhenEmpty: true, required: true, state: (theLuminance ? "complete" : null)) {
             //TODO: test using virtual luminance device based on sunrise/sunset
-            //TODO: enable use of device in 'getItsDarkOut()'
+            //TODO: enable use of device everywhere there's a reference to darkness setting (i.e. sunset/sunrise)
             input "theLuminance", "capability.illuminance", title: "Which illuminance device?", multiple: false, required: false, submitOnChange: true
         }
         */
