@@ -467,7 +467,7 @@ def deactivateLights() {
 //   ***   APP FUNCTIONS   ***
 
 def getSensorDesc() {
-		if (theContacts || theMotions || theSmoke || theCO || theWater) {
+	if (theContacts || theMotions || theSmoke || theCO || theWater) {
     	def result = ""
         def numSensors =
         	(theContacts?.size() ?: 0) +

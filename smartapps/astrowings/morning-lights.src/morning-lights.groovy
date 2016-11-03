@@ -294,7 +294,7 @@ def turnOff() {
     def random = new Random()
     theLights.each { theLight ->
         if (theLight.currentSwitch != "off") {
-            info "turning off the ${theLight.label} in ${convertToHMS(newDelay)}", "info"
+            debug "turning off the ${theLight.label} in ${convertToHMS(newDelay)}", "info"
             theLight.off(delay: newDelay)
             newDelay += random.nextInt(delayMS) //calculate random delay before turning off next light
         } else {
