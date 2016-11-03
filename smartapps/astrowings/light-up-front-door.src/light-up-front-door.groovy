@@ -15,16 +15,18 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.21" }       /*
+ 	 def versionNum() {	return "version 1.30" }       /*
  *
- *   v1.21 (02-Nov-2016): add link for Apache license
-                          restrict allowable range for 'leaveOnFor' input
- *   v1.20 (02-Nov-2016): implement multi-level debug logging function
- *   v1.10 (01-Nov-2016): standardize pages layout
- *	 v1.03 (01-Nov-2016): standardize section headers
- *   v1.02 (26-Oct-2016): added trace for each event handler
- *   v1.01 (26-Oct-2016): added 'About' section in preferences
- *   v1.00 (2016 date unknown): working version, no version tracking up to this point
+ *	  v1.30 (03-Nov-2016): add option to use luminance sensor
+ *                         add option to configure sunset offset
+ *    v1.21 (02-Nov-2016): add link for Apache license
+                           restrict allowable range for 'leaveOnFor' input
+ *    v1.20 (02-Nov-2016): implement multi-level debug logging function
+ *    v1.10 (01-Nov-2016): standardize pages layout
+ *	  v1.03 (01-Nov-2016): standardize section headers
+ *    v1.02 (26-Oct-2016): added trace for each event handler
+ *    v1.01 (26-Oct-2016): added 'About' section in preferences
+ *    v1.00 (2016 date unknown): working version, no version tracking up to this point
  *
 */
 definition(
@@ -41,7 +43,6 @@ definition(
 //   ---------------------------
 //   ***   APP PREFERENCES   ***
 
-//TODO: make parent
 preferences {
 	page(name: "pageMain")
     page(name: "pageSettings")
@@ -62,6 +63,12 @@ def pageMain() {
     	section(){
         	paragraph "", title: "This SmartApp turns on a light when someone arrives home and it's dark out. (e.g. to turn on a porch light)"
         }
+        section("This SmartApp uses luminance as a criteria to trigger actions; select the illuminance-capable " +
+                "device to use (if none selected, sunset/sunrise times will be used instead.",
+                hideWhenEmpty: true, required: true, state: (theLuminance ? "complete" : null)) {
+            //TODO: test using virtual luminance device based on sunrise/sunset
+            input "theLuminance", "capability.illuminance", title: "Which illuminance device?", multiple: false, required: false, submitOnChange: true
+        }
         section("When any of these people arrive") {
             input "people", "capability.presenceSensor", title: "Who?", multiple: true, required: true
         }
@@ -69,7 +76,7 @@ def pageMain() {
             input "theLight", "capability.switch", title: "Which light?", required: true
         }
         section("And leave it on for...") {
-            input "leaveOn", "number", title: "How long? (minutes)", description: "max 60 minutes", range: "1..60", required: true
+            input "leaveOn", "number", title: "Leave on for? (minutes)", description: "max 60 minutes", range: "1..60", required: true
         }
 		section() {
             href "pageSettings", title: "App settings", image: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png", required: false
@@ -83,7 +90,14 @@ def pageSettings() {
         	paragraph "Copyright ©2016 Phil Maynard\n${versionNum()}", title: app.name
             href name: "hrefLicense", title: "License", description: "Apache License", url: urlApache()
 		}
-   		section() {
+        if (!theLuminance) {
+            section("This SmartApp uses the sunset/sunrise time to evaluate luminance as a criteria to trigger actions. " +
+                    "If required, you can adjust the amount time before/after sunset when the app considers that it's dark outside " +
+                    "(e.g. use '-20' to adjust the sunset time 20 minutes earlier than actual).") {
+                input "sunsetOffset", "number", title: "Sunset offset time", description: "How many minutes (+/- 60)?", range: "-60..60", required: false
+            }
+   		}
+        section() {
 			label title: "Assign a name", defaultValue: "${app.name}", required: false
             href "pageUninstall", title: "Uninstall", description: "Uninstall this SmartApp", state: null, required: true
 		}
@@ -190,7 +204,7 @@ def turnOff() {
 //   ***   APP FUNCTIONS   ***
 
 def getItsDarkOut() {
-    def sunTime = getSunriseAndSunset(sunsetOffset: 15) //TODO: convert '15' to variable (user setting) or  constant
+    def sunTime = getSunriseAndSunset(sunsetOffset: sunsetOffset)
     def nowDate = new Date()
     def result = false
     def desc = ""
