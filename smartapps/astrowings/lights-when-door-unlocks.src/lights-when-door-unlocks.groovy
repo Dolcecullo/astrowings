@@ -15,15 +15,16 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.21" }       /*
+ 	 def versionNum() {	return "version 1.30" }       /*
  *
- *   v1.21 (02-Nov-2016): add link for Apache license
- *   v1.20 (02-Nov-2016): implement multi-level debug logging function
- *   v1.10 (01-Nov-2016): standardize pages layout
- *	 v1.03 (01-Nov-2016): standardize section headers
- *   v1.02 (26-Oct-2016): added trace for each event handler
- *   v1.01 (26-Oct-2016): added 'About' section in preferences
- *   v1.00 (2016 date unknown): working version, no version tracking up to this point
+ *	  v1.30 (03-Nov-2016): add option to configure sunset offset
+ *    v1.21 (02-Nov-2016): add link for Apache license
+ *    v1.20 (02-Nov-2016): implement multi-level debug logging function
+ *    v1.10 (01-Nov-2016): standardize pages layout
+ *	  v1.03 (01-Nov-2016): standardize section headers
+ *    v1.02 (26-Oct-2016): added trace for each event handler
+ *    v1.01 (26-Oct-2016): added 'About' section in preferences
+ *    v1.00 (2016 date unknown): working version, no version tracking up to this point
  *
 */
 definition(
@@ -69,9 +70,20 @@ def pageMain() {
             input "theSwitch", "capability.switch", required: true, title: "Which light?"
             input "leaveOn", "number", title: "For how long (minutes)?"
         }
-        section("Set the conditions") {
-            input "whenDark", "bool", title: "Only after sunset?", required: false, defaultValue: true
+    	section("Enable only when it's dark out") {
+        	input "whenDark", "bool", title: "Yes/No?", required: false, defaultValue: true, submitOnChange: true
         }
+        /*
+        if (whenDark) {
+            section("This SmartApp uses luminance as a criteria to trigger actions; select the illuminance-capable " +
+                    "device to use (if none selected, sunset/sunrise times will be used instead.",
+                    hideWhenEmpty: true, required: true, state: (theLuminance ? "complete" : null)) {
+                //TODO: test using virtual luminance device based on sunrise/sunset
+                //TODO: enable use of device everywhere there's a reference to darkness setting (i.e. sunset/sunrise)
+                input "theLuminance", "capability.illuminance", title: "Which illuminance device?", multiple: false, required: false, submitOnChange: true
+            }
+        }
+        */
 		section() {
             href "pageSettings", title: "App settings", image: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png", required: false
 		}
@@ -84,6 +96,13 @@ def pageSettings() {
         	paragraph "Copyright ©2016 Phil Maynard\n${versionNum()}", title: app.name
             href name: "hrefLicense", title: "License", description: "Apache License", url: urlApache()
 		}
+        if (!theLuminance) {
+            section("This SmartApp uses the sunset/sunrise time to evaluate luminance as a criteria to trigger actions. " +
+                    "If required, you can adjust the amount time before/after sunset when the app considers that it's dark outside " +
+                    "(e.g. use '-20' to adjust the sunset time 20 minutes earlier than actual).") {
+                input "sunsetOffset", "number", title: "Sunset offset time", description: "How many minutes (+/- 60)?", range: "-60..60", required: false
+            }
+   		}
    		section() {
 			label title: "Assign a name", defaultValue: "${app.name}", required: false
             href "pageUninstall", title: "Uninstall", description: "Uninstall this SmartApp", state: null, required: true
@@ -206,9 +225,13 @@ def getDarkOk() {
 	return result
 }
 
-def getItsDarkOut() {
-    def sunTime = getSunriseAndSunset(sunsetOffset: "00:30") //TODO: convert '00:30' to variable (user setting) or  constant
-    def nowDate = new Date()
+
+//   ------------------------
+//   ***   COMMON UTILS   ***
+
+def getItsDarkOut() { //implement use of illuminance capability
+    def sunTime = getSunriseAndSunset(sunsetOffset: sunsetOffset)
+    def nowDate = new Date(now() + 2000) // be safe and set current time for 2 minutes later
     def result = false
     def desc = ""
 	
@@ -222,10 +245,6 @@ def getItsDarkOut() {
     debug ">> itsDarkOut : $result ($desc)"
     return result
 }
-
-
-//   ------------------------
-//   ***   COMMON UTILS   ***
 
 def debug(message, lvl = null, shift = null, err = null) {
 	def debugging = settings.debugging

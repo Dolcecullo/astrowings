@@ -17,8 +17,7 @@
  *	VERSION HISTORY                                    */
  	 def versionNum() {	return "version 1.30" }       /*
  *
- *	  v1.30 (03-Nov-2016): add option to use luminance sensor
- *                         add option to configure sunset offset
+ *	  v1.30 (03-Nov-2016): add option to configure sunset offset
  *    v1.21 (02-Nov-2016): add link for Apache license
                            restrict allowable range for 'leaveOnFor' input
  *    v1.20 (02-Nov-2016): implement multi-level debug logging function
@@ -63,12 +62,15 @@ def pageMain() {
     	section(){
         	paragraph "", title: "This SmartApp turns on a light when someone arrives home and it's dark out. (e.g. to turn on a porch light)"
         }
+        /*
         section("This SmartApp uses luminance as a criteria to trigger actions; select the illuminance-capable " +
                 "device to use (if none selected, sunset/sunrise times will be used instead.",
                 hideWhenEmpty: true, required: true, state: (theLuminance ? "complete" : null)) {
             //TODO: test using virtual luminance device based on sunrise/sunset
+            //TODO: enable use of device in 'getItsDarkOut()'
             input "theLuminance", "capability.illuminance", title: "Which illuminance device?", multiple: false, required: false, submitOnChange: true
         }
+        */
         section("When any of these people arrive") {
             input "people", "capability.presenceSensor", title: "Who?", multiple: true, required: true
         }
@@ -203,9 +205,14 @@ def turnOff() {
 //   -------------------------
 //   ***   APP FUNCTIONS   ***
 
-def getItsDarkOut() {
+
+
+//   ------------------------
+//   ***   COMMON UTILS   ***
+
+def getItsDarkOut() { //implement use of illuminance capability
     def sunTime = getSunriseAndSunset(sunsetOffset: sunsetOffset)
-    def nowDate = new Date()
+    def nowDate = new Date(now() + 2000) // be safe and set current time for 2 minutes later
     def result = false
     def desc = ""
 	
@@ -219,10 +226,6 @@ def getItsDarkOut() {
     debug ">> itsDarkOut : $result ($desc)"
     return result
 }
-
-
-//   ------------------------
-//   ***   COMMON UTILS   ***
 
 def debug(message, lvl = null, shift = null, err = null) {
 	def debugging = settings.debugging

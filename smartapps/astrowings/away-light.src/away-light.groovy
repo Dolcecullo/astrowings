@@ -15,16 +15,17 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.31" }       /*
+ 	 def versionNum() {	return "version 1.40" }       /*
  *
- *   v1.31 (02-Nov-2016): add link for Apache license
- *   v1.30 (02-Nov-2016): implement multi-level debug logging function
- *	 v1.20 (01-Nov-2016): standardize pages layout
- *	 v1.11 (01-Nov-2016): standardize section headers
- *	 v1.10 (27-Oct-2016): change layout of preferences pages, default value for app name
- *   v1.02 (26-Oct-2016): added trace for each event handler
- *   v1.01 (26-Oct-2016): added 'About' section in preferences
- *   v1.00 (2016 date unknown): working version, no version tracking up to this point
+ *	  v1.40 (03-Nov-2016): add option to configure sunset offset
+ *    v1.31 (02-Nov-2016): add link for Apache license
+ *    v1.30 (02-Nov-2016): implement multi-level debug logging function
+ *	  v1.20 (01-Nov-2016): standardize pages layout
+ *	  v1.11 (01-Nov-2016): standardize section headers
+ *	  v1.10 (27-Oct-2016): change layout of preferences pages, default value for app name
+ *    v1.02 (26-Oct-2016): added trace for each event handler
+ *    v1.01 (26-Oct-2016): added 'About' section in preferences
+ *    v1.00 (2016 date unknown): working version, no version tracking up to this point
  *
 */
 definition(
@@ -86,12 +87,20 @@ def pageSchedule() {
             input "startTime", "time", title: "Start time?", required: false
             input "endTime", "time", title: "End time?", required: false
         }
-    	section("Turn the light on only if it's dark out (based on sunset/sunrise)") {
-        	input "bDark", "bool", title: "Yes/No?", required: false, submitOnChange: true
-            if (bDark) {
-            	input "sunsetOffset", "number", title: "Sunset time offset?", description: "Disable lights until x minutes after sunset", required: false
+    	section("Enable only when it's dark out") {
+        	input "whenDark", "bool", title: "Yes/No?", required: false, defaultValue: true, submitOnChange: true
+        }
+        /*
+        if (whenDark) {
+            section("This SmartApp uses luminance as a criteria to trigger actions; select the illuminance-capable " +
+                    "device to use (if none selected, sunset/sunrise times will be used instead.",
+                    hideWhenEmpty: true, required: true, state: (theLuminance ? "complete" : null)) {
+                //TODO: test using virtual luminance device based on sunrise/sunset
+                //TODO: enable use of device everywhere there's a reference to darkness setting (i.e. sunset/sunrise)
+                input "theLuminance", "capability.illuminance", title: "Which illuminance device?", multiple: false, required: false, submitOnChange: true
             }
         }
+        */
         section("Set light on/off duration - use these settings to have the light turn on and off within the activation period") {
             input "onFor", "number", title: "Stay on for (minutes)?", required: false //If set, the light will turn off after the amount of time specified (or at specified end time, whichever comes first)
             input "offFor", "number", title: "Leave off for (minutes)?", required: false //If set, the light will turn back on after the amount of time specified (unless the specified end time has passed)
@@ -114,6 +123,13 @@ def pageSettings() {
         	paragraph "Copyright ©2016 Phil Maynard\n${versionNum()}", title: app.name
             href name: "hrefLicense", title: "License", description: "Apache License", url: urlApache()
 		}
+        if (!theLuminance) {
+            section("This SmartApp uses the sunset/sunrise time to evaluate luminance as a criteria to trigger actions. " +
+                    "If required, you can adjust the amount time before/after sunset when the app considers that it's dark outside " +
+                    "(e.g. use '-20' to adjust the sunset time 20 minutes earlier than actual).") {
+                input "sunsetOffset", "number", title: "Sunset offset time", description: "How many minutes (+/- 60)?", range: "-60..60", required: false
+            }
+   		}
    		section() {
 			label title: "Assign a name", defaultValue: "${app.name} - ${theLight.label}", required: false
             href "pageUninstall", title: "Uninstall", description: "Uninstall this SmartApp", state: null, required: true
@@ -257,7 +273,7 @@ def turnOn(delay) {
     def tomorrowTime = timeTodayAfter("23:59", "04:00", tz)
 	def strDOW = nowDOW
     def DOWOk = !theDays || theDays?.contains(strDOW)
-    def darkOk = !bDark || itsDarkOut
+    def darkOk = !whenDark || itsDarkOut
 
 	if (modeOk && DOWOk && darkOk) {
         def nowDate = new Date(now() + (randWind * 30000)) //add 1/2 random window to current time to enable the light to come on around the sunset time
@@ -384,23 +400,6 @@ def getModeOk() {
 	return result
 }
 
-def getItsDarkOut() {
-    def sunTime = getSunriseAndSunset(sunsetOffset: sunsetOffset)
-    def nowDate = new Date(now() + 2000) // be safe and set current time for 2 minutes later
-    def result = false
-    def desc = ""
-	
-    if(sunTime.sunrise < nowDate && sunTime.sunset > nowDate){
-    	desc = "it's daytime"
-        result = false
-    } else {
-    	desc = "it's nighttime"
-        result = true
-    }
-    debug ">> itsDarkOut : $result ($desc)"
-    return result
-}
-
 def getNowDOW() {
 	//method to obtain current weekday adjusted for local time
     def javaDate = new java.text.SimpleDateFormat("EEEE, dd MMM yyyy @ HH:mm:ss")
@@ -451,7 +450,7 @@ def schedOffDate() {
     def offDate = endTime ? timeToday(endTime, tz) : null
     
     //get the earliest of user-preset start time and sunrise time
-    if (bDark) {
+    if (whenDark) {
         def sunriseString = location.currentValue("sunriseTime") //get the next sunrise time string
         def sunriseDate = Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", sunriseString)
 		debug "comparing end time (${offDate}) to sunrise time (${sunriseDate})"
@@ -477,6 +476,23 @@ def schedOffDate() {
 
 //   ------------------------
 //   ***   COMMON UTILS   ***
+
+def getItsDarkOut() { //implement use of illuminance capability
+    def sunTime = getSunriseAndSunset(sunsetOffset: sunsetOffset)
+    def nowDate = new Date(now() + 2000) // be safe and set current time for 2 minutes later
+    def result = false
+    def desc = ""
+	
+    if(sunTime.sunrise < nowDate && sunTime.sunset > nowDate){
+    	desc = "it's daytime"
+        result = false
+    } else {
+    	desc = "it's nighttime"
+        result = true
+    }
+    debug ">> itsDarkOut : $result ($desc)"
+    return result
+}
 
 def convertToHMS(ms) {
     int hours = Math.floor(ms/1000/60/60)
