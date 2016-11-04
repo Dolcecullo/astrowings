@@ -15,8 +15,9 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 2.21" }       /*
+ 	 def versionNum() {	return "version 2.22" }       /*
  *
+ *	 v2.22 (03-Nov-2016): use constants instead of hard-coding
  *   v2.21 (02-Nov-2016): add link for Apache license
  *   v2.20 (02-Nov-2016): implement multi-level debug logging function
  *   v2.10 (01-Nov-2016): standardize pages layout
@@ -56,7 +57,9 @@ preferences {
 //   --------------------------------
 //   ***   CONSTANTS DEFINITIONS  ***
 
-private C_1() { return "this is constant1" }
+		 //	  name (C_XXX)			value					description
+private		C_SUNRISE_OFFSET()		{ return -30 }			//offset used for sunrise time calculation (minutes)
+private		C_MIN_TIME_ON()			{ return 15 }			//value to use when scheduling turnOn to make sure lights will remain on for at least this long (minutes) before the scheduled turn-off time
 
 
 //   -----------------------------
@@ -86,13 +89,18 @@ def pageMain() {
 
 def pageSchedule() {
     dynamicPage(name: "pageSchedule", install: false, uninstall: false) {
+        def sunriseOffset = C_SUNRISE_OFFSET()
+        def sunriseOffset_minutes = sunriseOffset.abs()
+        def sunriseOffset_BeforeAfter = sunriseOffset < 0 ? "before" : "after"
         section(){
         	paragraph title: "Scheduling Options", "Use the options on this page to set the scheduling preferences."
         }
-        section("Set the amount of time after sunset when the lights will turn on") {
-            input "offset", "number", title: "Minutes (optional)", required: false //TODO: allow negative
+        section("Set the amount of time before/after sunset when the lights will turn on " +
+        		"(e.g. use '-20' to enable lights 20 minutes before sunset).") {
+                input "sunsetOffset", "number", title: "Sunset offset time", description: "How many minutes (+/- 60)?", range: "-60..60", required: false
         }
-    	section("Turn the lights off at this time (optional - lights will turn off 15 minutes before next sunrise if no time is entered)") { //TODO: use constant for fefault value
+    	section("Turn the lights off at this time " +
+        		"(optional - lights will turn off ${sunriseOffset_minutes} minutes ${sunriseOffset_BeforeAfter} next sunrise if no time is entered)") {
         	input "timeOff", "time", title: "Time to turn lights off?", required: false
         }
     	section("Set a different time to turn off the lights on each day (optional - lights will turn off at the default time if not set)") {
@@ -118,17 +126,19 @@ def pageRandom() {
     	section("Specify a window around the scheduled time when the lights will turn on/off " +
         	"(e.g. a 30-minute window would have the lights switch sometime between " +
             "15 minutes before and 15 minutes after the scheduled time.)") {
-            input "randOn", "number", title: "Random ON window (minutes)?", required: false //TODO: valid range
-            input "randOff", "number", title: "Random OFF window (minutes)?", required: false //TODO: valid range
+            input "randOn", "number", title: "Random ON window (minutes)?", required: false
+            input "randOff", "number", title: "Random OFF window (minutes)?", required: false
         }
         section("The settings above are used to randomize preset times such that lights will " +
         	"turn on/off at slightly different times from one day to another, but if multiples lights " +
             "are selected, they will still switch status at the same time. Use the options below " +
             "to insert a random delay between the switching of each individual light. " +
             "This option can be used independently of the ones above.") {
-            input "onDelay", "bool", title: "Delay switch-on?", required: false
-            input "offDelay", "bool", title: "Delay switch-off?", required: false
-            input "delaySeconds", "number", title: "Delay switching by up to (seconds)?", required: true, defaultValue: 10 //TODO: specify valid range, not required (move default value to method), description default value, use constant for default value
+            input "onDelay", "bool", title: "Delay switch-on?", required: false, submitOnChange: true
+            input "offDelay", "bool", title: "Delay switch-off?", required: false, submitOnChange: true
+            if (onDelay || offDelay) {
+            	input "delaySeconds", "number", title: "Switching delay", description: "Choose 1-60 seconds", required: true, defaultValue: 5, range: "1..60"
+            }
         }
 	}
 }
@@ -233,13 +243,13 @@ def locationPositionChange(evt) {
 //   ***   METHODS   ***
 
 def scheduleTurnOn(sunsetString) {
-    debug "executing scheduleTurnOn(sunsetString: ${sunsetString})", "trace", 1 //TODO: enable use of illuminance device instead of sunset
+    debug "executing scheduleTurnOn(sunsetString: ${sunsetString})", "trace", 1
 	
     def datSunset = Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", sunsetString)
     debug "sunset date: ${datSunset}"
 
     //calculate the offset
-    def offsetTurnOn = offset ? offset * 60 * 1000 : 0 //convert offset to ms
+    def offsetTurnOn = sunsetOffset ? sunsetOffset * 60 * 1000 : 0 //convert offset to ms
 	def datTurnOn = new Date(datSunset.time + offsetTurnOn)
 
     //apply random factor
@@ -272,7 +282,8 @@ def scheduleTurnOff(sunriseString) {
     	debug "user didn't specify turn-off time; using sunrise time", "info"
         def datSunrise = Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", sunriseString)
         debug "sunrise date : $datSunrise"
-        datTurnOff = new Date(datSunrise.time - (15 * 60 * 1000)) //set turn-off time to 15 minutes before sunrise //TODO: use constant for fefault value
+        def sunriseOffset = C_SUNRISE_OFFSET()
+        datTurnOff = new Date(datSunrise.time + (15 * 60 * 1000)) //apply sunrise offset
     }
     state.turnOff = datTurnOff.time //store the scheduled OFF time in State so we can use it later to compare it to the ON time
 	debug "scheduling lights OFF for: ${datTurnOff}", "info"
@@ -287,7 +298,8 @@ def turnOn() {
     //lights would still turn on at 20:23, but they wouldn't turn off until the next day at 20:00.
     debug "executing turnOn()", "trace", 1
 	
-    def nowTime = now() + (15 * 60 * 1000) //making sure lights will stay on for at least 15 min //TODO: use constant for fefault value
+    def minTimeOn = C_MIN_TIME_ON()
+    def nowTime = now() + (minTimeOn * 60 * 1000) //making sure lights will stay on for at least 'minTimeOn'
     def offTime = state.turnOff //retrieving the turn-off time from State
     if (offTime < nowTime) {
 		debug "scheduled turn-off time has already passed; turn-on cancelled", "info"
