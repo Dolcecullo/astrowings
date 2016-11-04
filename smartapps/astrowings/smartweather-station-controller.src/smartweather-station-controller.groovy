@@ -20,6 +20,7 @@
  *	VERSION HISTORY                                    */
  	 def versionNum() {	return "version 1.71" }       /*
  *
+ *   v1.72 (03-Nov-2016): use constant instead of hard-coding for minimum refresh rate
  *   v1.71 (02-Nov-2016): add link for Apache license
  *   v1.70 (02-Nov-2016): implement multi-level debug logging function
  *   v1.60 (01-Nov-2016): standardize pages layout
@@ -72,6 +73,8 @@ preferences {
 //   --------------------------------
 //   ***   CONSTANTS DEFINITIONS  ***
 
+		 //	  name (C_XXX)			value					description
+private		C_MIN_REFRESH()			{ return 5 }			//minimum refresh rate (minutes)
 
 
 //   -----------------------------
@@ -87,7 +90,7 @@ def pageMain() {
         }
         section ("Weather Devices") {
             input name: "weatherDevices", type: "device.smartWeatherStationTile2", title: "Select device(s)", description: "Select the Weather Tiles to update", required: true, multiple: true
-            input name: "updateFreq", type: "number", title: "Update frequency (min. 5 minutes)", description: "How often do you want to update the weather information?", required: true, defaultValue: 15 //TODO: use constant for default and minimum
+            input name: "updateRate", type: "number", title: "Update frequency (min. ${C_MIN_REFRESH()} minutes)", description: "How often do you want to update the weather information?", required: true, range: "${C_MIN_REFRESH()}..*", defaultValue: 15
         }
 		section() {
             href "pageSettings", title: "App settings", image: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png", required: false
@@ -195,14 +198,12 @@ def sunriseHandler(evt) {
 
 def doRefresh() {
     debug "executing doRefresh()", "trace", 1
-
-    debug "refresh frequency setting (updateFreq): $updateFreq minutes"
-	def adjustedFreq = updateFreq
-    if (adjustedFreq < 5) { //TODO: replace '5'(minimum value) with constant
-        //debug "refresh frequency adjusted to the minimum value of 5 minutes"
-        adjustedFreq = 5 //TODO: replace '5'(minimum value) with constant
-    }
-    runIn(adjustedFreq * 60, doRefresh)
+    debug "user refresh rate setting (updateRate): $updateRate minutes"
+	def minRate = C_MIN_REFRESH()
+    def userRate = updateRate
+    def adjRate = userRate > minRate ? userRate : minRate
+    debug "adjusted refresh rate: ${adjRate}"
+    runIn(adjRate * 60, doRefresh)
     weatherDevices.refresh()
     debug "doRefresh() complete", "trace", -1
 }
