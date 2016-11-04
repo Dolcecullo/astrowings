@@ -45,9 +45,6 @@ preferences {
 //   --------------------------------
 //   ***   CONSTANTS DEFINITIONS  ***
 
-private		C_1()				{ return "this is constant1" }
-private		getC_2()			{ return "this is constant2" }
-private		getSOME_CONSTANT()	{ return "this is some constant" }
 
 
 //   -----------------------------
@@ -62,13 +59,13 @@ def pageMain() {
         section("Inputs") {
             input "theSwitches", "capability.switch",
             	title: "Select the switches",
-                description: "A long input description will not wrap over multiple lines",
+                description: "This is a long input description to demonstrate that it will wrap over multiple lines",
                 multiple: true,
                 required: false,
                 submitOnChange: false
         }
 		section() {
-			href "pageSettings", title: "Settings", image: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png", required: false
+			href "pageSettings", title: "Settings", image: "https://s3.amazonaws.com/smartapp-icons/Solution/rule-builder.png", required: false
 		}
     }
 }
@@ -178,7 +175,7 @@ def testProperties(evt) {
 
 def testStart() {
 	debug "executing testStart()", "trace", 1
-	listDevices()
+	debugTest()
 	debug "testStart() complete", "trace", -1
 }
 
@@ -196,12 +193,22 @@ def listDevices() {
 	debug "listDevices() complete", "trace", -1
 }
 
+private		C_1()						{ return "this is constant1" }
+private		getC_2()					{ return "this is constant2" }
+private		getSOME_CONSTANT()			{ return "this is some constant" }
+private		getC_SOME_OTHER_CONSTANT()	{ return "this is some other constant" }
+private		C_NEW_CONSTANT()			{ return "this is a new constant" }
+
 def debugTest() {
 	debug "executing debugTest()", "trace", 1
-    debug "constant1 : ${C_1()}"//			-> this is constant1 
-    debug "constant2a: ${C_2}"//			-> null
-    debug "constant2b: ${c_2}"//			-> this is constant2 
-    debug "constant3 : ${SOME_CONSTANT}"//	-> this is some constant
+    debug "constant1 : ${C_1()}"//					-> this is constant1 
+    debug "constant2a: ${C_2}"//					-> null
+    debug "constant2b: ${c_2}"//					-> this is constant2 
+    debug "constant3a: ${SOME_CONSTANT}"//			-> this is some constant
+    debug "constant4a: ${c_SOME_OTHER_CONSTANT}"//	-> this is some other constant
+    debug "constant4b: ${C_SOME_OTHER_CONSTANT}"//	-> null
+    debug "constant5a: ${c_NEW_CONSTANT}"//			-> null
+    debug "constant5b: ${C_NEW_CONSTANT}"//			-> null
    	debug "a random number between 4 and 16 could be: ${randomWithRange(4, 16)}"
 	debug "debugTest() complete", "trace", -1
 }
