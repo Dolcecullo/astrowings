@@ -75,8 +75,8 @@ def pageMain() {
         section() {
             input "theLights", "capability.switch", title: "Which lights?", description: "Choose the lights to turn on", multiple: true, required: true, submitOnChange: true
             if (theLights) {
-                href "pageSchedule", title: "Set scheduling options", required: false //TODO: state
-                href "pageRandom", title: "Configure random scheduling", required: false //TODO: state
+                href "pageSchedule", title: "Set scheduling options", required: true, state: "complete"
+                href "pageRandom", title: "Configure random scheduling", required: true, state: "complete"
         	}
         }
 		section() {
