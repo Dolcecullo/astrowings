@@ -15,8 +15,10 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 2.21" }       /*
+ 	 def versionNum() {	return "version 2.30" }       /*
  *
+ *	 v2.30 (03-Nov-2016): add option to specify turn-off time
+ *                        use constants instead of hard-coding
  *   v2.21 (02-Nov-2016): add link for Apache license
  *   v2.20 (02-Nov-2016): implement multi-level debug logging function
  *   v2.10 (01-Nov-2016): standardize pages layout
@@ -50,6 +52,8 @@ preferences {
 //   --------------------------------
 //   ***   CONSTANTS DEFINITIONS  ***
 
+		 //	  name (C_XXX)			value					description
+private		C_MIN_TIME_ON()			{ return 10 }			//value to use when scheduling turnOn to make sure lights will remain on for at least this long (minutes) before the scheduled turn-off time
 
 
 //   -----------------------------
@@ -65,8 +69,8 @@ def pageMain() {
         section() {
             input "theLights", "capability.switch", title: "Which lights?", description: "Choose the lights to turn on", multiple: true, required: true, submitOnChange: true
             if (theLights) {
-                href "pageSchedule", title: "Set scheduling options", required: false
-                href "pageRandom", title: "Configure random scheduling", required: false
+                href "pageSchedule", title: "Set scheduling options", required: false //TODO: state
+                href "pageRandom", title: "Configure random scheduling", required: false //TODO: state
         	}
         }
 		section() {
@@ -91,9 +95,12 @@ def pageSchedule() {
         section("Turn the lights on at this time if no weekday time is set " +
                 "(optional - this setting used only if no weekday time is specified; " +
                 "lights activation is disabled otherwise)") {
-            input "defaultOn", "time", title: "Default time?", required: false
+            input "defaultOn", "time", title: "Default time ON?", required: false
         }
-        //TODO: add option to specify turn-off time
+        section("Turn the lights off at this time " +
+                "(optional - app will use the earliest of sunrise and this time)") {
+            input "timeOff", "time", title: "Time OFF?", required: false
+        }
 	}
 }
 
@@ -108,17 +115,19 @@ def pageRandom() {
     	section("Specify a window around the scheduled time when the lights will turn on/off " +
         	"(e.g. a 30-minute window would have the lights switch sometime between " +
             "15 minutes before and 15 minutes after the scheduled time.)") {
-            input "randOn", "number", title: "Random ON window (minutes)?", required: false //TODO: valid range
-            input "randOff", "number", title: "Random OFF window (minutes)?", required: false //TODO: valid range
+            input "randOn", "number", title: "Random ON window (minutes)?", required: false
+            input "randOff", "number", title: "Random OFF window (minutes)?", required: false
         }
         section("The settings above are used to randomize preset times such that lights will " +
         	"turn on/off at slightly different times from one day to another, but if multiples lights " +
             "are selected, they will still switch status at the same time. Use the options below " +
             "to insert a random delay between the switching of each individual light. " +
             "This option can be used independently of the ones above.") {
-            input "onDelay", "bool", title: "Delay switch-on?", required: false
-            input "offDelay", "bool", title: "Delay switch-off?", required: false
-            input "delaySeconds", "number", title: "Delay switching by up to (seconds)?", required: true, defaultValue: 10 //TODO: specify valid range, not required (move default value to method), description default value, use constant for default value
+            input "onDelay", "bool", title: "Delay switch-on?", required: false, submitOnChange: true
+            input "offDelay", "bool", title: "Delay switch-off?", required: false, submitOnChange: true
+            if (onDelay || offDelay) {
+            	input "delaySeconds", "number", title: "Switching delay", description: "Choose 1-60 seconds", required: true, defaultValue: 5, range: "1..60"
+            }
         }
 	}
 }
@@ -214,11 +223,16 @@ def locationPositionChange(evt) {
 //   ***   METHODS   ***
 
 def schedTurnOff(sunriseString) {
-    debug "executing schedTurnOff(sunriseString: ${sunriseString})", "trace", 1 //TODO: enable use of illuminance device instead of sunrise
+    debug "executing schedTurnOff(sunriseString: ${sunriseString})", "trace", 1
 	
     def datTurnOff = Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", sunriseString)
     debug "sunrise date : ${datTurnOff}"
 
+    if (timeOff) {
+    	def userOff = timeTodayAfter("12:00", timeOff, location.timeZone)
+        datTurnOff = datTurnOff < userOff ? datTurnOff : userOff //select the earliest of the two turn-off times
+    }
+    
     //apply random factor
     if (randOff) {
         def random = new Random()
@@ -226,10 +240,10 @@ def schedTurnOff(sunriseString) {
         datTurnOff = new Date(datTurnOff.time - (randOff * 30000) + (randOffset * 60000))
 	}
     
-	debug "scheduling lights OFF for: ${datTurnOff}", "info"
-    // This method gets called at sunrise to schedule next day's turn-off. Because of the random factor,
-    // today's turn-off could actually be scheduled after sunrise (therefore after this method gets called),
+    // This method gets called at sunrise to schedule next day's turn-off. However it's possible that
+    // today's turn-off could be scheduled after sunrise (therefore after this method gets called),
     // so we use [overwrite: false] to prevent today's scheduled turn-off from being overwriten.
+	debug "scheduling lights OFF for: ${datTurnOff}", "info"
     runOnce(datTurnOff, turnOff, [overwrite: false])
     schedTurnOn(datTurnOff)
     debug "schedTurnOff() complete", "trace", -1
@@ -256,14 +270,15 @@ def schedTurnOn(datTurnOff) {
             useTime = "using the default turn-on time"
     	}
         
-        //check that turn-on is scheduled earlier than turn-off by at least 10 minutes
-        def safeOff = datTurnOff.time - (10 * 60 * 1000) //subtract 10 minutes from scheduled turn-off time
+        //check that turn-on is scheduled earlier than turn-off by at least 'minTimeOn' minutes
+	    def minTimeOn = C_MIN_TIME_ON()
+        def safeOff = datTurnOff.time - (minTimeOn * 60 * 1000) //subtract 'minTimeOn' from scheduled turn-off time to ensure lights will stay on for at least 'minTimeOn' minutes
         if (datTurnOn.time < safeOff) {
             debug "scheduling lights ON for: ${datTurnOn} (${useTime})", "info"
             runOnce(datTurnOn, turnOn)
         } else {
         	debug "scheduling cancelled because tomorrow's turn-on time (${datTurnOn}) " +
-            	"would be later than (or less than 10 minutes before) " +
+            	"would be later than (or less than ${minTimeOn} minutes before) " +
                 "the scheduled turn-off time (${datTurnOff}).", "info"
         }
     }
