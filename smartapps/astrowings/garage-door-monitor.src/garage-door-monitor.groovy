@@ -15,8 +15,9 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.21" }       /*
+ 	 def versionNum() {	return "version 1.30" }       /*
  *
+ *   v1.30 (04-Nov-2016): add option to send periodic reminders
  *	 v1.21 (03-Nov-2016): add link for Apache license
  *   v1.20 (02-Nov-2016): implement multi-level debug logging function
  *   v1.10 (01-Nov-2016): standardize pages layout
@@ -74,12 +75,14 @@ def pageMain() {
             input "warnOpening", "bool", title: "Yes/No?", required: false, defaultValue: false
         }
         section("Let me know anytime it's left open for too long") {
-            input "maxOpenMinutes", "number", title: "How long? (minutes)", multiple: false, required: false
+            input "maxOpenMinutes", "number", title: "How long? (minutes)", required: false, submitOnChange: true
+            if (maxOpenMinutes) {
+                input "remindMinutes", "number", title: "Remind me every x minutes", required: false
+            }
         }
-        section("Send SMS alerts?"){
+        section("Also send SMS alerts?"){
         input "phone", "phone", title: "Phone number (For SMS - Optional)", required: false
         }
-        //TODO: add option to send periodic reminders
 		section() {
             href "pageSettings", title: "App settings", image: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png", required: false
 		}
@@ -140,6 +143,7 @@ def uninstalled() {
 }
 
 def initialize() {
+    state.numWarning = 0
     state.debugLevel = 0
     debug "initializing", "trace", 1
     subscribeToEvents()
@@ -163,7 +167,7 @@ def iLeaveHandler(evt) {
     debug "iLeaveHandler event: ${evt.descriptionText}", "trace", 1
     if (thedoor.currentContact == "open") {
     	def message = "${evt.device} has left the house and the ${thedoor.device} is ${thedoor.currentContact}."
-        debug "sendPush : $message", "warn"
+        debug "sendPush : ${message}", "warn"
         sendPush(message)
         sendText(message)
     }
@@ -175,7 +179,7 @@ def allLeaveHandler(evt) {
     if (thedoor.currentContact == "open") {
         if (everyoneIsAway) {
             def message = "Everyone has left the house and the ${thedoor.device} is ${thedoor.currentContact}."
-            debug "sendPush : $message", "warn"
+            debug "sendPush : ${message}", "warn"
             sendPush(message)
             sendText(message)
 		} else {
@@ -188,13 +192,15 @@ def allLeaveHandler(evt) {
 def doorHandler(evt) {
     debug "doorHandler event: ${evt.descriptionText}", "trace", 1
     if (evt.value == "open" && warnOpening && imAway) {
-    	def message = "The ${thedoor.device} was opened."
-        debug "sendPush : $message", "warn"
-        sendPush(message)
-        sendText(message)
-	} else if (evt.value == "open" && maxOpenMinutes) {
-    	debug "The ${thedoor.device} was opened; scheduling a check in $maxOpenMinutes minutes to see if it's still open.", "info"
-    	runIn(60 * maxOpenMinutes, checkOpen)
+    	def msg = "The ${thedoor.device} was opened."
+        debug "sendPush : ${msg}", "warn"
+        sendPush(msg)
+        sendText(msg)
+	} 
+    if (evt.value == "open" && maxOpenMinutes) {
+    	debug "The ${thedoor.device} was opened; scheduling a check in ${maxOpenMinutes} minutes to see if it's still open.", "info"
+    	state.timeOpen = now()
+        runIn(60 * maxOpenMinutes, checkOpen)
     }
     debug "doorHandler complete", "trace", -1
 }
@@ -211,14 +217,25 @@ def locationPositionChange(evt) {
 def checkOpen() {
     debug "executing checkOpen()", "trace", 1
     if (thedoor.currentContact == "open") {
-    	def message = "The ${thedoor.device} has been opened for $maxOpenMinutes minutes."
-        debug "sendPush : $message", "warn"
-        sendPush(message)
-		sendText(message)
+    	state.numWarning ++
+        sendNotification()
     } else {
     	debug "The ${thedoor.device} is no longer open.", "info"
     }
     debug "checkOpen() complete", "trace", -1
+}
+
+def sendNotification() {
+	debug "executing sendNotification()", "trace", 1
+    int elapsedOpen = now() - state.timeOpen
+    def datOpen = new Date(state.timeOpen)
+    def msg = "The ${thedoor.device} has been opened for ${convertToHM(elapsedOpen)}"
+    debug "state.numWarning : ${state.numWarning}"
+    debug "sendPush : ${msg}", "warn"
+    sendPush(msg)
+    sendText(msg)
+    setReminder()
+    debug "sendNotification() complete", "trace", -1
 }
 
 def sendText(msg) {
@@ -232,6 +249,17 @@ def sendText(msg) {
     debug "sendText() complete", "trace", -1
 }
 
+def setReminder() {
+	debug "executing sendReminder()", "trace", 1
+    if (remindMinutes) {
+    	def remindSeconds = 60 * remindMinutes
+        debug "scheduling a reminder check in ${remindMinutes} minutes", "info"
+        runIn(remindSeconds, checkOpen)
+    } else {
+    	debug "reminder option not set", "info"
+    }
+    debug "sendReminder() complete", "trace", -1
+}
 
 //   -------------------------
 //   ***   APP FUNCTIONS   ***
@@ -244,19 +272,34 @@ def getEveryoneIsAway() {
             break
         }
     }
-    debug ">> everyoneIsAway : $result"
+    debug ">> everyoneIsAway : ${result}"
     return result
 }
 
 def getImAway() {
 	def result = !(myself.currentPresence == "present")
-    debug ">> imAway : $result"
+    debug ">> imAway : ${result}"
     return result
 }
 
 
 //   ------------------------
 //   ***   COMMON UTILS   ***
+
+def convertToHMS(ms) {
+    int hours = Math.floor(ms/1000/60/60)
+    int minutes = Math.floor((ms/1000/60) - (hours * 60))
+    int seconds = Math.floor((ms/1000) - (hours * 60 * 60) - (minutes * 60))
+    double millisec = ms-(hours*60*60*1000)-(minutes*60*1000)-(seconds*1000)
+    int tenths = (millisec/100).round(0)
+    return "${hours}h${minutes}m${seconds}.${tenths}s"
+}
+
+def convertToHM(ms) {
+    int hours = Math.floor(ms/1000/60/60)
+    int minutes = Math.floor((ms/1000/60) - (hours * 60))
+    return "${hours}h${minutes}m"
+}
 
 def debug(message, lvl = null, shift = null, err = null) {
 	def debugging = settings.debugging
