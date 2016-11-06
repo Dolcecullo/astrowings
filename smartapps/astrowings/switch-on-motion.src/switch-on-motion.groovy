@@ -17,6 +17,7 @@
  *	VERSION HISTORY                                    */
  	 def versionNum() {	return "version 1.22" }       /*
  *
+ *    v1.23 (06-Nov-2016): added parent definition
  *    v1.22 (04-Nov-2016): update href state & images
  *    v1.21 (02-Nov-2016): add link for Apache license
  *    v1.20 (02-Nov-2016): implement multi-level debug logging function
@@ -28,6 +29,7 @@
  *
 */
 definition(
+    parent: "astrowings:Switches on Motion",
     name: "Switch on Motion",
     namespace: "astrowings",
     author: "Phil Maynard",
@@ -41,10 +43,10 @@ definition(
 //   ---------------------------
 //   ***   APP PREFERENCES   ***
 
-//TODO: make parent
 preferences {
 	page(name: "pageMain")
     page(name: "pageSettings")
+    //next page not required for child app
     page(name: "pageUninstall")
 }
 
@@ -106,7 +108,8 @@ def pageSettings() {
    		}
    		section() {
 			label title: "Assign a name", defaultValue: "${app.name}", required: false
-            href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: "https://cdn0.iconfinder.com/data/icons/social-messaging-ui-color-shapes/128/trash-circle-red-512.png", state: null, required: true
+            //next line not required for child app
+            //href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: "https://cdn0.iconfinder.com/data/icons/social-messaging-ui-color-shapes/128/trash-circle-red-512.png", state: null, required: true
 		}
         section("Debugging Options", hideable: true, hidden: true) {
             input "debugging", "bool", title: "Enable debugging", defaultValue: false, required: false, submitOnChange: true
@@ -147,7 +150,7 @@ def updated() {
 }
 
 def uninstalled() {
-	lightOff()
+	turnOff()
     state.debugLevel = 0
     debug "application uninstalled", "trace"
 }
@@ -180,12 +183,14 @@ def motionDetectedHandler(evt) {
     if (allOk) {
         theSwitch.on()
     }
+    def testShare = parent.testShare()
+    debug "1: ${testShare.key1}"
     debug "motionDetectedHandler complete", "trace", -1
 }
 
 def motionStoppedHandler(evt) {
     debug "motionStoppedHandler event: ${evt.descriptionText}", "trace", 1
-    runIn(minutes * 60, lightOff)
+    runIn(minutes * 60, turnOff)
     debug "motionStoppedHandler complete", "trace", -1
 }
 
@@ -217,10 +222,10 @@ def locationPositionChange(evt) {
 //   -------------------
 //   ***   METHODS   ***
 
-def lightOff() {
-    debug "executing lightOff()", "trace", 1
+def turnOff() {
+    debug "executing turnOff()", "trace", 1
    	theSwitch.off()
-    debug "lightOff() complete", "trace", -1
+    debug "turnOff() complete", "trace", -1
 }
 
 
