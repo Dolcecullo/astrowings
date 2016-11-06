@@ -15,16 +15,19 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.30" }       /*
+ 	 def versionNum() {	return "version 1.32" }       /*
  *
- *   v1.30 (04-Nov-2016): add option to send periodic reminders
- *	 v1.21 (03-Nov-2016): add link for Apache license
- *   v1.20 (02-Nov-2016): implement multi-level debug logging function
- *   v1.10 (01-Nov-2016): standardize pages layout
- *	 v1.03 (01-Nov-2016): standardize section headers
- *   v1.02 (26-Oct-2016): added trace for each event handler
- *   v1.01 (26-Oct-2016): added 'About' section in preferences
- *   v1.00 (2016 date unknown): working version, no version tracking up to this point
+ *    v1.32 (05-Nov-2016): update 'convertToHM()'
+ *                         fixed calculation for state.numWarning
+ *    v1.31 (04-Nov-2016): update href state & images
+ *    v1.30 (04-Nov-2016): add option to send periodic reminders
+ *	  v1.21 (03-Nov-2016): add link for Apache license
+ *    v1.20 (02-Nov-2016): implement multi-level debug logging function
+ *    v1.10 (01-Nov-2016): standardize pages layout
+ *	  v1.03 (01-Nov-2016): standardize section headers
+ *    v1.02 (26-Oct-2016): added trace for each event handler
+ *    v1.01 (26-Oct-2016): added 'About' section in preferences
+ *    v1.00 (2016 date unknown): working version, no version tracking up to this point
  *
 */
 definition(
@@ -97,7 +100,7 @@ def pageSettings() {
 		}
    		section() {
 			label title: "Assign a name", defaultValue: "${app.name}", required: false
-            href "pageUninstall", title: "Uninstall", description: "Uninstall this SmartApp", state: null, required: true
+            href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: "https://cdn0.iconfinder.com/data/icons/social-messaging-ui-color-shapes/128/trash-circle-red-512.png", state: null, required: true
 		}
         section("Debugging Options", hideable: true, hidden: true) {
             input "debugging", "bool", title: "Enable debugging", defaultValue: false, required: false, submitOnChange: true
@@ -165,11 +168,13 @@ def subscribeToEvents() {
 
 def iLeaveHandler(evt) {
     debug "iLeaveHandler event: ${evt.descriptionText}", "trace", 1
-    if (thedoor.currentContact == "open") {
+    if (thedoor.currentContact != "closed") {
     	def message = "${evt.device} has left the house and the ${thedoor.device} is ${thedoor.currentContact}."
         debug "sendPush : ${message}", "warn"
         sendPush(message)
         sendText(message)
+    } else {
+    	debug "the ${thedoor.device} is ${thedoor.currentContact}; doing nothing"
     }
     debug "iLeaveHandler complete", "trace", -1
 }
@@ -216,21 +221,25 @@ def locationPositionChange(evt) {
 
 def checkOpen() {
     debug "executing checkOpen()", "trace", 1
+    def updated_numWarning = state.numWarning
     if (thedoor.currentContact == "open") {
-    	state.numWarning ++
+        updated_numWarning ++
+        debug "updated_numWarning : ${updated_numWarning}"
         sendNotification()
     } else {
     	debug "The ${thedoor.device} is no longer open.", "info"
     }
+    state.numWarning = updated_numWarning
     debug "checkOpen() complete", "trace", -1
 }
 
 def sendNotification() {
 	debug "executing sendNotification()", "trace", 1
     int elapsedOpen = now() - state.timeOpen
-    def datOpen = new Date(state.timeOpen)
-    def msg = "The ${thedoor.device} has been opened for ${convertToHM(elapsedOpen)}"
     debug "state.numWarning : ${state.numWarning}"
+    debug "now() - state.timeOpen = ${now()} - ${state.timeOpen} = ${elapsedOpen}"
+    //def datOpen = new Date(state.timeOpen)
+    def msg = "the ${thedoor.device} has been opened for ${convertToHM(elapsedOpen)}"
     debug "sendPush : ${msg}", "warn"
     sendPush(msg)
     sendText(msg)
@@ -296,9 +305,14 @@ def convertToHMS(ms) {
 }
 
 def convertToHM(ms) {
+	//def df = new DecimalFormat("00")
     int hours = Math.floor(ms/1000/60/60)
-    int minutes = Math.floor((ms/1000/60) - (hours * 60))
-    return "${hours}h${minutes}m"
+    double dblMin = ((ms/1000/60) - (hours * 60))
+    int minutes = dblMin.round()
+	def strHr = hours == 1 ? "hour" : "hours"
+    def strMin = minutes == 1 ? "minute" : "minutes"
+    def result = (hours == 0) ? "${minutes} ${strMin}" : "${hours} ${strHr} and ${minutes} ${strMin}"
+    return result
 }
 
 def debug(message, lvl = null, shift = null, err = null) {
