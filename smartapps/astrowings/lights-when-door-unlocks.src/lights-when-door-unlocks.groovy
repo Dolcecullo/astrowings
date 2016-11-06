@@ -69,6 +69,7 @@ def pageMain() {
         }
         section("Turn on these lights") {
             input "theSwitches", "capability.switch", title: "Which lights?", required: true, multiple: true
+            //TODO: enable dimmer device; set dimmer to max on turn-on, reset before turn-off
             input "leaveOn", "number", title: "For how long (minutes)?", description: "max 10 minutes", range: "1..10", required: true
         }
     	section("Enable only when it's dark out") {
@@ -147,7 +148,6 @@ def updated() {
 }
 
 def uninstalled() {
-	switchOff()
     state.debugLevel = 0
     debug "application uninstalled", "trace"
 }

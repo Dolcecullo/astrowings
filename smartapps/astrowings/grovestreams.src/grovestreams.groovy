@@ -18,8 +18,9 @@
  *  
  * 
  *	VERSION HISTORY                                    */
- 	 def versionNum() { return "version 1.22" }       /*
+ 	 def versionNum() { return "version 1.30" }       /*
  * 
+ *    v1.30 (06-Nov-2016): added device type 'thermostat' and logging of 'thermostatOperatingState' attribute
  *    v1.22 (04-Nov-2016): update href state & images
  *    v1.21 (02-Nov-2016): add link for Apache license
  *    v1.20 (02-Nov-2016): implement multi-level debug logging function
@@ -75,17 +76,18 @@ def pageMain() {
 def pageSensors() {
 	dynamicPage(name: "pageSensors", install: false, uninstall: false) {
         section("Log devices...") {
+            input "presence", "capability.presenceSensor", title: "Presence", required: false, multiple: true
+            input "thermostats", "capability.thermostat", title: "Thermostats", required: false, multiple: true
             input "temperatures", "capability.temperatureMeasurement", title: "Temperatures", required:false, multiple: true
             input "humidities", "capability.relativeHumidityMeasurement", title: "Humidities", required: false, multiple: true
             input "contacts", "capability.contactSensor", title: "Doors open/close", required: false, multiple: true
             input "accelerations", "capability.accelerationSensor", title: "Accelerations", required: false, multiple: true
             input "motions", "capability.motionSensor", title: "Motions", required: false, multiple: true
-            input "presence", "capability.presenceSensor", title: "Presence", required: false, multiple: true
             input "switches", "capability.switch", title: "Switches", required: false, multiple: true
             input "waterSensors", "capability.waterSensor", title: "Water sensors", required: false, multiple: true
-            input "batteries", "capability.battery", title: "Batteries", required:false, multiple: true
             input "powers", "capability.powerMeter", title: "Power Meters", required:false, multiple: true
             input "energies", "capability.energyMeter", title: "Energy Meters", required:false, multiple: true
+            input "batteries", "capability.battery", title: "Batteries", required:false, multiple: true
         }
     }
 }
@@ -165,6 +167,7 @@ def subscribeToEvents() {
     subscribe(batteries, "battery", handleBatteryEvent)
     subscribe(powers, "power", handlePowerEvent)
     subscribe(energies, "energy", handleEnergyEvent)
+    subscribe(thermostats, "thermostatOperatingState", handleThermostatEvent)
     debug "subscriptions complete", "trace", -1
 }
 
@@ -215,7 +218,11 @@ def handlePowerEvent(evt) {
 def handleEnergyEvent(evt) {
     sendValue(evt) { it.toString() }
 }
- 
+
+def handleThermostatEvent(evt) {
+    sendValue(evt) { it.toString() }
+}
+
 
 //   -------------------
 //   ***   METHODS   ***
@@ -262,7 +269,7 @@ private sendValue(evt, Closure convert) {
 
 def getSensorDesc() {
 	def result
-	if (temperatures || humidities || contacts || accelerations || motions || presence || switches || waterSensors || batteries || powers || energies) {
+	if (temperatures || humidities || contacts || accelerations || motions || presence || switches || waterSensors || batteries || powers || energies || thermostats) {
         def numSensors =
         	(temperatures?.size() ?: 0) +
             (humidities?.size() ?: 0) +
@@ -274,6 +281,7 @@ def getSensorDesc() {
             (waterSensors?.size() ?: 0) +
             (batteries?.size() ?: 0) +
             (powers?.size() ?: 0) +
+            (thermostats?.size() ?: 0) +
             (energies?.size() ?: 0)
         debug ">> numSensors : $numSensors"
         result = "$numSensors sensors selected"

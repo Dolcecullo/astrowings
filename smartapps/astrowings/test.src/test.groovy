@@ -38,7 +38,7 @@ definition(
 preferences {
 	page(name: "pageMain")
     page(name: "pageSettings")
-    page(name: "pageRemove")
+    page(name: "pageUninstall")
 }
 
 
@@ -65,7 +65,7 @@ def pageMain() {
                 submitOnChange: false
         }
 		section() {
-			href "pageSettings", title: "Settings", image: "https://s3.amazonaws.com/smartapp-icons/Solution/rule-builder.png", required: false
+            href "pageSettings", title: "App settings", image: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png", required: false
 		}
     }
 }
@@ -78,8 +78,8 @@ def pageSettings() {
             paragraph stateCap(), title: "Memory Usage"
 		}
    		section() {
-			label name: "name", title: "Assign a name", defaultValue: app.name, required: false, state: (name ? "complete" : null)
-            href "pageUninstall", title: "Uninstall", description: "Uninstall this SmartApp", state: null, required: true
+			label title: "Assign a name", defaultValue: "${app.name}", required: false
+            href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: "https://cdn0.iconfinder.com/data/icons/social-messaging-ui-color-shapes/128/trash-circle-red-512.png", state: null, required: true
 		}
         section("Debugging Options", hideable: true, hidden: true) {
             input "debugging", "bool", title: "Enable debugging", defaultValue: false, required: false, submitOnChange: true
@@ -136,8 +136,8 @@ def initialize() {
 
 def subscribeToEvents() {
     debug "subscribing to events", "trace", 1
-	//subscribe(theSwitch, "switch", testProperties)
-    subscribe(theSwitch, "switch", switchEvent)
+	subscribe(theSwitches, "switch", testProperties)
+    //subscribe(theSwitches, "switch", switchEvent)
     debug "subscriptions complete", "trace", -1
 }
 
@@ -158,6 +158,7 @@ def testProperties(evt) {
     debug "eventProperties>device:${evt.device}"
     debug "eventProperties>displayName:${evt.displayName}"
     debug "eventProperties>deviceId:${evt.deviceId}"
+    debug "eventProperties>installedSmartAppId:${evt.installedSmartAppId}"
     debug "eventProperties>name:${evt.name}"
     debug "eventProperties>source:${evt.source}"
     debug "eventProperties>stringValue:${evt.stringValue}"
@@ -175,8 +176,27 @@ def testProperties(evt) {
 
 def testStart() {
 	debug "executing testStart()", "trace", 1
-	debugTest()
+	runIn(30, toggleSwitches)
 	debug "testStart() complete", "trace", -1
+}
+
+def toggleSwitches() {
+	debug "executing toggleSwitch()", "trace", 1
+	if (theSwitches) {
+    	theSwitches.each {
+        	if (it.currentSwitch == "on") {
+            	debug "turning off the ${it.name}"
+                it.off()
+            } else {
+            	debug "turning on the ${it.label}"
+                it.on()
+            }
+        }
+    } else {
+    	debug "no switches selected"
+    }
+    //runIn(30, toggleSwitches)
+	debug "toggleSwitch() complete", "trace", -1
 }
 
 def listDevices() {
