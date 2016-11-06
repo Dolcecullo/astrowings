@@ -18,13 +18,14 @@
  *  
  * 
  *	VERSION HISTORY                                    */
- 	 def versionNum() { return "version 1.21" }       /*
+ 	 def versionNum() { return "version 1.22" }       /*
  * 
- *   v1.21 (02-Nov-2016): add link for Apache license
- *   v1.20 (02-Nov-2016): implement multi-level debug logging function
- *   v1.10 (01-Nov-2016): standardize pages layout
- *	 v1.01 (01-Nov-2016): standardize section headers
- *   v1.00 (30-Oct-2016): copied code from example (https://www.grovestreams.com/developers/getting_started_smartthings.html)
+ *    v1.22 (04-Nov-2016): update href state & images
+ *    v1.21 (02-Nov-2016): add link for Apache license
+ *    v1.20 (02-Nov-2016): implement multi-level debug logging function
+ *    v1.10 (01-Nov-2016): standardize pages layout
+ *	  v1.01 (01-Nov-2016): standardize section headers
+ *    v1.00 (30-Oct-2016): copied code from example (https://www.grovestreams.com/developers/getting_started_smartthings.html)
  *
 */
 definition(
@@ -63,7 +64,7 @@ def pageMain() {
         	paragraph "", title: "This SmartApp logs events from selected sensors to the GroveStreams data analytics platform"
         }
 		section() {
-            href "pageSensors", title: "Sensors", description: "Select the sensors/devices to monitor & log", required: false //TODO: make required true, state based on sensors selected, change description to # sensors
+            href "pageSensors", title: "Sensors", description: sensorDesc, image: "http://cdn.device-icons.smartthings.com/Home/home30-icn@2x.png", required: true, state: sensorsOk ? "complete" : null
 		}
 		section() {
             href "pageSettings", title: "App settings", image: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png", required: false
@@ -85,7 +86,6 @@ def pageSensors() {
             input "batteries", "capability.battery", title: "Batteries", required:false, multiple: true
             input "powers", "capability.powerMeter", title: "Power Meters", required:false, multiple: true
             input "energies", "capability.energyMeter", title: "Energy Meters", required:false, multiple: true
-            //TODO: count selected sensors
         }
     }
 }
@@ -101,7 +101,7 @@ def pageSettings() {
         }
    		section() {
 			label title: "Assign a name", defaultValue: "${app.name}", required: false
-            href "pageUninstall", title: "Uninstall", description: "Uninstall this SmartApp", state: null, required: true
+            href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: "https://cdn0.iconfinder.com/data/icons/social-messaging-ui-color-shapes/128/trash-circle-red-512.png", state: null, required: true
 		}
         section("Debugging Options", hideable: true, hidden: true) {
             input "debugging", "bool", title: "Enable debugging", defaultValue: false, required: false, submitOnChange: true
@@ -260,6 +260,35 @@ private sendValue(evt, Closure convert) {
 //   -------------------------
 //   ***   APP FUNCTIONS   ***
 
+def getSensorDesc() {
+	def result
+	if (temperatures || humidities || contacts || accelerations || motions || presence || switches || waterSensors || batteries || powers || energies) {
+        def numSensors =
+        	(temperatures?.size() ?: 0) +
+            (humidities?.size() ?: 0) +
+            (contacts?.size() ?: 0) +
+            (accelerations?.size() ?: 0) +
+            (motions?.size() ?: 0) +
+            (presence?.size() ?: 0) +
+            (switches?.size() ?: 0) +
+            (waterSensors?.size() ?: 0) +
+            (batteries?.size() ?: 0) +
+            (powers?.size() ?: 0) +
+            (energies?.size() ?: 0)
+        debug ">> numSensors : $numSensors"
+        result = "$numSensors sensors selected"
+    } else {
+    	result = "Select the sensors for which to log events"
+    }
+    debug ">> sensorDesc : $result"
+    return result
+}
+
+def getSensorsOk() {
+	def result = (temperatures || humidities || contacts || accelerations || motions || presence || switches || waterSensors || batteries || powers || energies)
+    debug ">> sensorsOk : $result"
+    return result
+}
 
 
 //   ------------------------

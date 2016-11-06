@@ -15,15 +15,16 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 2.30" }       /*
+ 	 def versionNum() {	return "version 2.31" }       /*
  *
- *	 v2.30 (03-Nov-2016): add option to specify turn-off time
- *                        use constants instead of hard-coding
- *   v2.21 (02-Nov-2016): add link for Apache license
- *   v2.20 (02-Nov-2016): implement multi-level debug logging function
- *   v2.10 (01-Nov-2016): standardize pages layout
- *	 v2.01 (01-Nov-2016): standardize section headers
- *   v2.00 (29-Oct-2016): inital version base code adapted from 'Sunset Lights - v2'
+ *    v2.31 (04-Nov-2016): update href state & images
+ *	  v2.30 (03-Nov-2016): add option to specify turn-off time
+ *                         use constants instead of hard-coding
+ *    v2.21 (02-Nov-2016): add link for Apache license
+ *    v2.20 (02-Nov-2016): implement multi-level debug logging function
+ *    v2.10 (01-Nov-2016): standardize pages layout
+ *	  v2.01 (01-Nov-2016): standardize section headers
+ *    v2.00 (29-Oct-2016): inital version base code adapted from 'Sunset Lights - v2'
  *
 */
 definition(
@@ -69,8 +70,8 @@ def pageMain() {
         section() {
             input "theLights", "capability.switch", title: "Which lights?", description: "Choose the lights to turn on", multiple: true, required: true, submitOnChange: true
             if (theLights) {
-                href "pageSchedule", title: "Set scheduling options", required: false //TODO: state
-                href "pageRandom", title: "Configure random scheduling", required: false //TODO: state
+                href "pageSchedule", title: "Set scheduling Options", image: "http://cdn.device-icons.smartthings.com/Office/office7-icn.png", required: false
+                href "pageRandom", title: "Configure random scheduling", image: "http://www.iconsdb.com/icons/preview/gray/dice-xxl.png", required: false
         	}
         }
 		section() {
@@ -140,7 +141,7 @@ def pageSettings() {
 		}
    		section() {
 			label title: "Assign a name", defaultValue: "${app.name}", required: false
-            href "pageUninstall", title: "Uninstall", description: "Uninstall this SmartApp", state: null, required: true
+            href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: "https://cdn0.iconfinder.com/data/icons/social-messaging-ui-color-shapes/128/trash-circle-red-512.png", state: null, required: true
 		}
         section("Debugging Options", hideable: true, hidden: true) {
             input "debugging", "bool", title: "Enable debugging", defaultValue: false, required: false, submitOnChange: true

@@ -15,11 +15,12 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.30" }       /*
+ 	 def versionNum() {	return "version 1.31" }       /*
  *
+ *    v1.31 (04-Nov-2016): update href state & images
  *	  v1.30 (03-Nov-2016): add option to configure sunset offset
  *    v1.21 (02-Nov-2016): add link for Apache license
-                           restrict allowable range for 'leaveOnFor' input
+ *                         restrict allowable range for 'leaveOnFor' input
  *    v1.20 (02-Nov-2016): implement multi-level debug logging function
  *    v1.10 (01-Nov-2016): standardize pages layout
  *	  v1.03 (01-Nov-2016): standardize section headers
@@ -101,7 +102,7 @@ def pageSettings() {
    		}
         section() {
 			label title: "Assign a name", defaultValue: "${app.name}", required: false
-            href "pageUninstall", title: "Uninstall", description: "Uninstall this SmartApp", state: null, required: true
+            href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: "https://cdn0.iconfinder.com/data/icons/social-messaging-ui-color-shapes/128/trash-circle-red-512.png", state: null, required: true
 		}
         section("Debugging Options", hideable: true, hidden: true) {
             input "debugging", "bool", title: "Enable debugging", defaultValue: false, required: false, submitOnChange: true

@@ -15,16 +15,17 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.31" }       /*
+ 	 def versionNum() {	return "version 1.32" }       /*
  *
- *	 v1.31 (03-Nov-2016): add options for notification conditions
- *                        add link for Apache license
- *   v1.20 (02-Nov-2016): implement multi-level debug logging function
- *   v1.10 (01-Nov-2016): standardize pages layout
- *	 v1.03 (01-Nov-2016): standardize section headers
- *   v1.02 (26-Oct-2016): added trace for each event handler
- *   v1.01 (26-Oct-2016): added 'About' section in preferences
- *   v1.00 (2016 date unknown): working version, no version tracking up to this point
+ *    v1.32 (04-Nov-2016): update href state & images
+ *	  v1.31 (03-Nov-2016): add options for notification conditions
+ *                         add link for Apache license
+ *    v1.20 (02-Nov-2016): implement multi-level debug logging function
+ *    v1.10 (01-Nov-2016): standardize pages layout
+ *	  v1.03 (01-Nov-2016): standardize section headers
+ *    v1.02 (26-Oct-2016): added trace for each event handler
+ *    v1.01 (26-Oct-2016): added 'About' section in preferences
+ *    v1.00 (2016 date unknown): working version, no version tracking up to this point
  *
 */
 definition(
@@ -69,7 +70,7 @@ def pageMain() {
         }
 		section() {
 			if (theLock) {
-            	href "pageNotify", title: "Notification Options", required: false
+            	href "pageNotify", title: "Notification Options", image: "http://cdn.device-icons.smartthings.com/Office/office9-icn.png", required: false
                 href "pageSettings", title: "App settings", image: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png", required: false
             }
 		}
@@ -97,7 +98,7 @@ def pageSettings() {
    		section() {
 			mode title: "Set for specific mode(s)"
             label title: "Assign a name", defaultValue: "${app.name} - ${theLock.label}", required: false
-            href "pageUninstall", title: "Uninstall", description: "Uninstall this SmartApp", state: null, required: true
+            href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: "https://cdn0.iconfinder.com/data/icons/social-messaging-ui-color-shapes/128/trash-circle-red-512.png", state: null, required: true
 		}
         section("Debugging Options", hideable: true, hidden: true) {
             input "debugging", "bool", title: "Enable debugging", defaultValue: false, required: false, submitOnChange: true

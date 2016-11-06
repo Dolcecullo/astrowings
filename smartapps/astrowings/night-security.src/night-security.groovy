@@ -15,8 +15,9 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.30" }       /*
+ 	 def versionNum() {	return "version 1.31" }       /*
  *
+ *    v1.31 (04-Nov-2016): update href state & images
  *	  v1.30 (03-Nov-2016): add option to configure sunset offset
  *    v1.21 (02-Nov-2016): add link for Apache license
  *    v1.20 (02-Nov-2016): implement multi-level debug logging function
@@ -69,9 +70,9 @@ def pageMain() {
                 "Can be used to monitor if someone (child, elderly) is attempting to leave the house."
         }
         section("Configuration") {
-            href(page: "pageSensors", title: "Sensor Selection", description: sensorDesc) //TODO: state
-            href(page: "pageSchedule", title: "Scheduling Options", description: "Set the conditions for the monitoring window") //TODO: state
-            href(page: "pageNotify", title: "Notification Method", description: "Configure the notification method") //TODO: state
+            href "pageSensors", title: "Sensor Selection", description: sensorDesc, image: "http://cdn.device-icons.smartthings.com/Home/home30-icn.png", required: false
+            href "pageSchedule", title: "Scheduling Options", description: "Set the conditions for the monitoring window", image: "http://cdn.device-icons.smartthings.com/Office/office7-icn.png", required: false
+            href "pageNotify", title: "Notification Method", description: "Configure the notification method", image: "http://cdn.device-icons.smartthings.com/Office/office9-icn.png", required: false
 		}
 		section() {
             href "pageSettings", title: "App settings", image: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png", required: false
@@ -155,13 +156,13 @@ def pageNotify() {
         section("Flash a light") {
             input "flashYesNo", "bool", title: "Yes/No?", required: false, submitOnChange: true
 	        if (flashYesNo) {
-        		href(page: "pageFlash", title: "Flasher settings") //TODO: state
+        		href "pageFlash", title: "Flasher settings", image: "http://cdn.device-icons.smartthings.com/Lighting/light11-icn@2x.png", required: false
             }
         }
         section("Turn a light/switch on") {
         	input "lightYesNo", "bool", title: "Yes/No?", required: false, submitOnChange: true
 	        if (lightYesNo) {
-            	href(page: "pageSwitch", title: "Switch settings") //TODO: state
+            	href "pageSwitch", title: "Switch settings", image: "http://cdn.device-icons.smartthings.com/Lighting/light20-icn@2x.png", required: false
             }
         }
         section("Set the cooldown period") {
@@ -238,7 +239,7 @@ def pageSettings() {
    		}
    		section() {
 			label title: "Assign a name", defaultValue: "${app.name}", required: false
-            href "pageUninstall", title: "Uninstall", description: "Uninstall this SmartApp", state: null, required: true
+            href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: "https://cdn0.iconfinder.com/data/icons/social-messaging-ui-color-shapes/128/trash-circle-red-512.png", state: null, required: true
 		}
         section("Debugging Options", hideable: true, hidden: true) {
             input "debugging", "bool", title: "Enable debugging", defaultValue: false, required: false, submitOnChange: true
