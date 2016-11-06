@@ -15,8 +15,9 @@
  *
  *
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.31" }       /*
+ 	 def versionNum() {	return "version 1.40" }       /*
  *
+ *    v1.40 (06-Nov-2016): enable multiple lights
  *    v1.31 (04-Nov-2016): update href state & images
  *	  v1.30 (03-Nov-2016): add option to configure sunset offset
  *    v1.21 (02-Nov-2016): add link for Apache license
@@ -32,7 +33,7 @@ definition(
     name: "Lights when door unlocks",
     namespace: "astrowings",
     author: "Phil Maynard",
-    description: "Turn a light on when a door is unlocked from outside.",
+    description: "Turn lights on when a door is unlocked from outside.",
     category: "Convenience",
     iconUrl: "http://cdn.device-icons.smartthings.com/Lighting/light11-icn.png",
     iconX2Url: "http://cdn.device-icons.smartthings.com/Lighting/light11-icn@2x.png",
@@ -42,7 +43,6 @@ definition(
 //   ---------------------------
 //   ***   APP PREFERENCES   ***
 
-//TODO: make parent
 preferences {
 	page(name: "pageMain")
     page(name: "pageSettings")
@@ -61,15 +61,15 @@ preferences {
 def pageMain() {
     dynamicPage(name: "pageMain", install: true, uninstall: false) {
     	section(){
-        	paragraph "", title: "This SmartApp turns a light on when a door is unlocked from outside (i.e. using the keypad). " +
+        	paragraph "", title: "This SmartApp turns selected lights on when a door is unlocked from outside (i.e. using the keypad). " +
         		"Can be used to light-up an entrance for example."
         }
         section("When this door is unlocked using the keypad") {
             input "theLock", "capability.lock", required: true, title: "Which lock?"
         }
-        section("Turn on this light") { //TODO: enable multiple
-            input "theSwitch", "capability.switch", required: true, title: "Which light?"
-            input "leaveOn", "number", title: "For how long (minutes)?"
+        section("Turn on these lights") {
+            input "theSwitches", "capability.switch", title: "Which lights?", required: true, multiple: true
+            input "leaveOn", "number", title: "For how long (minutes)?", description: "max 10 minutes", range: "1..10", required: true
         }
     	section("Enable only when it's dark out") {
         	input "whenDark", "bool", title: "Yes/No?", required: false, defaultValue: true, submitOnChange: true
@@ -178,18 +178,16 @@ def locationPositionChange(evt) {
 
 def unlockHandler(evt) {
     debug "unlockHandler event: ${evt.descriptionText}", "trace", 1
-    if (allOk) {
+    if (darkOk) {
     	def unlockText = evt.descriptionText
         if (unlockText.contains("was unlocked with code")) {
-            debug "${unlockText}; turning the lights on", "info"
+            debug "calling to turn the lights on"
             switchOn()
-            debug "scheduling the lights to turn off in ${leaveOn} minutes", "info"
-            runIn(leaveOn * 60, switchOff)
         } else {
         	debug "door wasn't unlocked using the keypad; doing nothing", "info"
         }
     } else {
-    	debug "conditions not met; doing nothing", "info" //TODO: why?
+    	debug "${unlockText}, but it's daytime; doing nothing", "info"
     }
     debug "unlockHandler complete", "trace", -1
 }
@@ -200,14 +198,18 @@ def unlockHandler(evt) {
 
 def switchOn() {
     debug "executing switchOn()", "trace", 1
-	theSwitch.on()
+	theSwitches.each {
+    	debug "${it.displayName} current state: ${it.currentSwitch}"
+        if (it.currentSwitch != "on") {
+        	def delay = leaveOn * 60000
+        	debug "turning on the ${it.displayName} and applying a delay of ${leaveOn} minutes to its turn-off", "info"
+            it.on()
+            it.off(delay: delay)
+        } else {
+        	debug "the ${it.displayName} is already on; doing nothing"
+        }
+    }
     debug "switchOn() complete", "trace", -1
-}
-
-def switchOff() {
-    debug "executing switchOff()", "trace", 1
-	theSwitch.off()
-    debug "switchOff() complete", "trace", -1
 }
 
 
