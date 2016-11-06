@@ -18,24 +18,25 @@
  *  
  * 
  *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.71" }       /*
+ 	 def versionNum() {	return "version 1.73" }       /*
  *
- *   v1.72 (03-Nov-2016): use constant instead of hard-coding for minimum refresh rate
- *   v1.71 (02-Nov-2016): add link for Apache license
- *   v1.70 (02-Nov-2016): implement multi-level debug logging function
- *   v1.60 (01-Nov-2016): standardize pages layout
- *	 v1.52 (01-Nov-2016): standardize section headers
- *   v1.51 (30-Oct-2016): copied code from RBoy
- *   2016-10-30 - set updateInterval minimum value of 5 minutes in scheduledEvent()
- *				  make device type compatible with SmartWeather Station Tile 2.0
- *   2016-02-12 - Changed scheduling API's (hopefully more resilient), added an option for users to specify update interval
- *   2016-01-20 - Kick-start timers on sunrise and sunset also
- *   2015-10-04 - Kick-start timers on each mode change to prevent them from dying
- *   2015-07-12 - Simplified app, udpates every 5 minutes now (hopefully more reliable)
- *   2015-07-17 - Improved reliability when mode changes
- *	 2015-06-06 - Bugfix for timers not scheduling, keep only one timer
- *				  Added support to update multiple devices
- *				  Added support for frequency of updates            
+ *    v1.73 (04-Nov-2016): update href state & images
+ *    v1.72 (03-Nov-2016): use constant instead of hard-coding for minimum refresh rate
+ *    v1.71 (02-Nov-2016): add link for Apache license
+ *    v1.70 (02-Nov-2016): implement multi-level debug logging function
+ *    v1.60 (01-Nov-2016): standardize pages layout
+ *    v1.52 (01-Nov-2016): standardize section headers
+ *    v1.51 (30-Oct-2016): copied code from RBoy
+ *    2016-10-30 - set updateInterval minimum value of 5 minutes in scheduledEvent()
+ *	               make device type compatible with SmartWeather Station Tile 2.0
+ *    2016-02-12 - Changed scheduling API's (hopefully more resilient), added an option for users to specify update interval
+ *    2016-01-20 - Kick-start timers on sunrise and sunset also
+ *    2015-10-04 - Kick-start timers on each mode change to prevent them from dying
+ *    2015-07-12 - Simplified app, udpates every 5 minutes now (hopefully more reliable)
+ *    2015-07-17 - Improved reliability when mode changes
+ *    2015-06-06 - Bugfix for timers not scheduling, keep only one timer
+ *                 Added support to update multiple devices
+ *                 Added support for frequency of updates            
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -106,7 +107,7 @@ def pageSettings() {
 		}
    		section() {
 			label title: "Assign a name", defaultValue: "${app.name}", required: false
-            href "pageUninstall", title: "Uninstall", description: "Uninstall this SmartApp", state: null, required: true
+            href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: "https://cdn0.iconfinder.com/data/icons/social-messaging-ui-color-shapes/128/trash-circle-red-512.png", state: null, required: true
 		}
         section("Debugging Options", hideable: true, hidden: true) {
             input "debugging", "bool", title: "Enable debugging", defaultValue: false, required: false, submitOnChange: true
