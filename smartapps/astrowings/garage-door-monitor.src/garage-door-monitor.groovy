@@ -239,7 +239,7 @@ def sendNotification() {
     debug "state.numWarning : ${state.numWarning}"
     debug "now() - state.timeOpen = ${now()} - ${state.timeOpen} = ${elapsedOpen}"
     //def datOpen = new Date(state.timeOpen)
-    def msg = "the ${thedoor.device} has been opened for ${convertToHM(elapsedOpen)}"
+    def msg = "The ${thedoor.device} has been opened for ${convertToHM(elapsedOpen)}"
     debug "sendPush : ${msg}", "warn"
     sendPush(msg)
     sendText(msg)
