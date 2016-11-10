@@ -3,7 +3,7 @@
 ### GroveStreams App
 This SmartApp logs events from selected sensors to the GroveStreams data analytics platform.
 
-## Installation Notes
+### Installation Notes
 * A free GroveStreams account is required to use this SmartApp (setup instructions at https://www.grovestreams.com/developers/getting_started_smartthings.html)
 
 ## Software Development
