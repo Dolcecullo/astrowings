@@ -26,7 +26,7 @@ I acquired a SmartThings hub in late summer of 2016 and have taken an interest i
 Thanks for stopping by to read about me.<br>
 @astrowings
 <br><br><br>
-I don't want to post a link to my email address, but if you need to contact me regarding this SmartApp you can do so by emailing the author at Google's email service :wink:
+I don't want to post a link to my email address, but if you want to contact me you can do so by emailing the author at Google's email service :wink:. To report a bug or submit a suggestion regarding this SmartApp, please use the 'GitHub Project Issues Link' below.
 
 ## Contributors
 Nobody else contributed directly to the development of this SmartApp, but I did learn a lot from comments, suggestions, and code snippets posted in the [SmartThings Community](https://community.smartthings.com/) discussion topics. Thanks to all of those who contribute their time, expertise, and share their knowledge to help others.
