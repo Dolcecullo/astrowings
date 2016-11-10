@@ -11,7 +11,7 @@ This SmartApp sends a push notification when a lock gets unlocked (can specify d
 * Coming soon...
 
 ### Upcoming changes, requests, todo list
-* 
+* Enable monitor of multiple doors
 
 ### Known Issues
 * None so far
