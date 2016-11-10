@@ -18,7 +18,7 @@ This is a brief description and usage notes for the Child-SmartApp (if applicabl
 
 This is a short bio about the author (@astrowings).
 <br>
-I don't want to post a link to my email address, but if you need to contact me regarding this SmartApp you can do so by emailing the author at Google's email service :wink:
+:email:I don't want to post a link to my email address, but if you need to contact me regarding this SmartApp you can do so by emailing the author at Google's email service :wink:
 <br>
 
 ## Contributors
