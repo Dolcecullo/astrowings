@@ -20,9 +20,8 @@ I acquired a SmartThings hub in late summer of 2016 and have taken an interest i
 <img src="https://raw.githubusercontent.com/astrowings/SmartThings/master/images/clown.JPG" width="80" height="80" align="left">
 Thanks for stopping by to read about me.<br>
 @astrowings
-<br><br>
+<br><br><br>
 :email: I don't want to post a link to my email address, but if you need to contact me regarding this SmartApp you can do so by emailing the author at Google's email service :wink:
-<br>
 
 ## Contributors
 A list of contributors (if applicable)
