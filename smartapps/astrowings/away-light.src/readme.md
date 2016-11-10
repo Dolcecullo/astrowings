@@ -24,16 +24,7 @@ Thanks for stopping by to read about me.<br>
 I don't want to post a link to my email address, but if you need to contact me regarding this SmartApp you can do so by emailing the author at Google's email service :wink:
 
 ## Contributors
-A list of contributors (if applicable)
-* @contributor1
-* @contributor2
-
-## Testers
-A list of testers (if applicable)
-* @tester1
-* @tester2
-
-Thanks for all of your help testing this SmartApp, reporting issues and suggesting improvements.
+Nobody else contributed directly to the development of this SmartApp, but I did learn a lot from comments, suggestions, and code snippets posted in the [SmartThings Community](https://community.smartthings.com/) discussion topics. Thanks to all of those who contribute their time, expertise, and share their knowledge to help others.
 
 ## Links and How-To's
 #### [GitHub Project Issues Link](https://github.com/astrowings/SmartThings/issues)
