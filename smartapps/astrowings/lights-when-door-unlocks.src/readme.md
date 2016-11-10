@@ -3,18 +3,18 @@
 ### Lights When Door Unlocks App
 This SmartApp turns on selected lights when a door is unlocked from outside (i.e. using the keypad) and turns it off after a set duration.
 
-## Installation Notes
+### Installation Notes
 * Not required, self-explanatory
 
-## Software Development
-### Change Log
+### Software Development
+#### Change Log
 * Coming soon...
 
-### Upcoming changes, requests, todo list
+#### Upcoming changes, requests, todo list
 * Use illuminance-capable device instead of sunrise/sunset to detect darkness
 * Enable use of dimmer device; set dimmer to max on turn-on, reset before turn-off
 
-### Known Issues
+#### Known Issues
 * None so far
 
 ## About the Author
