@@ -15,7 +15,7 @@ The 'Away Light' SmartApp turns a light on/off simulate presence while away. It 
 * Coming soon...
 
 ### Upcoming changes, requests, todo list
-* 
+* Use illuminance-capable device instead of sunrise/sunset to detect darkness
 
 ### Known Issues
 * None so far
