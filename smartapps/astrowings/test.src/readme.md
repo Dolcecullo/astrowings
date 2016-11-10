@@ -30,7 +30,7 @@ A list of testers (if applicable)
 Thanks for all of your help testing this SmartApp, reporting issues and suggesting improvements.
 
 ## Links
-#### [GitHub Project Issues Link](https://github.com/astrowings/test/issues)
+#### [GitHub Project Issues Link](https://github.com/astrowings/SmartThings/issues)
 
 #### [SmartThings IDE GitHub Integration Instructions](http://docs.smartthings.com/en/latest/tools-and-ide/github-integration.html)
 
