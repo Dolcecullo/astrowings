@@ -31,7 +31,7 @@ Thanks for all of your help testing this SmartApp, reporting issues and suggesti
 
 ## Links and How-To's
 #### [GitHub Project Issues Link](https://github.com/astrowings/SmartThings/issues)
-* Use this link to report a bug or submit a suggestion for improving this SmartApp.
+* Use this link to report a bug or submit a suggestion for improving this SmartApp. Since all my SmartApps are part of the same GitHub 'Project', __be sure to specify which SmartApp your isuue relates to__.
 
 #### [SmartThings IDE GitHub Integration Instructions](http://docs.smartthings.com/en/latest/tools-and-ide/github-integration.html)
 * This document explains how to link GitHub to your SmartThings IDE. This allows you to be able to see when this SmartApp gets updated and enables you to apply the updates much more easily. _"The GitHub IDE integration allows you to integrate your forked SmartThingsPublic repository with the IDE. This allows you to easily view and work with SmartApps or Device Handlers already in the repository, as well as update the versions in your IDE with upstream repository changes, and make commits to your forked repository right from the IDE."_
