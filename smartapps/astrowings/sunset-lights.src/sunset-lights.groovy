@@ -6,30 +6,37 @@
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
  *
- *      http://www.apache.org/licenses/LICENSE-2.0                                       */
- 	       def urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }      /*
+ *      http://www.apache.org/licenses/LICENSE-2.0												*/
+ 	       private urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }			/*
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
  *
- *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 2.23" }       /*
+ *	VERSION HISTORY										*/
+ 	 private versionNum() {	return "version 2.24" }
+     private versionDate() { return "09-Nov-2016" }     /*
  *
- *    v2.23 (04-Nov-2016): update href state & images
- *    v2.22 (03-Nov-2016): use constants instead of hard-coding
- *    v2.21 (02-Nov-2016): add link for Apache license
- *    v2.20 (02-Nov-2016): implement multi-level debug logging function
- *    v2.10 (01-Nov-2016): standardize pages layout
- *	  v2.01 (01-Nov-2016): standardize section headers
- *	  v2.00 (28-Oct-2016): add option to insert random delay between the switching of individual lights,
- *                         change method to evaluate which turn-off time to use
- *                         move off-time comparison to turnOn()
- *                         add option to apply random factor to ON time
- *    v1.02 (26-Oct-2016): added trace for each event handler
- *    v1.01 (26-Oct-2016): added 'About' section in preferences
- *    v1.00 (2016 date unknown): working version, no version tracking up to this point
+ *    vx.xx (xx-Nov-2016) - code improvement: store images on GitHub, use getAppImg() to display app images
+ *                        - added option to disable icons
+ *                        - added option to disable multi-level logging
+ *                        - configured default values for app settings
+ *						  - moved 'About' to its own page
+ *						  - added link to readme file
+ *    v2.23 (04-Nov-2016) - update href state & images
+ *    v2.22 (03-Nov-2016) - code improvement: use constants instead of hard-coding
+ *    v2.21 (02-Nov-2016) - add link for Apache license
+ *    v2.20 (02-Nov-2016) - implement multi-level debug logging function
+ *    v2.10 (01-Nov-2016) - code improvement: standardize pages layout
+ *	  v2.01 (01-Nov-2016) - code improvement: standardize section headers
+ *	  v2.00 (28-Oct-2016) - new feature: add option to insert random delay between the switching of individual lights,
+ *                        - code improvement: change method to evaluate which turn-off time to use
+ *                        - code improvement: move off-time comparison to turnOn()
+ *                        - new feature: add option to apply random factor to ON time
+ *    v1.02 (26-Oct-2016) - code improvement: added trace for each event handler
+ *    v1.01 (26-Oct-2016) - added 'About' section in preferences
+ *    v1.00               - initial release, no version tracking up to this point
  *
 */
 definition(
@@ -51,6 +58,8 @@ preferences {
     page(name: "pageSchedule")
     page(name: "pageRandom")
     page(name: "pageSettings")
+    page(name: "pageLogOptions")
+    page(name: "pageAbout")
     page(name: "pageUninstall")
 }
 
@@ -61,6 +70,8 @@ preferences {
 		 //	  name (C_XXX)			value					description
 private		C_SUNRISE_OFFSET()		{ return -30 }			//offset used for sunrise time calculation (minutes)
 private		C_MIN_TIME_ON()			{ return 15 }			//value to use when scheduling turnOn to make sure lights will remain on for at least this long (minutes) before the scheduled turn-off time
+private		appImgPath()			{ return "https://raw.githubusercontent.com/astrowings/SmartThings/master/images/" }
+private		readmeLink()			{ return "https://github.com/astrowings/SmartThings/blob/master/smartapps/astrowings/sunset-lights.src/readme.md" }
 
 
 //   -----------------------------
@@ -71,19 +82,20 @@ def pageMain() {
     	section(){
         	paragraph "", title: "This SmartApp turns on selected lights at sunset and turns them off at a specified time." +
             	"Different turn-off times can be configured for each day of the week, and they can be " +
-                "randomized within a specified window to simulate manual activation."
+                "randomized within a specified window to simulate manual operation."
         }
         section() {
             input "theLights", "capability.switch", title: "Which lights?", description: "Choose the lights to turn on", multiple: true, required: true, submitOnChange: true
             if (theLights) {
-                href "pageSchedule", title: "Set scheduling Options", image: "http://cdn.device-icons.smartthings.com/Office/office7-icn.png", required: false
-                href "pageRandom", title: "Configure random scheduling", image: "http://www.iconsdb.com/icons/preview/gray/dice-xxl.png", required: true, state: "complete"
+                href "pageSchedule", title: "Set scheduling Options", image: getAppImg("office7-icn.png"), required: false
+                href "pageRandom", title: "Configure random scheduling", image: getAppImg("dice-xxl.png"), required: true, state: "complete"
         	}
         }
 		section() {
 			if (theLights) {
-            	href "pageSettings", title: "App settings", image: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png", required: false
+	            href "pageSettings", title: "App settings", description: "", image: getAppImg("configure_icon.png"), required: false
             }
+            href "pageAbout", title: "About", description: "", image: getAppImg("info-icn.png"), required: false
 		}
     }
 }
@@ -96,13 +108,14 @@ def pageSchedule() {
         section(){
         	paragraph title: "Scheduling Options", "Use the options on this page to set the scheduling preferences."
         }
+        //TODO: use illuminance-capable device instead of sunrise/sunset to detect darkness
         section("Set the amount of time before/after sunset when the lights will turn on " +
         		"(e.g. use '-20' to enable lights 20 minutes before sunset).") {
                 input "sunsetOffset", "number", title: "Sunset offset time", description: "How many minutes (+/- 60)?", range: "-60..60", required: false
         }
     	section("Turn the lights off at this time " +
         		"(optional - lights will turn off ${sunriseOffset_minutes} minutes ${sunriseOffset_BeforeAfter} next sunrise if no time is entered)") {
-        	input "timeOff", "time", title: "Time to turn lights off?", required: false
+        	input "timeOff", "time", title: "Time to turn lights off?", required: false, defaultValue: "22:00"
         }
     	section("Set a different time to turn off the lights on each day (optional - lights will turn off at the default time if not set)") {
         	input "sundayOff", "time", title: "Sunday", required: false
@@ -127,18 +140,18 @@ def pageRandom() {
     	section("Specify a window around the scheduled time when the lights will turn on/off " +
         	"(e.g. a 30-minute window would have the lights switch sometime between " +
             "15 minutes before and 15 minutes after the scheduled time.)") {
-            input "randOn", "number", title: "Random ON window (minutes)?", required: false
-            input "randOff", "number", title: "Random OFF window (minutes)?", required: false
+            input "randOn", "number", title: "Random ON window (minutes)?", required: false, defaultValue: 8
+            input "randOff", "number", title: "Random OFF window (minutes)?", required: false, defaultValue: 25
         }
         section("The settings above are used to randomize preset times such that lights will " +
         	"turn on/off at slightly different times from one day to another, but if multiples lights " +
             "are selected, they will still switch status at the same time. Use the options below " +
             "to insert a random delay between the switching of each individual light. " +
             "This option can be used independently of the ones above.") {
-            input "onDelay", "bool", title: "Delay switch-on?", required: false, submitOnChange: true
-            input "offDelay", "bool", title: "Delay switch-off?", required: false, submitOnChange: true
+            input "onDelay", "bool", title: "Delay switch-on?", required: false, submitOnChange: true, defaultValue: true
+            input "offDelay", "bool", title: "Delay switch-off?", required: false, submitOnChange: true, defaultValue: true
             if (onDelay || offDelay) {
-            	input "delaySeconds", "number", title: "Switching delay", description: "Choose 1-60 seconds", required: true, defaultValue: 5, range: "1..60"
+            	input "delaySeconds", "number", title: "Switching delay", description: "choose 1-60 seconds", required: true, defaultValue: 5, range: "1..60"
             }
         }
 	}
@@ -146,22 +159,43 @@ def pageRandom() {
 
 def pageSettings() {
 	dynamicPage(name: "pageSettings", install: false, uninstall: false) {
-		section("About") {
-        	paragraph "Copyright ©2016 Phil Maynard\n${versionNum()}", title: app.name
-            href name: "hrefLicense", title: "License", description: "Apache License", url: urlApache()
-		}
    		section() {
 			label title: "Assign a name", defaultValue: "${app.name}", required: false
-            href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: "https://cdn0.iconfinder.com/data/icons/social-messaging-ui-color-shapes/128/trash-circle-red-512.png", state: null, required: true
+            href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: getAppImg("trash-circle-red-512.png"), state: null, required: true
 		}
         section("Debugging Options", hideable: true, hidden: true) {
-            input "debugging", "bool", title: "Enable debugging", defaultValue: false, required: false, submitOnChange: true
-            if (debugging) {
-                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false
-                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false
-                input "log#debug", "bool", title: "Log debug messages", defaultValue: true, required: false
-                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false
-                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false
+            input "noAppIcons", "bool", title: "Disable App Icons", description: "Do not display icons in the configuration pages", image: getAppImg("disable_icon.png"), defaultValue: false, required: false, submitOnChange: true
+            href "pageLogOptions", title: "IDE Logging Options", description: "Adjust how logs are displayed in the SmartThings IDE", image: getAppImg("office8-icn.png"), required: true, state: "complete"
+        }
+    }
+}
+
+def pageAbout() {
+	dynamicPage(name: "pageAbout", title: "About this SmartApp", install: false, uninstall: false) { //with 'install: false', clicking 'Done' goes back to previous page
+		section() {
+        	href url: readmeLink(), title: app.name, description: "Copyright ©2016 Phil Maynard\n${versionNum()}", image: getAppImg("readme-icn.png")
+            href url: urlApache(), title: "License", description: "View Apache license", image: getAppImg("license-icn.png")
+		}
+    }
+}
+
+def pageLogOptions() {
+	dynamicPage(name: "pageLogOptions", title: "IDE Logging Options", install: false, uninstall: false) {
+        section() {
+	        input "debugging", "bool", title: "Enable debugging", description: "Display the logs in the IDE", defaultValue: false, required: false, submitOnChange: true 
+        }
+        if (debugging) {
+            section("Select log types to display") {
+                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false 
+                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false 
+                input "log#debug", "bool", title: "Log debug messages", defaultValue: true, required: false 
+                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false 
+                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false 
+			}
+            section() {
+                input "setMultiLevelLog", "bool", title: "Enable Multi-level Logging", defaultValue: true, required: false,
+                    description: "Multi-level logging prefixes log entries with special characters to visually " +
+                        "represent the hierarchy of events and facilitate the interpretation of logs in the IDE"
             }
         }
     }
@@ -426,16 +460,24 @@ def convertToHMS(ms) {
     return "${hours}h${minutes}m${seconds}.${tenths}s"
 }
 
+def getAppImg(imgName, forceIcon = null) {
+	def imgPath = appImgPath()
+    return (!noAppIcons || forceIcon) ? "$imgPath/$imgName" : ""
+}
+
 def debug(message, lvl = null, shift = null, err = null) {
-	def debugging = settings.debugging
+	
+    def debugging = settings.debugging
 	if (!debugging) {
 		return
 	}
-	lvl = lvl ?: "debug"
+    
+    lvl = lvl ?: "debug"
 	if (!settings["log#$lvl"]) {
 		return
 	}
 	
+    def multiEnable = (settings.setMultiLevelLog == false ? false : true) //set to true by default
     def maxLevel = 4
 	def level = state.debugLevel ?: 0
 	def levelDelta = 0
@@ -472,20 +514,24 @@ def debug(message, lvl = null, shift = null, err = null) {
 	level += levelDelta
 	state.debugLevel = level
 
-	if (debugging) {
+	if (multiEnable) {
 		prefix += " "
 	} else {
 		prefix = ""
 	}
 
     if (lvl == "info") {
-        log.info ": :$prefix$message", err
+    	def leftPad = (multiEnable ? ": :" : "")
+        log.info "$leftPad$prefix$message", err
 	} else if (lvl == "trace") {
-        log.trace "::$prefix$message", err
+    	def leftPad = (multiEnable ? "::" : "")
+        log.trace "$leftPad$prefix$message", err
 	} else if (lvl == "warn") {
-		log.warn "::$prefix$message", err
+    	def leftPad = (multiEnable ? "::" : "")
+		log.warn "$leftPad$prefix$message", err
 	} else if (lvl == "error") {
-		log.error "::$prefix$message", err
+    	def leftPad = (multiEnable ? "::" : "")
+		log.error "$leftPad$prefix$message", err
 	} else {
 		log.debug "$prefix$message", err
 	}

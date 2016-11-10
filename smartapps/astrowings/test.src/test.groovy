@@ -6,21 +6,26 @@
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
  *
- *      http://www.apache.org/licenses/LICENSE-2.0                                       */
- 	       def urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }      /*
+ *      http://www.apache.org/licenses/LICENSE-2.0												*/
+ 	       private urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }			/*
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
  *
- *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 0.1" }          /*
+ *	VERSION HISTORY										*/
+ 	 private versionNum() {	return "version 2.00" }
+     private versionDate() { return "31-Oct-2016" }		/*
  *
- *   31-Oct-2016 : v# - most recent release changes
- *   28-Oct-2016 : v# - previous release changes
+ *	  v2.00 (dd-mmm-yyyy) - new feature
+ *    v1.10 (dd-mmm-yyyy) - bug fix
+ *						  - usage/function improvement
+ *    v1.01 (dd-mmm-yyyy) - minor change, performance improvement
+ *	  v1.00 (dd-mmm-yyyy) - initial release
+ *    v0.10 (dd-mmm-yyyy) - in development
  *
-*/
+ */
 definition(
     name: "Test",
     namespace: "astrowings",
@@ -28,8 +33,8 @@ definition(
     description: "Test",
     category: "Convenience",
     iconUrl: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png",
-    iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png",
-    iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
+    iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png",
+    iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png")
 
 
 //   ---------------------------
@@ -38,6 +43,8 @@ definition(
 preferences {
 	page(name: "pageMain")
     page(name: "pageSettings")
+    page(name: "pageLogOptions")
+    page(name: "pageAbout")
     page(name: "pageUninstall")
 }
 
@@ -45,6 +52,8 @@ preferences {
 //   --------------------------------
 //   ***   CONSTANTS DEFINITIONS  ***
 
+private		appImgPath()			{ return "https://raw.githubusercontent.com/astrowings/SmartThings/master/images/" }
+private		readmeLink()			{ return "https://github.com/astrowings/SmartThings/blob/master/smartapps/astrowings/test.src/readme.md" }
 
 
 //   -----------------------------
@@ -65,30 +74,54 @@ def pageMain() {
                 submitOnChange: false
         }
 		section() {
-            href "pageSettings", title: "App settings", image: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png", required: false
+            href "pageSettings", title: "App settings", description: "", image: getAppImg("configure_icon.png"), required: false
+            href "pageAbout", title: "About", description: "", image: getAppImg("info-icn.png"), required: false
 		}
     }
 }
     
 def pageSettings() {
 	dynamicPage(name: "pageSettings", title: "Settings", install: false, uninstall: false) { //with 'install: false', clicking 'Done' goes back to previous page
-		section("About") {
-        	paragraph "Copyright ©2016 Phil Maynard\n${versionNum()}", title: app.name
-            href name: "hrefLicense", title: "License", description: "Apache License", url: urlApache()
-            paragraph stateCap(), title: "Memory Usage"
-		}
    		section() {
 			label title: "Assign a name", defaultValue: "${app.name}", required: false
-            href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: "https://cdn0.iconfinder.com/data/icons/social-messaging-ui-color-shapes/128/trash-circle-red-512.png", state: null, required: true
+            href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: getAppImg("trash-circle-red-512.png"), state: null, required: true
 		}
         section("Debugging Options", hideable: true, hidden: true) {
-            input "debugging", "bool", title: "Enable debugging", defaultValue: false, required: false, submitOnChange: true
-            if (debugging) {
-                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false
-                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false
-                input "log#debug", "bool", title: "Log debug messages", defaultValue: true, required: false
-                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false
-                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false
+            input "noAppIcons", "bool", title: "Disable App Icons", description: "Do not display icons in the configuration pages", image: getAppImg("disable_icon.png"), defaultValue: false, required: false, submitOnChange: true
+            href "pageLogOptions", title: "IDE Logging Options", description: "Adjust how logs are displayed in the SmartThings IDE", image: getAppImg("office8-icn.png"), required: true, state: "complete"
+        }
+    }
+}
+
+def pageAbout() {
+	dynamicPage(name: "pageAbout", title: "About this SmartApp", install: false, uninstall: false) { //with 'install: false', clicking 'Done' goes back to previous page
+		section() {
+        	href url: readmeLink(), title: app.name, description: "Copyright ©2016 Phil Maynard\n${versionNum()}", image: getAppImg("readme-icn.png")
+            href url: urlApache(), title: "License", description: "View Apache license", image: getAppImg("license-icn.png")
+		}
+   		section("Stats") {
+            paragraph stateCap(), title: "Memory Usage"
+		}
+    }
+}
+
+def pageLogOptions() {
+	dynamicPage(name: "pageLogOptions", title: "IDE Logging Options", install: false, uninstall: false) {
+        section() {
+	        input "debugging", "bool", title: "Enable debugging", description: "Display the logs in the IDE", defaultValue: false, required: false, submitOnChange: true 
+        }
+        if (debugging) {
+            section("Select log types to display") {
+                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false 
+                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false 
+                input "log#debug", "bool", title: "Log debug messages", defaultValue: true, required: false 
+                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false 
+                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false 
+			}
+            section() {
+                input "setMultiLevelLog", "bool", title: "Enable Multi-level Logging", defaultValue: true, required: false,
+                    description: "Multi-level logging prefixes log entries with special characters to visually " +
+                        "represent the hierarchy of events and facilitate the interpretation of logs in the IDE"
             }
         }
     }
@@ -176,7 +209,7 @@ def testProperties(evt) {
 
 def testStart() {
 	debug "executing testStart()", "trace", 1
-	runIn(30, toggleSwitches)
+	//runIn(30, toggleSwitches)
 	debug "testStart() complete", "trace", -1
 }
 
@@ -271,22 +304,24 @@ def cpu() {
 	}
 }
 
-
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-//   *******************   TEST ZONE  ********************   //
-//   Put new code here before moving up into main sections   //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+def getAppImg(imgName, forceIcon = null) {
+	def imgPath = appImgPath()
+    return (!noAppIcons || forceIcon) ? "$imgPath/$imgName" : ""
+}
 
 def debug(message, lvl = null, shift = null, err = null) {
-	def debugging = settings.debugging
+	
+    def debugging = settings.debugging
 	if (!debugging) {
 		return
 	}
-	lvl = lvl ?: "debug"
+    
+    lvl = lvl ?: "debug"
 	if (!settings["log#$lvl"]) {
 		return
 	}
 	
+    def multiEnable = (settings.setMultiLevelLog == false ? false : true) //set to true by default
     def maxLevel = 4
 	def level = state.debugLevel ?: 0
 	def levelDelta = 0
@@ -323,21 +358,32 @@ def debug(message, lvl = null, shift = null, err = null) {
 	level += levelDelta
 	state.debugLevel = level
 
-	if (debugging) {
+	if (multiEnable) {
 		prefix += " "
 	} else {
 		prefix = ""
 	}
 
     if (lvl == "info") {
-        log.info ": :$prefix$message", err
+    	def leftPad = (multiEnable ? ": :" : "")
+        log.info "$leftPad$prefix$message", err
 	} else if (lvl == "trace") {
-        log.trace "::$prefix$message", err
+    	def leftPad = (multiEnable ? "::" : "")
+        log.trace "$leftPad$prefix$message", err
 	} else if (lvl == "warn") {
-		log.warn "::$prefix$message", err
+    	def leftPad = (multiEnable ? "::" : "")
+		log.warn "$leftPad$prefix$message", err
 	} else if (lvl == "error") {
-		log.error "::$prefix$message", err
+    	def leftPad = (multiEnable ? "::" : "")
+		log.error "$leftPad$prefix$message", err
 	} else {
 		log.debug "$prefix$message", err
 	}
 }
+
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+//   *******************   TEST ZONE  ********************   //
+//   Put new code here before moving up into main sections   //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+

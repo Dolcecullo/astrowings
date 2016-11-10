@@ -6,26 +6,33 @@
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
  *
- *      http://www.apache.org/licenses/LICENSE-2.0                                       */
- 	       def urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }      /*
+ *      http://www.apache.org/licenses/LICENSE-2.0												*/
+ 	       private urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }			/*
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
  *
- *	VERSION HISTORY                                    */
- 	 def versionNum() {	return "version 1.31" }       /*
+ *	VERSION HISTORY										*/
+ 	 private versionNum() {	return "version 1.32" }
+     private versionDate() { return "09-Nov-2016" }     /*
  *
- *    v1.31 (04-Nov-2016): update href state & images
- *	  v1.30 (03-Nov-2016): add option to configure sunset offset
- *    v1.21 (02-Nov-2016): add link for Apache license
- *    v1.20 (02-Nov-2016): implement multi-level debug logging function
- *    v1.10 (01-Nov-2016): standardize pages layout
- *	  v1.03 (01-Nov-2016): standardize section headers
- *    v1.02 (26-Oct-2016): added trace for each event handler
- *    v1.01 (26-Oct-2016): added 'About' section in preferences
- *    v1.00 (2016 date unknown): working version, no version tracking up to this point
+ *    vx.xx (xx-Nov-2016) - code improvement: store images on GitHub, use getAppImg() to display app images
+ *                        - added option to disable icons
+ *                        - added option to disable multi-level logging
+ *                        - configured default values for app settings
+ *						  - moved 'About' to its own page
+ *						  - added link to readme file
+ *    v1.31 (04-Nov-2016) - update href state & images
+ *	  v1.30 (03-Nov-2016) - add option to configure sunset offset
+ *    v1.21 (02-Nov-2016) - add link for Apache license
+ *    v1.20 (02-Nov-2016) - implement multi-level debug logging function
+ *    v1.10 (01-Nov-2016) - code improvement: standardize pages layout
+ *	  v1.03 (01-Nov-2016) - code improvement: standardize section headers
+ *    v1.02 (26-Oct-2016) - code improvement: added trace for each event handler
+ *    v1.01 (26-Oct-2016) - added 'About' section in preferences
+ *    v1.00               - initial release, no version tracking up to this point
  *
 */
 definition(
@@ -50,6 +57,8 @@ preferences {
     page(name: "pageFlash")
     page(name: "pageSwitch")
     page(name: "pageSettings")
+    page(name: "pageLogOptions")
+    page(name: "pageAbout")
     page(name: "pageUninstall")
 }
 
@@ -57,6 +66,8 @@ preferences {
 //   --------------------------------
 //   ***   CONSTANTS DEFINITIONS  ***
 
+private		appImgPath()			{ return "https://raw.githubusercontent.com/astrowings/SmartThings/master/images/" }
+private		readmeLink()			{ return "https://github.com/astrowings/SmartThings/blob/master/smartapps/astrowings/night-security.src/readme.md" }
 
 
 //   -----------------------------
@@ -70,12 +81,13 @@ def pageMain() {
                 "Can be used to monitor if someone (child, elderly) is attempting to leave the house."
         }
         section("Configuration") {
-            href "pageSensors", title: "Sensor Selection", description: sensorDesc, image: "http://cdn.device-icons.smartthings.com/Home/home30-icn.png", required: false
-            href "pageSchedule", title: "Scheduling Options", description: "Set the conditions for the monitoring window", image: "http://cdn.device-icons.smartthings.com/Office/office7-icn.png", required: false
-            href "pageNotify", title: "Notification Method", description: "Configure the notification method", image: "http://cdn.device-icons.smartthings.com/Office/office9-icn.png", required: false
+            href "pageSensors", title: "Sensor Selection", description: sensorDesc, image: getAppImg("home30-icn.png"), required: false
+            href "pageSchedule", title: "Scheduling Options", description: "Set the conditions for the monitoring window", image: getAppImg("office7-icn.png"), required: false
+            href "pageNotify", title: "Notification Method", description: "Configure the notification method", image: getAppImg("office9-icn.png"), required: false
 		}
 		section() {
-            href "pageSettings", title: "App settings", image: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png", required: false
+            href "pageSettings", title: "App settings", description: "", image: getAppImg("configure_icon.png"), required: false
+            href "pageAbout", title: "About", description: "", image: getAppImg("info-icn.png"), required: false
 		}
 	}
 }
@@ -106,22 +118,11 @@ def pageSchedule() {
                 "anytime it's dark)"
         }
     	section("When the mode is set to... (any mode if none selected)") {
-        	input "theModes", "mode", title: "Select the mode(s)", multiple: true, required: false
+        	input "theModes", "mode", title: "Select the mode(s)", multiple: true, required: false, defaultValue: "Night"
         }
     	section("Enable only when it's dark out") {
         	input "whenDark", "bool", title: "Yes/No?", required: false, defaultValue: true, submitOnChange: true
         }
-        /*
-        if (whenDark) {
-            section("This SmartApp uses luminance as a criteria to trigger actions; select the illuminance-capable " +
-                    "device to use (if none selected, sunset/sunrise times will be used instead.",
-                    hideWhenEmpty: true, required: true, state: (theLuminance ? "complete" : null)) {
-                //TODO: test using virtual luminance device based on sunrise/sunset
-                //TODO: enable use of device everywhere there's a reference to darkness setting (i.e. sunset/sunrise)
-                input "theLuminance", "capability.illuminance", title: "Which illuminance device?", multiple: false, required: false, submitOnChange: true
-            }
-        }
-        */
         section("When someone is home") {
         	input "thePresence", "capability.presenceSensor", title: "Who?", multiple: true, required: false
         }
@@ -145,7 +146,7 @@ def pageNotify() {
             	"Configure the method used to notify of a trigger condition."
         }
         section("Send a push notification") {
-        	input "pushYesNo", "bool", title: "Yes/No?", required: false
+        	input "pushYesNo", "bool", title: "Yes/No?", required: false, defaultValue: true
         }
         section("Send a SMS notification") {
         	input "smsYesNo", "bool", title: "Yes/No?", required: false, submitOnChange: true
@@ -156,17 +157,18 @@ def pageNotify() {
         section("Flash a light") {
             input "flashYesNo", "bool", title: "Yes/No?", required: false, submitOnChange: true
 	        if (flashYesNo) {
-        		href "pageFlash", title: "Flasher settings", image: "http://cdn.device-icons.smartthings.com/Lighting/light11-icn@2x.png", required: false
+        		href "pageFlash", title: "Flasher settings", image: getAppImg("light11-icn.png"), required: false
             }
         }
         section("Turn a light/switch on") {
         	input "lightYesNo", "bool", title: "Yes/No?", required: false, submitOnChange: true
-	        if (lightYesNo) {
-            	href "pageSwitch", title: "Switch settings", image: "http://cdn.device-icons.smartthings.com/Lighting/light20-icn@2x.png", required: false
+	        //TODO: allow dimmer
+            if (lightYesNo) {
+            	href "pageSwitch", title: "Switch settings", image: getAppImg("light20-icn.png"), required: false
             }
         }
-        section("Set the cooldown period") {
-        	input "coolDown", "number", title: "Do not trigger another alarm within? (minutes)", required: false
+        section("Set the cooldown period") { //TODO: move this to the App Settings page
+        	input "coolDown", "number", title: "Do not trigger another alarm within? (minutes)", required: false, defaultValue: 2
         }
     }
 }
@@ -182,17 +184,17 @@ def pageFlash() {
         }
         if (flashLights) {
             section("Set the flash interval") {
-                input "flashOnFor", "number", title: "How many seconds ON? (default = 1)", required: false //TODO: use constant for default, specify valid range
-                input "flashOffFor", "number", title: "How many seconds OFF? (default = 1)", required: false //TODO: use constant for default, specify valid range
+                input "flashOnFor", "number", title: "How many seconds ON?", description: "from 1 to 10", required: true, defaultValue: 1, range: "1..10" //TODO: use constant for default
+                input "flashOffFor", "number", title: "How many seconds OFF?", description: "from 1 to 10", required: true, defaultValue: 1, range: "1..10" //TODO: use constant for default
             }
             section("Set the number of flash cycles") {
-                input "flashCycles", "number", title: "How many cycles? (default = 3)", required: false //TODO: change default to 5 (use constant), specify valid range
+                input "flashCycles", "number", title: "How many cycles?", description: "from 1 to 20", required: true, defaultValue: 5, range: "1..20" //TODO: use constant for default
             }
             section("Leave light(s) on after the flashing duration") {
-                input "flashLeaveOn", "bool", title: "Yes/No?", submitOnChange: true, required: false, defaultValue: false
+                input "flashLeaveOn", "bool", title: "Yes/No?", submitOnChange: true, required: false, defaultValue: true
                 if (flashLeaveOn) {
                     input "flashLeaveDuration", "number", title: "For how long (minutes)?", description: "Leave on until mode change if not set", required: false
-                    input "flashOffSun", "bool", title: "Turn off at sunrise?", defaultValue: true, required: false //TODO: remove this option
+                    input "flashOffSun", "bool", title: "Turn off at sunrise?", defaultValue: true, required: false //TODO: remove this option and all references to sun/darkness
                 }
             }
         }
@@ -209,7 +211,7 @@ def pageSwitch() {
         	input "turnOnLights", "capability.switch", title: "Which?", multiple: true, submitOnChange: true
         }
         if (turnOnLights) {
-            section("Set the light(s) to turn off automatically") {
+            section("Set the light(s) to turn off automatically") { //TODO: when will the lights turn off if not set?
                 input "turnOnDurationYN", "bool", title: "After a predetermined duration?", submitOnChange: true, required: false, defaultValue: false
                 if (turnOnDurationYN) {
                     input "turnOnMinutes", "number", title: "How long (minutes)?", required: true
@@ -218,7 +220,7 @@ def pageSwitch() {
                 if (turnOffTimeYN) {
                     input "turnOffTime", "time", title: "What time?", required: true
                 }
-                input "turnOnSun", "bool", title: "At sunrise?", defaultValue: true, required: false //TODO: remove this option
+                input "turnOnSun", "bool", title: "At sunrise?", defaultValue: true, required: false //TODO: remove this option and all references to sun/darkness
             }
         }
     }
@@ -226,9 +228,9 @@ def pageSwitch() {
 
 def pageSettings() {
 	dynamicPage(name: "pageSettings", install: false, uninstall: false) {
-		section("About") {
-        	paragraph "Copyright ©2016 Phil Maynard\n${versionNum()}", title: app.name
-            href name: "hrefLicense", title: "License", description: "Apache License", url: urlApache()
+   		section() {
+			label title: "Assign a name", defaultValue: "${app.name}", required: false
+            href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: getAppImg("trash-circle-red-512.png"), state: null, required: true
 		}
         if (!theLuminance) {
             section("This SmartApp uses the sunset/sunrise time to evaluate luminance as a criteria to trigger actions. " +
@@ -237,18 +239,39 @@ def pageSettings() {
                 input "sunsetOffset", "number", title: "Sunset offset time", description: "How many minutes (+/- 60)?", range: "-60..60", required: false
             }
    		}
-   		section() {
-			label title: "Assign a name", defaultValue: "${app.name}", required: false
-            href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: "https://cdn0.iconfinder.com/data/icons/social-messaging-ui-color-shapes/128/trash-circle-red-512.png", state: null, required: true
-		}
         section("Debugging Options", hideable: true, hidden: true) {
-            input "debugging", "bool", title: "Enable debugging", defaultValue: false, required: false, submitOnChange: true
-            if (debugging) {
-                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false
-                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false
-                input "log#debug", "bool", title: "Log debug messages", defaultValue: true, required: false
-                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false
-                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false
+            input "noAppIcons", "bool", title: "Disable App Icons", description: "Do not display icons in the configuration pages", image: getAppImg("disable_icon.png"), defaultValue: false, required: false, submitOnChange: true
+            href "pageLogOptions", title: "IDE Logging Options", description: "Adjust how logs are displayed in the SmartThings IDE", image: getAppImg("office8-icn.png"), required: true, state: "complete"
+        }
+    }
+}
+
+def pageAbout() {
+	dynamicPage(name: "pageAbout", title: "About this SmartApp", install: false, uninstall: false) { //with 'install: false', clicking 'Done' goes back to previous page
+		section() {
+        	href url: readmeLink(), title: app.name, description: "Copyright ©2016 Phil Maynard\n${versionNum()}", image: getAppImg("readme-icn.png")
+            href url: urlApache(), title: "License", description: "View Apache license", image: getAppImg("license-icn.png")
+		}
+    }
+}
+
+def pageLogOptions() {
+	dynamicPage(name: "pageLogOptions", title: "IDE Logging Options", install: false, uninstall: false) {
+        section() {
+	        input "debugging", "bool", title: "Enable debugging", description: "Display the logs in the IDE", defaultValue: false, required: false, submitOnChange: true 
+        }
+        if (debugging) {
+            section("Select log types to display") {
+                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false 
+                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false 
+                input "log#debug", "bool", title: "Log debug messages", defaultValue: true, required: false 
+                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false 
+                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false 
+			}
+            section() {
+                input "setMultiLevelLog", "bool", title: "Enable Multi-level Logging", defaultValue: true, required: false,
+                    description: "Multi-level logging prefixes log entries with special characters to visually " +
+                        "represent the hierarchy of events and facilitate the interpretation of logs in the IDE"
             }
         }
     }
@@ -382,7 +405,7 @@ def activateFlash() {
 	def doFlash = true
 	def onFor = flashOnFor ? flashOnFor * 1000 : 1000 //TODO: use constant for default
 	def offFor = flashOffFor ? flashOffFor * 1000 : 1000 //TODO: use constant for default
-	def numFlashes = flashCycles ?: 3 //TODO: use constant for default
+	def numFlashes = flashCycles ?: 5 //TODO: use constant for default
 	def sequenceTime = (numFlashes) * (onFor + offFor) + offFor
 
 	if (state.flashLastActivated) {
@@ -610,16 +633,24 @@ def getItsDarkOut() { //implement use of illuminance capability
     return result
 }
 
+def getAppImg(imgName, forceIcon = null) {
+	def imgPath = appImgPath()
+    return (!noAppIcons || forceIcon) ? "$imgPath/$imgName" : ""
+}
+
 def debug(message, lvl = null, shift = null, err = null) {
-	def debugging = settings.debugging
+	
+    def debugging = settings.debugging
 	if (!debugging) {
 		return
 	}
-	lvl = lvl ?: "debug"
+    
+    lvl = lvl ?: "debug"
 	if (!settings["log#$lvl"]) {
 		return
 	}
 	
+    def multiEnable = (settings.setMultiLevelLog == false ? false : true) //set to true by default
     def maxLevel = 4
 	def level = state.debugLevel ?: 0
 	def levelDelta = 0
@@ -656,20 +687,24 @@ def debug(message, lvl = null, shift = null, err = null) {
 	level += levelDelta
 	state.debugLevel = level
 
-	if (debugging) {
+	if (multiEnable) {
 		prefix += " "
 	} else {
 		prefix = ""
 	}
 
     if (lvl == "info") {
-        log.info ": :$prefix$message", err
+    	def leftPad = (multiEnable ? ": :" : "")
+        log.info "$leftPad$prefix$message", err
 	} else if (lvl == "trace") {
-        log.trace "::$prefix$message", err
+    	def leftPad = (multiEnable ? "::" : "")
+        log.trace "$leftPad$prefix$message", err
 	} else if (lvl == "warn") {
-		log.warn "::$prefix$message", err
+    	def leftPad = (multiEnable ? "::" : "")
+		log.warn "$leftPad$prefix$message", err
 	} else if (lvl == "error") {
-		log.error "::$prefix$message", err
+    	def leftPad = (multiEnable ? "::" : "")
+		log.error "$leftPad$prefix$message", err
 	} else {
 		log.debug "$prefix$message", err
 	}
