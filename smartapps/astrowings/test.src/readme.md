@@ -8,10 +8,10 @@ This is a brief description and usage notes for the Child-SmartApp (if applicabl
 
 ## Installation Notes
 
- * Some notes regarding the installation of this SmartApp
- * Format text to _italics_ by surrounding text with the 'underscore' (\_) character
- * Format text to __bold__ by surrounding text with double 'underscore' (\_) characters
- * Format text to ___something___ by surrounding text with triple 'underscore' (\_) characters
+* Some notes regarding the installation of this SmartApp
+* Format text to _italics_ by surrounding text with the 'underscore' (\_) character
+* Format text to __bold__ by surrounding text with double 'underscore' (\_) characters
+* Format text to ___bold italics___ by surrounding text with triple 'underscore' (\_) characters
 
 ## About the Author
 This is a little bio about the author (@astrowings) :smile:
