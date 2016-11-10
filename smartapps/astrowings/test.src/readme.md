@@ -14,10 +14,10 @@ This is a brief description and usage notes for the Child-SmartApp (if applicabl
 
 ## Change Log
 * vx.xx (dd-mmm-yyyy)
-** most recent release changes
-** another change
+ * most recent release changes
+ * another change
 * vx.xx (dd-mmm-yyyy)
-** previous release changes
+ * previous release changes
 
 ## About the Author
 <img src="https://raw.githubusercontent.com/astrowings/SmartThings/master/images/clown.JPG" width="80" height="80" align="left">
