@@ -10,14 +10,15 @@ The 'Away Light' SmartApp turns a light on/off simulate presence while away. It 
 * Each child instance can only support one light; add children apps to activate more lights.
 * 
 
-## Change Log
+## Software Development
+### Change Log
 * Coming soon...
 
-## Upcoming changes, requests, todo list
-*
+### Upcoming changes, requests, todo list
+* 
 
-## Known Issues
-*
+### Known Issues
+* None so far
 
 ## About the Author
 Currently living in Alberta, Canada, I've been serving in the Canadian Air Force since 1998 and I am by no means an advanced programmer. I do however like to learn and come up with my own solutions to problems. I have absolutely no formal training/education in software development, but I like to learn new things and find ways to put them to good use. I use Excel quite a lot, both for work and personal data organization, I have some experience with MS Access, and a basic knowledge at writing VBA code to suit my needs.<br><br>
