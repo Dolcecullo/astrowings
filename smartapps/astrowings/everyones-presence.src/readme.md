@@ -3,7 +3,7 @@
 ### Everyone's Presence App
 Emulates a single presence sensor for all physical sensors (i.e. will set to 'not present' when nobody is home, or 'present' if at least one person is home).
 
-## Installation Notes
+### Installation Notes
 * Before using this app, you need to create a 'Simulated Presence Sensor' device (using the IDE).
 * In the app preferences, select the physical presence sensors to use and select the device you created as the 'Simulated Presence Sensor'; this is the device that will report the 'everyone' status.
 
