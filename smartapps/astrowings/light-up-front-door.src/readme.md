@@ -3,7 +3,7 @@
 ### Light-Up Front Door App
 This SmartApp turns on a light when someone arrives home and it's dark out, turns it off after set time (e.g. to turn on a porch light).
 
-## Installation Notes
+### Installation Notes
 * Not required, self-explanatory
 
 ## Software Development
