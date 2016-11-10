@@ -5,7 +5,7 @@ Emulates a single presence sensor for all physical sensors (i.e. will set to 'no
 
 ## Installation Notes
 * Before using this app, you need to create a 'Simulated Presence Sensor' device (using the IDE).
-* In the app preferences, Select the physical presence sensors to use and Select the device you created as the 'Simulated Presence Sensor'; this is the device that will report the 'Everyone's Presence' status.
+* In the app preferences, select the physical presence sensors to use and select the device you created as the 'Simulated Presence Sensor'; this is the device that will report the 'everyone' status.
 
 ## Software Development
 ### Change Log
