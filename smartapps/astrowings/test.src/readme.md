@@ -15,10 +15,7 @@ This is a brief description and usage notes for the Child-SmartApp (if applicabl
 
 ## About the Author
 This is a little bio about the author (@astrowings) :smile:
-<img src="https://raw.githubusercontent.com/astrowings/SmartThings/master/images/clown.JPG" width="100" height="100" align="left"><br>
-
-
-
+<img src="https://raw.githubusercontent.com/astrowings/SmartThings/master/images/clown.JPG" width="100" height="100" align="left"><br><br><br><br><br>
 
 ## Contributors
 A list of contributors (if applicable)
