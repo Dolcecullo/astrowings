@@ -14,7 +14,7 @@ This is a brief description and usage notes for the Child-SmartApp (if applicabl
 * Format text to ___bold italics___ by surrounding text with triple 'underscore' (\_) characters
 
 ## About the Author
-This is a short bio about the author (@astrowings) :smile:
+This is a short bio about the author (@astrowings). I don't want to post a link to my email address, but if you need to contact me regarding this SmartApp you can do so by emailing the author at Google's email service :smile:
 <img src="https://raw.githubusercontent.com/astrowings/SmartThings/master/images/clown.JPG" width="80" height="80" align="left"><br><br><br>
 
 ## Contributors
