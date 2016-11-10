@@ -7,11 +7,17 @@ This is a brief description and usage notes for the Test SmartApp.
 This is a brief description and usage notes for the Child-SmartApp (if applicable).
 
 ## Installation Notes
-
 * Some notes regarding the installation of this SmartApp
 * Format text to _italics_ by surrounding text with the 'underscore' (\_) character
 * Format text to __bold__ by surrounding text with double 'underscore' (\_) characters
 * Format text to ___bold italics___ by surrounding text with triple 'underscore' (\_) characters
+
+## Change Log
+* vx.xx (dd-mmm-yyyy)
+** most recent release changes
+** another change
+* vx.xx (dd-mmm-yyyy)
+** previous release changes
 
 ## About the Author
 <img src="https://raw.githubusercontent.com/astrowings/SmartThings/master/images/clown.JPG" width="80" height="80" align="left">
