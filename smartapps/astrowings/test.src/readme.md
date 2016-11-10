@@ -19,13 +19,7 @@ This is a brief description and usage notes for the Child-SmartApp (if applicabl
 * vx.xx (dd-mmm-yyyy)
  * previous release changes
 
-## About the Author
-<img src="https://raw.githubusercontent.com/astrowings/SmartThings/master/images/clown.JPG" width="80" height="80" align="left">
-
-This is a short bio about the author (@astrowings).
-<br>
-:email: I don't want to post a link to my email address, but if you need to contact me regarding this SmartApp you can do so by emailing the author at Google's email service :wink:
-<br>
+## About the AuthorCurrently living in Alberta, Canada, I've been serving in the Canadian Air Force since 1998 and I am by no means an advanced programmer. I do however like to learn and come up with my own solutions to problems. I have absolutely no formal training/education in software development, but I like to learn new things and find ways to put them to good use. I use Excel quite a lot, both for work and personal data organization, I have some experience with MS Access, and a basic knowledge at writing VBA code to suit my needs.<br><br>I acquired a SmartThings hub in late summer of 2016 and have taken an interest in learning to write my own applications. I still have a lot of learning to do and my code isn't perfect, but it works for me and I can usually find a way to get it to do what I want. That being said, I'm open to comments and suggestions on how to improve my coding method, and will also consider requests if you need one of my apps tweaked for your particular use.<br><br><img src="https://raw.githubusercontent.com/astrowings/SmartThings/master/images/clown.JPG" width="80" height="80" align="left">Thanks for stopping by to read about me.<br>@astrowings<br><br><br>I don't want to post a link to my email address, but if you need to contact me regarding this SmartApp you can do so by emailing the author at Google's email service :wink:
 
 ## Contributors
 A list of contributors (if applicable)
