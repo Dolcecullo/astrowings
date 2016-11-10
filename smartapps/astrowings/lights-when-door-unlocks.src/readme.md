@@ -7,14 +7,14 @@ This SmartApp turns on selected lights when a door is unlocked from outside (i.e
 * Not required, self-explanatory
 
 ## Software Development
-#### Change Log
+### Change Log
 * Coming soon...
 
-#### Upcoming changes, requests, todo list
+### Upcoming changes, requests, todo list
 * Use illuminance-capable device instead of sunrise/sunset to detect darkness
 * Enable use of dimmer device; set dimmer to max on turn-on, reset before turn-off
 
-#### Known Issues
+### Known Issues
 * None so far
 
 ## About the Author
