@@ -6,7 +6,7 @@ This SmartApp turns on selected lights when a door is unlocked from outside (i.e
 ### Installation Notes
 * Not required, self-explanatory
 
-### Software Development
+## Software Development
 #### Change Log
 * Coming soon...
 
