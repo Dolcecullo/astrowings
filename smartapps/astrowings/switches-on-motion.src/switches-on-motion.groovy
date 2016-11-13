@@ -60,9 +60,9 @@ private		readmeLink()			{ return "https://github.com/astrowings/SmartThings/blob
 //   ***   PAGES DEFINITIONS   ***
 
 def pageMain() {
-	dynamicPage(name: "pageMain", title: "Main", install: true, uninstall: false) {
+	dynamicPage(name: "pageMain", install: true, uninstall: false) {
     	section(){
-        	paragraph "", title: "Use this SmartApp to add child instances of the 'Switch on Motion' app."
+        	paragraph "", title: "Use this SmartApp to automate lights based on motion."
         }
         section {
             app name: "switchOnMotion", appName: "Switch on Motion (child)", namespace: "astrowings", title: "Create New Automation", multiple: true
@@ -130,8 +130,12 @@ def pageLogOptions() {
 def pageUninstall() {
 	dynamicPage(name: "pageUninstall", title: "Uninstall", install: false, uninstall: true) {
 		section() {
-        	paragraph "CAUTION: You are about to completely remove the SmartApp '${app.name}'. This action is irreversible. If you want to proceed, tap on the 'Remove' button below.",
-                required: true, state: null
+        	def numChilds = childApps.size()
+            def isParent = numChilds > 0
+            //TODO: list installed children
+            def warnChildren = "CAUTION: You are about to completely remove the SmartApp '${app.name}'; this will also uninstall the ${numChilds} currently configured automations (i.e. 'Child Apps'). This action is irreversible. If you want to proceed, tap on the 'Remove' button below."
+            def warnUninstall = "There are no Child Apps currently installed; tap on the 'Remove' button below to uninstall the '${app.name}' SmartApp."
+            paragraph isParent ? warnChildren : warnUninstall, required: isParent, state: null
         }
 	}
 }
@@ -147,7 +151,6 @@ def installed() {
 
 def updated() {
     debug "updated with settings ${settings}", "trace"
-	//unsubscribe()
     initialize()
 }
 
