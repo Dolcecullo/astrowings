@@ -16,9 +16,9 @@
  *
  *	VERSION HISTORY										*/
  	 private versionNum() { return "version 1.42" }
-     private versionDate() { return "09-Nov-2016" }		/*
+     private versionDate() { return "14-Nov-2016" }		/*
  *
- *    v2.00 (xx-Nov-2016) - code improvement: store images on GitHub, use getAppImg() to display app images
+ *    v2.00 (14-Nov-2016) - code improvement: store images on GitHub, use getAppImg() to display app images
  *                        - added option to disable icons
  *                        - added option to disable multi-level logging
  *                        - configured default values for app settings
@@ -27,6 +27,9 @@
  *						  - bug fix: removed log level increase for modeChangeHandler() event because it was causing the log
  *							level to keep increasing without ever applying the '-1' at the end to restore the log level
  *						  - added parent definition to convert into child app
+ *						  - list current configuration settings in link to configuration page
+ *						  - moved sunset offset setting to parent app
+ *						  - moved debugging options settings to parent app
  *    v1.41 (04-Nov-2016) - update href state & images
  *	  v1.40 (03-Nov-2016) - add option to configure sunset offset
  *    v1.31 (02-Nov-2016) - add link for Apache license
@@ -57,11 +60,6 @@ definition(
 preferences {
 	page(name: "pageMain")
 	page(name: "pageSchedule")
-    page(name: "pageSettings")
-    page(name: "pageLogOptions")
-    //next pages not required for child app
-    //page(name: "pageAbout")
-    //page(name: "pageUninstall")
 }
 
 
@@ -76,23 +74,16 @@ private		appImgPath()			{ return "https://raw.githubusercontent.com/astrowings/S
 
 def pageMain() {
 	dynamicPage(name: "pageMain", install: true, uninstall: false) {
-    	/*
-        section(){
-        	paragraph "", title: "This SmartApp turns a light on/off to simulate presence while away."
-        }
-        */
         section() {
             input "theLight", "capability.switch", title: "Which light?", multiple: false, required: true, submitOnChange: true
             if (theLight) {
-                href "pageSchedule", title: "Set scheduling Options", image: getAppImg("office7-icn.png"), required: false
+                href "pageSchedule", title: !theModes ? "Set scheduling options" : "Scheduling options:", description: schedOptionsDesc, image: getAppImg("office7-icn.png"), required: true, state: theModes ? "complete" : null
         	}
-        }
+		}
 		section() {
 			if (theLight) {
-            	href "pageSettings", title: "App settings", description: "", image: getAppImg("configure_icon.png"), required: false
+            	label title: "Assign a name for this automation", defaultValue: "${theLight.label}", required: false
             }
-            //next line not required; moved to parent app
-            //href "pageAbout", title: "About", description: "", image: getAppImg("info-icn.png"), required: false
         }
     }
 }
@@ -107,11 +98,24 @@ def pageSchedule() {
             input "startTime", "time", title: "Start time?", required: false
             input "endTime", "time", title: "End time?", required: false
         }
-    	section("Enable only when it's dark out") {
-        	input "whenDark", "bool", title: "Yes/No?", required: false, defaultValue: true
+        section("Set light on/off duration - use these settings to have the light turn on and off within the activation period") {
+            input "onFor", "number", title: "Stay on for (minutes)?", required: false, defaultValue: 25 //If set, the light will turn off after the amount of time specified (or at specified end time, whichever comes first)
+            input "offFor", "number", title: "Leave off for (minutes)?", required: false, defaultValue: 40 //If set, the light will turn back on after the amount of time specified (unless the specified end time has passed)
+        }
+        section("Random factor - if set, randomize on/off times within the selected window") {
+        	input "randomMinutes", "number", title: "Random window (minutes)?", required: false, defaultValue: 20
+        }
+        section("Enable only for certain days of the week? (optional - will run every day if nothing selected)") {
+        	input "theDays", "enum", title: "On which days?", options: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], required: false, multiple: true
+        }
+        section("Only run in selected modes (automation disabled if none selected)") {
+            input "theModes", "mode", title: "Select the mode(s)", multiple: true, required: false
+        }
+    	section("Enable even during daytime") {
+        	input "daytime", "bool", title: "Yes/No?", required: false, defaultValue: false
         }
         /*
-        if (whenDark) {
+        if (!daytime) {
             section("This SmartApp uses luminance as a criteria to trigger actions; select the illuminance-capable " +
                     "device to use (if none selected, sunset/sunrise times will be used instead.",
                     hideWhenEmpty: true, required: true, state: (theLuminance ? "complete" : null)) {
@@ -121,87 +125,30 @@ def pageSchedule() {
             }
         }
         */
-        section("Set light on/off duration - use these settings to have the light turn on and off within the activation period") {
-            input "onFor", "number", title: "Stay on for (minutes)?", required: false, defaultValue: 25 //If set, the light will turn off after the amount of time specified (or at specified end time, whichever comes first)
-            input "offFor", "number", title: "Leave off for (minutes)?", required: false, defaultValue: 40 //If set, the light will turn back on after the amount of time specified (unless the specified end time has passed)
-        }
-        section("Random factor - if set, randomize on/off times within the selected window") {
-        	input "randWind", "number", title: "Random window (minutes)?", required: false, defaultValue: 20
-        }
-        section("Enable only for certain days of the week? (optional - will run every day if nothing selected)") {
-        	input "theDays", "enum", title: "On which days?", options: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], required: false, multiple: true
-        }
-        section("Only run in selected modes (automation disabled if none selected)") {
-        //TODO: move this setting to parent app
-            input "theModes", "mode", title: "Select the mode(s)", multiple: true, required: false
-        }
 	}
 }
 
-def pageSettings() {
-	//TODO: remove pageSettings altogether after applicable todos have been implemented
-    dynamicPage(name: "pageSettings", install: false, uninstall: false) {
-   		section() {
-			//TODO: move label assignment to pageMain
-			label title: "Assign a name", defaultValue: "${theLight.label}", required: false
-            //next line not required for child app (uninstall button automatically generated by UI)
-            //href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: getAppImg("trash-circle-red-512.png"), state: null, required: true
-		}
-        if (!theLuminance) {
-            //TODO: set this from the parent app and apply to all children instances
-            section("This SmartApp uses the sunset/sunrise time to evaluate luminance as a criteria to trigger actions. " +
-                    "If required, you can adjust the amount time before/after sunset when the app considers that it's dark outside " +
-                    "(e.g. use '-20' to adjust the sunset time 20 minutes earlier than actual).") {
-                input "sunsetOffset", "number", title: "Sunset offset time", description: "How many minutes (+/- 60)?", range: "-60..60", required: false
-            }
-   		}
-        section("Debugging Options", hideable: true, hidden: true) {
-            //TODO: remove these options and move to parent app, apply to all children
-            input "noAppIcons", "bool", title: "Disable App Icons", description: "Do not display icons in the configuration pages", image: getAppImg("disable_icon.png"), defaultValue: false, required: false, submitOnChange: true
-            href "pageLogOptions", title: "IDE Logging Options", description: "Adjust how logs are displayed in the SmartThings IDE", image: getAppImg("office8-icn.png"), required: true, state: "complete"
-        }
-    }
-}
 
-/* method not required; moved to parent app
-def pageAbout() {
-	dynamicPage(name: "pageAbout", title: "About this SmartApp", install: false, uninstall: false) { //with 'install: false', clicking 'Done' goes back to previous page
-		section() {
-        	href url: readmeLink(), title: app.name, description: "Copyright ©2016 Phil Maynard\n${versionNum()}", image: getAppImg("readme-icn.png")
-            href url: urlApache(), title: "License", description: "View Apache license", image: getAppImg("license-icn.png")
-		}
-    }
-} */
+//   ---------------------------------
+//   ***   PAGES SUPPORT METHODS   ***
 
-def pageLogOptions() {
-	dynamicPage(name: "pageLogOptions", title: "IDE Logging Options", install: false, uninstall: false) {
-        section() {
-	        input "debugging", "bool", title: "Enable debugging", description: "Display the logs in the IDE", defaultValue: false, required: false, submitOnChange: true 
-        }
-        if (debugging) {
-            section("Select log types to display") {
-                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false 
-                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false 
-                input "log#debug", "bool", title: "Log debug messages", defaultValue: true, required: false 
-                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false 
-                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false 
-			}
-            section() {
-                input "setMultiLevelLog", "bool", title: "Enable Multi-level Logging", defaultValue: true, required: false,
-                    description: "Multi-level logging prefixes log entries with special characters to visually " +
-                        "represent the hierarchy of events and facilitate the interpretation of logs in the IDE"
-            }
-        }
-    }
-}
-
-def pageUninstall() {
-	dynamicPage(name: "pageUninstall", title: "Uninstall", install: false, uninstall: true) {
-		section() {
-        	paragraph parent ? "CAUTION: You are about to unschedule the '${theLight.label}'. This action is irreversible. If you want to proceed, tap on the 'Remove' button below." : "CAUTION: You are about to completely remove the SmartApp '${app.name}' and all of its schedules. This action is irreversible. If you want to proceed, tap on the 'Remove' button below.",
-                required: true, state: null
-        }
-	}
+def getSchedOptionsDesc() {
+    def strStartTime = startTime?.substring(11,16)
+    def strEndTime = endTime?.substring(11,16)
+    def strDesc = ""
+    def strTime = 
+    strDesc += (strStartTime || strEndTime)		? " • Time:\n" : ""
+    strDesc += (strStartTime && !strEndTime)	? "   └ from: ${strStartTime}\n" : ""
+    strDesc += (!strStartTime && strEndTime)	? "   └ until: ${strEndTime}\n" : ""
+    strDesc += (strStartTime && strEndTime)		? "   └ between ${strStartTime} and ${strEndTime}\n" : ""
+    strDesc += (onFor || offFor)				? " • Duration:\n" : ""
+    strDesc += (onFor && !offFor)				? "   └ stay on for: ${onFor} minutes\n" : ""
+    strDesc += (onFor && offFor)				? "   └ ${onFor} minutes on / ${offFor} off\n" : ""
+    strDesc += randomMinutes					? " • ${randomMinutes}-min random window\n" : ""
+    strDesc += theDays							? " • Only on selected days\n   └ ${theDays}\n" : " • Every day\n"
+    strDesc += theModes							? " • While in modes:\n   └ ${theModes}\n" : ""
+    strDesc += daytime	 						? " • Enabled during daytime\n" : ""
+    return theModes ? strDesc : "No modes selected; automation disabled"
 }
 
 
@@ -280,10 +227,12 @@ def schedTurnOn(offForDelay) {
     
     if (offForDelay) {
         //method was called from turnOff() to turn the light back on after the "offFor" delay
-        if (randWind) {
-            def rdmDelay = random.nextInt(randWind)
-            offForDelay = offForDelay - (randWind * 30000) + (rdmDelay * 60000)
-            offForDelay = Math.max(0, offForDelay) //make sure that we don't end up with a negative number
+        if (randomMinutes) {
+            int rangeUser = randomMinutes * 60000 //convert user random window from minutes to ms
+            int rangeMax = 2 * offForDelay //the maximum random window is 2 * offForDelay
+            int range = rangeUser < rangeMax ? rangeUser : rangeMax //limit the random window to 2 * offForDelay
+            def rdmOffset = random.nextInt(range)
+            offForDelay = offForDelay - range/2 + rdmOffset
 		}
         def onDate = new Date(now() + offForDelay)
         debug "calculated ON time for turning the light back on after the 'off for' delay of ${convertToHMS(offForDelay)} : ${onDate}"
@@ -292,7 +241,7 @@ def schedTurnOn(offForDelay) {
         def onDate = schedOnDate()
         def nowDate = new Date()
         
-        //set a delay of up to 2 min to be applied when requested to turn on now
+        //set a delay of up to 2 min to be applied if requesting to turn on now
         def maxDelay = 2 * 60 * 1000
         def delayOnNow = random.nextInt(maxDelay)
         
@@ -321,10 +270,10 @@ def turnOn(delay) {
     def tomorrowTime = timeTodayAfter("23:59", "04:00", tz)
 	def strDOW = nowDOW
     def DOWOk = !theDays || theDays?.contains(strDOW)
-    def darkOk = !whenDark || itsDarkOut
+    def darkOk = daytime || itsDarkOut
 
 	if (modeOk && DOWOk && darkOk) {
-        def nowDate = new Date(now() + (randWind * 30000)) //add 1/2 random window to current time to enable the light to come on around the sunset time
+        def nowDate = new Date(now() + (randomMinutes * 30000)) //add 1/2 random window to current time to enable the light to come on around the sunset time
         def offDate = schedOffDate()
         def timeOk = offDate > nowDate
         if (timeOk) {    	
@@ -344,13 +293,13 @@ def turnOn(delay) {
             debug "light activation is not enabled on ${strDOW}; check again tomorrow (${tomorrowTime})"
             runOnce(tomorrowTime, schedTurnOn)
         } else if (!darkOk) {
-        	def sunTime = getSunriseAndSunset(sunsetOffset: sunsetOffset)
+        	def sunTime = getSunriseAndSunset(sunsetOffset: parent.sunsetOffset)
             def sunsetDate = sunTime.sunset
             //add random factor
-			if (randWind) {
+			if (randomMinutes) {
             	def random = new Random()
-                def rdmOffset = random.nextInt(randWind)
-                sunsetDate = new Date(sunsetDate.time - (randWind * 30000) + (rdmOffset * 60000))
+                def rdmOffset = random.nextInt(randomMinutes)
+                sunsetDate = new Date(sunsetDate.time - (randomMinutes * 30000) + (rdmOffset * 60000))
             }
             debug "light activation is not enabled during daytime; check again at sunset (${sunsetDate})"
             runOnce(sunsetDate, schedTurnOn)
@@ -369,10 +318,12 @@ def schedTurnOff(onDelay, offDate) {
     //re-calculate the turn-off time if a light-on duration was specified
     if (onFor) {
     	def lightOnFor = onFor * 60 * 1000
-        if (randWind) {
-            def rdmDelay = random.nextInt(randWind)
-            lightOnFor = lightOnFor - (randWind * 30000) + (rdmDelay * 60000)
-            lightOnFor = Math.max(0, lightOnFor) //make sure that we don't end up with a negative number
+        if (randomMinutes) {
+            int rangeUser = randomMinutes * 60000 //convert user random window from minutes to ms
+            int rangeMax = 2 * lightOnFor //the maximum random window is 2 * lightOnFor
+            int range = rangeUser < rangeMax ? rangeUser : rangeMax //limit the random window to 2 * lightOnFor
+            def rdmOffset = random.nextInt(range)
+            lightOnFor = lightOnFor - range/2 + rdmOffset
 		}
         def endOnFor = new Date(now() + lightOnFor + onDelay)
         debug "calculated OFF time for turning the light off after the 'on for' delay of ${convertToHMS(lightOnFor)} : ${endOnFor}"
@@ -404,12 +355,14 @@ def turnOff(delay) {
         state.appOn = false
         if (offFor) {
             def offForDelay = offFor * 60 * 1000
-            if (randWind) {
+            if (randomMinutes) {
                 def random = new Random()
-                def rdmOffset = random.nextInt(randWind)
-                offForDelay = offForDelay - (randWind * 30000) + (rdmOffset * 60000)
-                offForDelay = Math.max(0, offForDelay) //make sure that we don't end up with a negative number
-			}
+                int rangeUser = randomMinutes * 60000 //convert user random window from minutes to ms
+                int rangeMax = 2 * offForDelay //the maximum random window is 2 * offForDelay
+                int range = rangeUser < rangeMax ? rangeUser : rangeMax //limit the random window to 2 * offForDelay
+                def rdmOffset = random.nextInt(range)
+                offForDelay = offForDelay - range/2 + rdmOffset
+            }
             schedTurnOn(offForDelay)
         } else {
         	def tz = location.timeZone
@@ -475,10 +428,10 @@ def schedOnDate() {
 	
     debug "user-configured turn-on time : ${onDate}"
     
-    if (randWind && onDate) {
+    if (randomMinutes && onDate) {
         //apply random factor to onDate
-        def rdmOffset = random.nextInt(randWind)
-        onDate = new Date(onDate.time - (randWind * 30000) + (rdmOffset * 60000))
+        def rdmOffset = random.nextInt(randomMinutes)
+        onDate = new Date(onDate.time - (randomMinutes * 30000) + (rdmOffset * 60000))
         debug "random-adjusted turn-on time : ${onDate}"
     } else {
         debug "no random factor configured in preferences"
@@ -498,7 +451,7 @@ def schedOffDate() {
     def offDate = endTime ? timeToday(endTime, tz) : null
     
     //get the earliest of user-preset start time and sunrise time
-    if (whenDark) {
+    if (!daytime) {
         def sunriseString = location.currentValue("sunriseTime") //get the next sunrise time string
         def sunriseDate = Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", sunriseString)
 		debug "comparing end time (${offDate}) to sunrise time (${sunriseDate})"
@@ -507,10 +460,10 @@ def schedOffDate() {
     
     debug "calculated turn-off time : ${offDate}"
     
-    if (randWind && offDate) {
+    if (randomMinutes && offDate) {
         //apply random factor to offDate
-        def rdmOffset = random.nextInt(randWind)
-        def offTime = offDate.time - (randWind * 30000) + (rdmOffset * 60000)
+        def rdmOffset = random.nextInt(randomMinutes)
+        def offTime = offDate.time - (randomMinutes * 30000) + (rdmOffset * 60000)
         offDate = new Date(offTime)
         debug "random-adjusted turn-off time : ${offDate}"
     } else {
@@ -526,7 +479,7 @@ def schedOffDate() {
 //   ***   COMMON UTILS   ***
 
 def getItsDarkOut() { //implement use of illuminance capability
-    def sunTime = getSunriseAndSunset(sunsetOffset: sunsetOffset)
+    def sunTime = getSunriseAndSunset(sunsetOffset: parent.sunsetOffset)
     def nowDate = new Date(now() + 2000) // be safe and set current time for 2 minutes later
     def result = false
     def desc = ""
@@ -553,22 +506,22 @@ def convertToHMS(ms) {
 
 def getAppImg(imgName, forceIcon = null) {
 	def imgPath = appImgPath()
-    return (!noAppIcons || forceIcon) ? "$imgPath/$imgName" : ""
+    return (!parent.noAppIcons || forceIcon) ? "$imgPath/$imgName" : ""
 }
 
 def debug(message, lvl = null, shift = null, err = null) {
 	
-    def debugging = settings.debugging
+    def debugging = parent.debugging
 	if (!debugging) {
 		return
 	}
     
     lvl = lvl ?: "debug"
-	if (!settings["log#$lvl"]) {
+	if (!parent["log#$lvl"]) {
 		return
 	}
 	
-    def multiEnable = (settings.setMultiLevelLog == false ? false : true) //set to true by default
+    def multiEnable = (parent.setMultiLevelLog == false ? false : true) //set to true by default
     def maxLevel = 4
 	def level = state.debugLevel ?: 0
 	def levelDelta = 0

@@ -75,15 +75,13 @@ def pageSettings() {
 			label title: "Assign a name", defaultValue: "${app.name}", required: false
             href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: getAppImg("trash-circle-red-512.png"), state: null, required: true
 		}
-        /*
-        if (!theLuminance) { //TODO: apply this setting to all child instances?
+        if (!theLuminance) {
             section("This SmartApp uses the sunset/sunrise time to evaluate luminance as a criteria to trigger actions. " +
                     "If required, you can adjust the amount time before/after sunset when the app considers that it's dark outside " +
                     "(e.g. use '-20' to adjust the sunset time 20 minutes earlier than actual).") {
                 input "sunsetOffset", "number", title: "Sunset offset time", description: "How many minutes (+/- 60)?", range: "-60..60", required: false
             }
    		}
-        */
         section("Debugging Options", hideable: true, hidden: true) {
             input "noAppIcons", "bool", title: "Disable App Icons", description: "Do not display icons in the configuration pages", image: getAppImg("disable_icon.png"), defaultValue: false, required: false, submitOnChange: true
             href "pageLogOptions", title: "IDE Logging Options", description: "Adjust how logs are displayed in the SmartThings IDE", image: getAppImg("office8-icn.png"), required: true, state: "complete"
@@ -243,4 +241,8 @@ def debug(message, lvl = null, shift = null, err = null) {
 	} else {
 		log.debug "$prefix$message", err
 	}
+}
+
+def testcall() {
+	return "call answered"
 }
