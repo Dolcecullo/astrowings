@@ -73,7 +73,7 @@ private		readmeLink()			{ return "https://github.com/astrowings/SmartThings/blob
 def pageMain() {
     dynamicPage(name: "pageMain", install: true, uninstall: false) {
     	section(){
-        	paragraph "", title: "This SmartApp sends a notification (SMS optional) to notify" +
+        	paragraph "", title: "This SmartApp sends a notification (SMS optional) to notify " +
 	        	"that a door is left open when leaving the house, left open for too long, or if it opens while away."
         }
         section("When I leave") {

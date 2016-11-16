@@ -24,6 +24,7 @@
  *                        - configured default values for app settings
  *						  - moved 'About' to its own page
  *						  - added link to readme file
+ *						  - list current configuration settings in link
  *    v1.31 (04-Nov-2016) - update href state & images
  *	  v1.30 (03-Nov-2016) - add option to configure sunset offset
  *    v1.21 (02-Nov-2016) - add link for Apache license
@@ -81,14 +82,18 @@ def pageMain() {
                 "Can be used to monitor if someone (child, elderly) is attempting to leave the house."
         }
         section("Configuration") {
-            href "pageSensors", title: "Sensor Selection", description: sensorDesc, image: getAppImg("home30-icn.png"), required: false
-            href "pageSchedule", title: "Scheduling Options", description: "Set the conditions for the monitoring window", image: getAppImg("office7-icn.png"), required: false
-            href "pageNotify", title: "Notification Method", description: "Configure the notification method", image: getAppImg("office9-icn.png"), required: false
-		}
+            href "pageSensors", title: "Sensor Selection", description: sensorCount ? "${sensorCount} sensors selected" : "Select the sensors to monitor", image: getAppImg("home30-icn.png"), required: true, state: sensorCount ? "complete" : null
+            if (sensorCount) {
+                href "pageSchedule", title: "Scheduling Options", description: schedOptionsDesc, image: getAppImg("office7-icn.png"), required: true, state: "complete"
+                href "pageNotify", title: "Notification Method", description: notifyOptionsDesc ?: "Tap to configure the notification method", image: getAppImg("notify-icn.png"), required: true, state: notifyOptionsDesc ? "complete" : null
+			}
+        }
 		section() {
-            href "pageSettings", title: "App settings", description: "", image: getAppImg("configure_icon.png"), required: false
+            if (sensorCount) {
+                href "pageSettings", title: "App settings", description: "", image: getAppImg("configure_icon.png"), required: false
+			}
             href "pageAbout", title: "About", description: "", image: getAppImg("info-icn.png"), required: false
-		}
+        }
 	}
 }
 
@@ -120,7 +125,7 @@ def pageSchedule() {
     	section("When the mode is set to... (any mode if none selected)") {
         	input "theModes", "mode", title: "Select the mode(s)", multiple: true, required: false, defaultValue: "Night"
         }
-    	section("Enable only when it's dark out") {
+    	section("Enable only when it's dark out") { //TODO: remove this option
         	input "whenDark", "bool", title: "Yes/No?", required: false, defaultValue: true, submitOnChange: true
         }
         section("When someone is home") {
@@ -157,14 +162,14 @@ def pageNotify() {
         section("Flash a light") {
             input "flashYesNo", "bool", title: "Yes/No?", required: false, submitOnChange: true
 	        if (flashYesNo) {
-        		href "pageFlash", title: "Flasher settings", image: getAppImg("light11-icn.png"), required: false
+        		href "pageFlash", title: "Flasher settings", required: false
             }
         }
         section("Turn a light/switch on") {
         	input "lightYesNo", "bool", title: "Yes/No?", required: false, submitOnChange: true
 	        //TODO: allow dimmer
             if (lightYesNo) {
-            	href "pageSwitch", title: "Switch settings", image: getAppImg("light20-icn.png"), required: false
+            	href "pageSwitch", title: "Switch settings", required: false
             }
         }
         section("Set the cooldown period") { //TODO: move this to the App Settings page
@@ -284,6 +289,67 @@ def pageUninstall() {
                 required: true, state: null
         }
 	}
+}
+
+
+//   ---------------------------------
+//   ***   PAGES SUPPORT METHODS   ***
+
+def getSensorCount() {
+    def numSensors =
+        (theContacts?.size() ?: 0) +
+        (theMotions?.size() ?: 0) +
+        (theSmoke?.size() ?: 0) +
+        (theCO?.size() ?: 0) +
+        (theWater?.size() ?: 0)
+    debug ">> numSensors : $numSensors"
+    return numSensors
+}
+
+def getSensorDesc() {
+	if (theContacts || theMotions || theSmoke || theCO || theWater) {
+    	def result = ""
+        def numSensors =
+        	(theContacts?.size() ?: 0) +
+            (theMotions?.size() ?: 0) +
+            (theSmoke?.size() ?: 0) +
+            (theCO?.size() ?: 0) +
+            (theWater?.size() ?: 0)
+    	//debug "${(theContacts?.size() ?: 0)}, ${(theMotions?.size() ?: 0)}, ${(theSmoke?.size() ?: 0)}, ${(theCO?.size() ?: 0)}, ${(theWater?.size() ?: 0)}"
+        //debug "number of sensors: $numSensors"
+        result = "$numSensors sensors selected"
+    } else {
+    	result = "Select the sensors to monitor"
+    }
+    debug ">> sensorDesc : $result"
+    return result
+}
+
+def getSchedOptionsDesc() {
+    def strStartTime = startTime?.substring(11,16)
+    def strEndTime = endTime?.substring(11,16)
+    def strDesc = ""
+    strDesc += theModes		? " • In these modes:\n   └ ${theModes}\n" : ""
+    strDesc += theTimes		? " • Between ${strStartTime} and ${strEndTime}\n" : ""
+    strDesc += whenDark		? " • Only when dark out\n" : ""
+    strDesc += thePresence	? " • When people are home:\n" : ""
+    strDesc += thePresence && thePresence[0] ? "   └ ${thePresence[0].displayName}\n" : ""
+    strDesc += thePresence && thePresence[1] ? "   └ ${thePresence[1].displayName}\n" : ""
+    strDesc += thePresence && thePresence[2] ? "   └ ${thePresence[2].displayName}\n" : ""
+    strDesc += thePresence && thePresence[3] ? "   └ ...\n" : ""
+    strDesc += theDays		? " • Only on selected days\n   └ ${theDays}" : ""
+    return strDesc ?: "Tap to set monitoring schedule restrictions"
+}
+
+def getNotifyOptionsDesc() {
+    def notify = pushYesNo || smsYesNo || flashYesNo || lightYesNo
+    def strDesc = ""
+    strDesc += pushYesNo ? " • Send push notification\n" : ""
+    strDesc += smsYesNo ? " • Send SMS to: ${smsNumber}\n" : ""
+    strDesc += flashYesNo ? "" : "" //TODO: add flash settings details
+    strDesc += lightYesNo ? "" : "" //TODO: add light settings details
+    strDesc += coolDown ? " • Cooldown: ${coolDown} minutes" : ""
+    return notify ? strDesc : null
 }
 
 
@@ -508,25 +574,6 @@ def deactivateLights() {
 
 //   -------------------------
 //   ***   APP FUNCTIONS   ***
-
-def getSensorDesc() {
-	if (theContacts || theMotions || theSmoke || theCO || theWater) {
-    	def result = ""
-        def numSensors =
-        	(theContacts?.size() ?: 0) +
-            (theMotions?.size() ?: 0) +
-            (theSmoke?.size() ?: 0) +
-            (theCO?.size() ?: 0) +
-            (theWater?.size() ?: 0)
-    	//debug "${(theContacts?.size() ?: 0)}, ${(theMotions?.size() ?: 0)}, ${(theSmoke?.size() ?: 0)}, ${(theCO?.size() ?: 0)}, ${(theWater?.size() ?: 0)}"
-        //debug "number of sensors: $numSensors"
-        result = "$numSensors sensors selected"
-    } else {
-    	result = "Select the sensors to monitor"
-    }
-        return result
-        debug ">> sensorDesc : $result"
-}
 
 def getMonitorOn() {
 	def result = modeOk && darkOk && someoneHome && daysOk && timeOk && coolDownOk

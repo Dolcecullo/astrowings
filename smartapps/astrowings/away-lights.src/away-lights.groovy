@@ -18,6 +18,7 @@
  	 private versionNum() {	return "version 2.00" }
      private versionDate() { return "12-Nov-2016" }     /*
  *
+ *	  v2.01 (14-Nov-2016) - add debbuging option to re-initialize all child apps
  *    v2.00 (12-Nov-2016) - convert into parent app using 'astrowings/Switches on Motion' as template
  *
 */
@@ -38,6 +39,7 @@ definition(
 preferences {
 	page(name: "pageMain")
     page(name: "pageSettings")
+    page(name: "pageInitChild")
     page(name: "pageLogOptions")
     page(name: "pageAbout")
     page(name: "pageUninstall")
@@ -84,9 +86,26 @@ def pageSettings() {
    		}
         section("Debugging Options", hideable: true, hidden: true) {
             input "noAppIcons", "bool", title: "Disable App Icons", description: "Do not display icons in the configuration pages", image: getAppImg("disable_icon.png"), defaultValue: false, required: false, submitOnChange: true
-            href "pageLogOptions", title: "IDE Logging Options", description: "Adjust how logs are displayed in the SmartThings IDE", image: getAppImg("office8-icn.png"), required: true, state: "complete"
+            href "pageLogOptions", title: "IDE Logging Options", description: "Adjust how logs are displayed in the SmartThings IDE", image: getAppImg("office8-icn.png"), required: false
+            href "pageInitChild", title: "Re-Initialize All Automations", description: "Tap to call a refresh on each automation.\nTap to Begin...", image: getAppImg("refresh-icn.png")
         }
     }
+}
+
+def pageInitChild() {
+	dynamicPage(name: "pageInitChild", title: "Re-initializing all of your installed automations", nextPage: "pageSettings", install: false, uninstall: false) {
+		def cApps = getChildApps()
+		section("Re-initializing automations:") {
+			if(cApps) {
+				cApps?.sort()?.each { chld ->
+					chld?.reinit()
+					paragraph title: "${chld?.label}", "Re-Initialized Successfully!!!", state: "complete"
+				}
+			} else {
+				paragraph "No Automations Found..."
+			}
+		}
+	}
 }
 
 def pageAbout() {
@@ -241,8 +260,4 @@ def debug(message, lvl = null, shift = null, err = null) {
 	} else {
 		log.debug "$prefix$message", err
 	}
-}
-
-def testcall() {
-	return "call answered"
 }

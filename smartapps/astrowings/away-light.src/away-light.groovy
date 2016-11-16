@@ -18,6 +18,10 @@
  	 private versionNum() { return "version 1.42" }
      private versionDate() { return "14-Nov-2016" }		/*
  *
+ *	  v2.01 (14-Nov-2016) - create reinit() method to allow parent to re-initialize all child apps
+ *						  - bug fix: specify int data type to strip decimals when using the result of a division
+ * 							to obtain a date, which returns the following error if trying to convert a decimal:
+ *							Could not find matching constructor for: java.util.Date(java.math.BigDecimal)
  *    v2.00 (14-Nov-2016) - code improvement: store images on GitHub, use getAppImg() to display app images
  *                        - added option to disable icons
  *                        - added option to disable multi-level logging
@@ -136,7 +140,6 @@ def getSchedOptionsDesc() {
     def strStartTime = startTime?.substring(11,16)
     def strEndTime = endTime?.substring(11,16)
     def strDesc = ""
-    def strTime = 
     strDesc += (strStartTime || strEndTime)		? " • Time:\n" : ""
     strDesc += (strStartTime && !strEndTime)	? "   └ from: ${strStartTime}\n" : ""
     strDesc += (!strStartTime && strEndTime)	? "   └ until: ${strEndTime}\n" : ""
@@ -182,8 +185,14 @@ def initialize() {
     state.appOn = false
     theLight.off()
     subscribeToEvents()
-	schedTurnOn()
     debug "initialization complete", "trace", -1
+	schedTurnOn()
+}
+
+def reinit() {
+    debug "refreshed with settings ${settings}", "trace"
+    state.debugLevel = 0
+    initialize()
 }
 
 def subscribeToEvents() {
@@ -231,8 +240,8 @@ def schedTurnOn(offForDelay) {
             int rangeUser = randomMinutes * 60000 //convert user random window from minutes to ms
             int rangeMax = 2 * offForDelay //the maximum random window is 2 * offForDelay
             int range = rangeUser < rangeMax ? rangeUser : rangeMax //limit the random window to 2 * offForDelay
-            def rdmOffset = random.nextInt(range)
-            offForDelay = offForDelay - range/2 + rdmOffset
+            int rdmOffset = random.nextInt(range)
+            offForDelay = (int)(offForDelay - range/2 + rdmOffset)
 		}
         def onDate = new Date(now() + offForDelay)
         debug "calculated ON time for turning the light back on after the 'off for' delay of ${convertToHMS(offForDelay)} : ${onDate}"
@@ -317,12 +326,12 @@ def schedTurnOff(onDelay, offDate) {
     
     //re-calculate the turn-off time if a light-on duration was specified
     if (onFor) {
-    	def lightOnFor = onFor * 60 * 1000
+    	int lightOnFor = onFor * 60 * 1000
         if (randomMinutes) {
             int rangeUser = randomMinutes * 60000 //convert user random window from minutes to ms
             int rangeMax = 2 * lightOnFor //the maximum random window is 2 * lightOnFor
             int range = rangeUser < rangeMax ? rangeUser : rangeMax //limit the random window to 2 * lightOnFor
-            def rdmOffset = random.nextInt(range)
+            int rdmOffset = random.nextInt(range)
             lightOnFor = lightOnFor - range/2 + rdmOffset
 		}
         def endOnFor = new Date(now() + lightOnFor + onDelay)
@@ -354,13 +363,13 @@ def turnOff(delay) {
         theLight.off(delay: delay)
         state.appOn = false
         if (offFor) {
-            def offForDelay = offFor * 60 * 1000
+            int offForDelay = offFor * 60 * 1000
             if (randomMinutes) {
                 def random = new Random()
                 int rangeUser = randomMinutes * 60000 //convert user random window from minutes to ms
                 int rangeMax = 2 * offForDelay //the maximum random window is 2 * offForDelay
                 int range = rangeUser < rangeMax ? rangeUser : rangeMax //limit the random window to 2 * offForDelay
-                def rdmOffset = random.nextInt(range)
+                int rdmOffset = random.nextInt(range)
                 offForDelay = offForDelay - range/2 + rdmOffset
             }
             schedTurnOn(offForDelay)
@@ -437,8 +446,8 @@ def schedOnDate() {
         debug "no random factor configured in preferences"
     }
     
-    return onDate
 	debug "finished evaluating schedOnDate", "trace", -1
+    return onDate
 }
 
 def schedOffDate() {
@@ -470,8 +479,8 @@ def schedOffDate() {
         debug "no random factor configured in preferences"
     }
     
-    return offDate
 	debug "finished evaluating schedOffDate", "trace", -1
+    return offDate
 }
 
 

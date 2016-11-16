@@ -326,7 +326,7 @@ def getSensorDesc() {
 }
 
 def getSensorsOk() {
-	def result = (temperatures || humidities || contacts || accelerations || motions || presence || switches || waterSensors || batteries || powers || energies)
+	def result = (temperatures || humidities || contacts || accelerations || motions || presence || switches || waterSensors || batteries || powers || thermostats || energies)
     debug ">> sensorsOk : $result"
     return result
 }

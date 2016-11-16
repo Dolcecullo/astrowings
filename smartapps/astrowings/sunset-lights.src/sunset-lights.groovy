@@ -24,6 +24,9 @@
  *                        - configured default values for app settings
  *						  - moved 'About' to its own page
  *						  - added link to readme file
+ *						  - bug fix: removed log level increase for sunset/sunrise handler events because it was causing the log
+ *							level to keep increasing without ever applying the '-1' at the end to restore the log level
+ *						  - list current schedule/random settings in associated links
  *    v2.23 (04-Nov-2016) - update href state & images
  *    v2.22 (03-Nov-2016) - code improvement: use constants instead of hard-coding
  *    v2.21 (02-Nov-2016) - add link for Apache license
@@ -87,8 +90,8 @@ def pageMain() {
         section() {
             input "theLights", "capability.switch", title: "Which lights?", description: "Choose the lights to turn on", multiple: true, required: true, submitOnChange: true
             if (theLights) {
-                href "pageSchedule", title: "Set scheduling Options", image: getAppImg("office7-icn.png"), required: false
-                href "pageRandom", title: "Configure random scheduling", image: getAppImg("dice-xxl.png"), required: true, state: "complete"
+                href "pageSchedule", title: "Set scheduling Options", description: schedOptionsDesc, image: getAppImg("office7-icn.png"), required: true, state: "complete"
+                href "pageRandom", title: "Configure random scheduling", description: randomOptionsDesc, image: getAppImg("dice-xxl.png"), required: true, state: "complete"
         	}
         }
 		section() {
@@ -211,6 +214,47 @@ def pageUninstall() {
 }
 
 
+//   ---------------------------------
+//   ***   PAGES SUPPORT METHODS   ***
+
+def getSchedOptionsDesc() {
+    def sunriseOffset = C_SUNRISE_OFFSET()
+    def sunriseOffset_minutes = sunriseOffset.abs()
+    def sunriseOffset_BeforeAfter = sunriseOffset < 0 ? "before" : "after"
+    def strDefaultOff = timeOff?.substring(11,16)
+    def strSundayOff = sundayOff?.substring(11,16)
+    def strMondayOff = mondayOff?.substring(11,16)
+    def strTuesdayOff = tuesdayOff?.substring(11,16)
+    def strWednesdayOff = wednesdayOff?.substring(11,16)
+    def strThursdayOff = thursdayOff?.substring(11,16)
+    def strFridayOff = fridayOff?.substring(11,16)
+    def strSaturdayOff = saturdayOff?.substring(11,16)
+    def offTimeOk = timeOff || sundayOff || mondayOff || tuesdayOff || wednesdayOff || thursdayOff || fridayOff || saturdayOff
+    def strDesc = ""
+    strDesc += sunsetOffset ? " • Sunset offset: ${sunsetOffset} minutes\n" : ""
+    strDesc += offTimeOk ? " • Turn-off time:" : ""
+    strDesc += timeOff	? " ${strDefaultOff}\n" : "\n"
+    strDesc += sundayOff	? "   └ sunday: ${strSundayOff}\n" : ""
+    strDesc += mondayOff	? "   └ monday: ${strMondayOff}\n" : ""
+    strDesc += tuesdayOff		? "   └ tuesday: ${strTuesdayOff}\n" : ""
+    strDesc += wednesdayOff		? "   └ wednesday: ${strWednesdayOff}\n" : ""
+    strDesc += thursdayOff		? "   └ thursday: ${strThursdayOff}\n" : ""
+    strDesc += fridayOff		? "   └ friday: ${strFridayOff}\n" : ""
+    strDesc += saturdayOff		? "   └ saturday: ${strSaturdayOff}" : ""
+    return (sunsetOffset || offTimeOk) ? strDesc : "Schedule not set; lights will come on at sunset and turn off ${sunriseOffset_minutes} minutes ${sunriseOffset_BeforeAfter} next sunrise."
+}
+
+def getRandomOptionsDesc() {
+    def delayType = (onDelay && offDelay) ? "on & off" : (onDelay ? "on" : "off")
+    def strDesc = ""
+    strDesc += (randOn || randOff)	? " • Random window:\n" : ""
+    strDesc += randOn				? "   └ turn on:  +/-${randOn/2} minutes\n" : ""
+    strDesc += randOn				? "   └ turn off: +/-${randOff/2} minutes\n" : ""
+    strDesc += delaySeconds			? " • Light-light delay: ${delaySeconds} seconds\n    (when switching ${delayType})" : ""
+    return (randOn || randOff || delaySeconds) ? strDesc : "Tap to configure random settings..."
+}
+
+
 //   ----------------------------
 //   ***   APP INSTALLATION   ***
 
@@ -255,17 +299,17 @@ def subscribeToEvents() {
 //   ***   EVENT HANDLERS   ***
 
 def sunsetTimeHandler(evt) {
-    debug "sunsetTimeHandler event: ${evt.descriptionText}", "trace", 1
+    debug "sunsetTimeHandler event: ${evt.descriptionText}", "trace"
     debug "next sunset will be ${evt.value}"
 	scheduleTurnOn(evt.value)
-    debug "sunsetTimeHandler complete", "trace", -1
+    debug "sunsetTimeHandler complete", "trace"
 }
 
 def sunriseTimeHandler(evt) {
-    debug "sunriseTimeHandler event: ${evt.descriptionText}", "trace", 1
+    debug "sunriseTimeHandler event: ${evt.descriptionText}", "trace"
     debug "next sunrise will be ${evt.value}"
     scheduleTurnOff(evt.value)
-    debug "sunriseTimeHandler complete", "trace", -1
+    debug "sunriseTimeHandler complete", "trace"
 }    
 
 def locationPositionChange(evt) {
@@ -392,12 +436,13 @@ def getDefaultTurnOffTime() {
         } else {
         	debug "default turn-off time: $default_TurnOffTime"
         }
+        debug "finished evaluating defaultTurnOffTime", "trace", -1
         return default_TurnOffTime
     } else {
         debug "default turn-off time not specified"
+        debug "finished evaluating defaultTurnOffTime", "trace", -1
         return false
 	}
-	debug "finished evaluating defaultTurnOffTime", "trace", -1
 }
 
 def getWeekdayTurnOffTime() {
@@ -439,17 +484,24 @@ def getWeekdayTurnOffTime() {
         } else {
         	debug "DOW turn-off time: $DOW_TurnOffTime"
         }
+        debug "finished evaluating weekdayTurnOffTime", "trace", -1
         return DOW_TurnOffTime
     } else {
     	debug "DOW turn-off time not specified"
+        debug "finished evaluating weekdayTurnOffTime", "trace", -1
         return false
     }
-	debug "finished evaluating weekdayTurnOffTime", "trace", -1
 }
 
 
 //   ------------------------
 //   ***   COMMON UTILS   ***
+
+int randomTime(int baseDate, int rangeMinutes) {
+   int min = baseDate.time - (rangeMinutes * 30000)
+   int range = (rangeMinutes * 60000) + 1
+   return new Date((int)(Math.random() * range) + min)
+}
 
 def convertToHMS(ms) {
     int hours = Math.floor(ms/1000/60/60)

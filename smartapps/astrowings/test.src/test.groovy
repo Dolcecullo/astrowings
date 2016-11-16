@@ -73,6 +73,10 @@ def pageMain() {
                 required: false,
                 submitOnChange: false
         }
+        section("Other test parameters") {
+        	input "myTime", "time", title: "What time?"
+            input "myRandom", "number", title: "Random minutes?"
+        }
 		section() {
             href "pageSettings", title: "App settings", description: "", image: getAppImg("configure_icon.png"), required: false
             href "pageAbout", title: "About", description: "", image: getAppImg("info-icn.png"), required: false
@@ -169,8 +173,7 @@ def initialize() {
 
 def subscribeToEvents() {
     debug "subscribing to events", "trace", 1
-	subscribe(theSwitches, "switch", testProperties)
-    //subscribe(theSwitches, "switch", switchEvent)
+    subscribe(theSwitches, "switch", switchEvent)
     debug "subscriptions complete", "trace", -1
 }
 
@@ -179,7 +182,7 @@ def subscribeToEvents() {
 
 def switchEvent(evt) {
     debug "switchEvent event: ${evt.descriptionText}", "trace", 1
-	debug "switch event"
+	randomTest()
     debug "switchEvent complete", "trace", -1
 }
 
@@ -262,9 +265,26 @@ def debugTest() {
     debug "constant4b: ${C_SOME_OTHER_CONSTANT}"//	-> null
     debug "constant5a: ${c_NEW_CONSTANT}"//			-> null
     debug "constant5b: ${C_NEW_CONSTANT}"//			-> null
-   	debug "a random number between 4 and 16 could be: ${randomWithRange(4, 16)}"
 	debug "debugTest() complete", "trace", -1
 }
+
+def randomTest() {
+	debug "executing randomTest()", "trace", 1
+   	debug "a random number between 4 and 16 could be: ${randomWithRange(4, 16)}"
+    if (myTime) {
+    	def myDate = timeToday(myTime, location.timeZone)
+        def randMinutes = myRandom ?: 0
+        def randMS = randMinutes * 60000
+        def msgMath = "a random (by using Math class: Math.random() ) date could be: ${mathDate(myDate,randMinutes)}"
+        def msgRandom1 = "a random (using Random class: new Random()) date could be: ${randomDate_rangeMinutes(myDate,randMinutes)}"
+        def msgRandom2 = "another (using Random class: new Random()) date could be: ${randomDate_rangeMS(myDate,randMS)}"
+        debug msgMath
+        debug msgRandom1
+        debug msgRandom2
+    }
+	debug "randomTest() complete", "trace", -1
+}
+
 
 //   ------------------------
 //   ***   COMMON UTILS   ***
@@ -274,17 +294,38 @@ def debugTest() {
  
         int randomWithRange(int min, int max)
         {
-           int range = (max - min) + 1;     
-           return (int)(Math.random() * range) + min;
+           //Math.random() returns a random floating point number between 0 (inclusive) and 1 (exclusive)
+           int range = (max - min) + 1
+           return (int)(Math.random() * range) + min
         }
         
  *
  */
 
-int randomWithRange(int min, int max)
-{
-   int range = Math.abs(max - min) + 1;     
-   return (int)(Math.random() * range) + (min <= max ? min : max);
+int randomWithRange(int min, int max) {
+	int range = Math.abs(max - min) + 1
+	return (int)(Math.random() * range) + (min <= max ? min : max)
+}
+
+def mathDate(baseDate, int rangeMinutes) {
+	long minTime = baseDate.time - (rangeMinutes * 30000)
+	long range = rangeMinutes * 60000
+	long randomTime = minTime + (long)(Math.random() * range)
+	return new Date(randomTime)
+}
+
+def randomDate_rangeMinutes(baseDate, int rangeMinutes) {
+	def r = new Random()
+    long minTime = baseDate.time - (rangeMinutes * 30000)
+    int range = rangeMinutes * 60000
+    long randomTime = minTime + r.nextInt(range + 1)
+    return new Date(randomTime)
+}
+
+def randomDate_rangeMS(baseDate, int rangeMS) {
+	def r = new Random()
+    long randomTime = baseDate.time - (rangeMS/2) + r.nextInt(rangeMS + 1)
+    return new Date(randomTime)
 }
 
 def stateCap(showBytes = true) {

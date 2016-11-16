@@ -25,6 +25,7 @@
  *                        - configured default values for app settings
  *						  - moved 'About' to its own page
  *						  - added link to readme file
+ *						  - list current notification settings in link to notifications page
  *    v1.32 (04-Nov-2016) - update href state & images
  *	  v1.31 (03-Nov-2016) - add options for notification conditions
  *                        - add link for Apache license
@@ -79,10 +80,12 @@ def pageMain() {
         }
         section("Monitor this door lock") {
             input "theLock", "capability.lock", required: true, title: "Which lock?"
+            if (theLock) {
+            	href "pageNotify", title: "Notification Options", description: notifyOptionsDesc, image: getAppImg("notify-icn.png"), required: true, state: (pushUnlock || pushMode) ? "complete" : null
+            }
         }
 		section() {
 			if (theLock) {
-            	href "pageNotify", title: "Notification Options", image: getAppImg("office9-icn.png"), required: false
             	href "pageSettings", title: "App settings", description: "", image: getAppImg("configure_icon.png"), required: false
             }
             href "pageAbout", title: "About", description: "", image: getAppImg("info-icn.png"), required: false
@@ -92,12 +95,10 @@ def pageMain() {
 
 def pageNotify() {
 	dynamicPage(name: "pageNotify", install: false, uninstall: false) {
-        section(){
-        	paragraph "Send a push notification when...", title: "Notification Options"
-        }
         section() {
-            input "pushUnlock", "bool", title: "Door gets unlocked", defaultValue: true, required: false
-            input "pushMode", "bool", title: "Door is left unlocked at mode change", defaultValue: true, required: false //TODO: test if this works on change from Home to Night when app is set to work only during Away and Night
+        	paragraph "Send a push notification when...", title: "Notification Options"
+            input "pushUnlock", "bool", title: "Door gets unlocked", defaultValue: true, required: false, submitOnChange: true
+            input "pushMode", "bool", title: "Door is left unlocked at mode change", defaultValue: true, required: false, submitOnChange: true //TODO: test if this works on change from Home to Night when app is set to work only during Away and Night
         }
     }
 }
@@ -154,6 +155,18 @@ def pageUninstall() {
                 required: true, state: null
         }
 	}
+}
+
+
+//   ---------------------------------
+//   ***   PAGES SUPPORT METHODS   ***
+
+def getNotifyOptionsDesc() {
+    def strDesc = ""
+    strDesc += (!pushUnlock && !pushMode)	? "Notifications are not set" : "You will receive a notification when...\n"
+    strDesc += pushUnlock					? " • the door gets unlocked\n" : ""
+    strDesc += pushMode						? " • the door is left unlocked at mode change" : ""
+    return strDesc
 }
 
 

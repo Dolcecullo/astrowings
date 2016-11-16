@@ -24,6 +24,9 @@
  *                        - configured default values for app settings
  *						  - moved 'About' to its own page
  *						  - added link to readme file
+ *						  - bug fix: removed log level increase for sunrise handler event because it was causing the log
+ *							level to keep increasing without ever applying the '-1' at the end to restore the log level
+ *						  - list current schedule/random settings in associated links
  *    v2.31 (04-Nov-2016) - update href state & images
  *	  v2.30 (03-Nov-2016) - new feature: add option to specify turn-off time
  *                        - code improvement: use constants instead of hard-coding
@@ -81,8 +84,9 @@ def pageMain() {
         section() {
             input "theLights", "capability.switch", title: "Which lights?", description: "Choose the lights to turn on", multiple: true, required: true, submitOnChange: true
             if (theLights) {
-                href "pageSchedule", title: "Set scheduling Options", image: getAppImg("office7-icn.png"), required: false
-                href "pageRandom", title: "Configure random scheduling", image: getAppImg("dice-xxl.png"), required: false
+            	def startTimeOk = weekdayOn || saturdayOn || sundayOn || defaultOn
+                href "pageSchedule", title: "Set scheduling Options", description: schedOptionsDesc, image: getAppImg("office7-icn.png"), required: true, state: startTimeOk ? "complete" : null
+                href "pageRandom", title: "Configure random scheduling", description: randomOptionsDesc, image: getAppImg("dice-xxl.png"), required: true, state: "complete"
         	}
         }
 		section() {
@@ -202,6 +206,37 @@ def pageUninstall() {
 }
 
 
+//   ---------------------------------
+//   ***   PAGES SUPPORT METHODS   ***
+
+def getSchedOptionsDesc() {
+    def strWeekdayOn = weekdayOn?.substring(11,16)
+    def strSaturdayOn = saturdayOn?.substring(11,16)
+    def strSundayOn = sundayOn?.substring(11,16)
+    def strDefaultOn = defaultOn?.substring(11,16)
+    def startTimeOk = weekdayOn || saturdayOn || sundayOn || defaultOn
+    def strTimeOff = timeOff?.substring(11,16)
+    def strDesc = ""
+    strDesc += 				  " • Turn-on time:"
+    strDesc += defaultOn	? " ${strDefaultOn}\n" : "\n"
+    strDesc += weekdayOn	? "   └ weekdays: ${strWeekdayOn}\n" : ""
+    strDesc += saturdayOn	? "   └ saturday: ${strSaturdayOn}\n" : ""
+    strDesc += sundayOn		? "   └ sunday: ${strSundayOn}\n" : ""
+    strDesc += timeOff		? " • Turn-off time: ${strTimeOff}" : " • Turn off at sunrise"
+    return startTimeOk ? strDesc : "Turn-on time not set; automation disabled."
+}
+
+def getRandomOptionsDesc() {
+    def delayType = (onDelay && offDelay) ? "on & off" : (onDelay ? "on" : "off")
+    def strDesc = ""
+    strDesc += (randOn || randOff)	? " • Random window:\n" : ""
+    strDesc += randOn				? "   └ turn on:  +/-${randOn/2} minutes\n" : ""
+    strDesc += randOn				? "   └ turn off: +/-${randOff/2} minutes\n" : ""
+    strDesc += delaySeconds			? " • Light-light delay: ${delaySeconds} seconds\n    (when switching ${delayType})" : ""
+    return (randOn || randOff || delaySeconds) ? strDesc : "Tap to configure random settings..."
+}
+
+
 //   ----------------------------
 //   ***   APP INSTALLATION   ***
 
@@ -243,11 +278,11 @@ def subscribeToEvents() {
 //   ***   EVENT HANDLERS   ***
 
 def sunriseTimeHandler(evt) {
-    debug "sunriseTimeHandler event: ${evt.descriptionText}", "trace", 1
+    debug "sunriseTimeHandler event: ${evt.descriptionText}", "trace"
     def sunriseTimeHandlerMsg = "triggered sunriseTimeHandler; next sunrise will be ${evt.value}"
     debug "sunriseTimeHandlerMsg : $sunriseTimeHandlerMsg"
     schedTurnOff(evt.value)
-    debug "sunriseTimeHandler complete", "trace", -1
+    debug "sunriseTimeHandler complete", "trace"
 }    
 
 def locationPositionChange(evt) {
@@ -379,12 +414,13 @@ def getDefaultTurnOnTime() {
         } else {
         	debug "default turn-on time: ${timeOn}"
         }
+        debug "finished evaluating defaultTurnOnTime", "trace", -1
         return timeOn
     } else {
         debug "default turn-on time not specified"
+        debug "finished evaluating defaultTurnOnTime", "trace", -1
         return false
 	}
-	debug "finished evaluating defaultTurnOnTime", "trace", -1
 }
 
 def getDOWTurnOnTime() {
@@ -426,12 +462,13 @@ def getDOWTurnOnTime() {
         } else {
         	debug "DOW turn-on time: $tmrOn"
         }
+        debug "finished evaluating DOWTurnOnTime", "trace", -1
         return tmrOn
     } else {
     	debug "DOW turn-on time not specified"
+        debug "finished evaluating DOWTurnOnTime", "trace", -1
         return false
     }
-	debug "finished evaluating DOWTurnOnTime", "trace", -1
 }
 
 //   ------------------------
