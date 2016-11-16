@@ -18,7 +18,7 @@
  	 private versionNum() { return "version 1.42" }
      private versionDate() { return "14-Nov-2016" }		/*
  *
- *	  v2.01 (14-Nov-2016) - create reinit() method to allow parent to re-initialize all child apps
+ *	  v2.10 (14-Nov-2016) - create reinit() method to allow parent to re-initialize all child apps
  *						  - bug fix: specify int data type to strip decimals when using the result of a division
  * 							to obtain a date, which returns the following error if trying to convert a decimal:
  *							Could not find matching constructor for: java.util.Date(java.math.BigDecimal)
