@@ -15,7 +15,7 @@
  *
  *
  *	VERSION HISTORY										*/
- 	 private versionNum() { return "version 1.42" }
+ 	 private versionNum() { return "version 2.10" }
      private versionDate() { return "14-Nov-2016" }		/*
  *
  *	  v2.10 (14-Nov-2016) - create reinit() method to allow parent to re-initialize all child apps

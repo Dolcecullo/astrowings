@@ -15,10 +15,10 @@
  *
  *
  *	VERSION HISTORY										*/
- 	 private versionNum() {	return "version 2.00" }
+ 	 private versionNum() {	return "version 2.10" }
      private versionDate() { return "12-Nov-2016" }     /*
  *
- *	  v2.01 (14-Nov-2016) - add debbuging option to re-initialize all child apps
+ *	  v2.10 (14-Nov-2016) - add debbuging option to re-initialize all child apps
  *    v2.00 (12-Nov-2016) - convert into parent app using 'astrowings/Switches on Motion' as template
  *
 */
