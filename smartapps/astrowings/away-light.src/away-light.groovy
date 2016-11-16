@@ -34,15 +34,15 @@
  *						  - list current configuration settings in link to configuration page
  *						  - moved sunset offset setting to parent app
  *						  - moved debugging options settings to parent app
- *    v1.41 (04-Nov-2016) - update href state & images
- *	  v1.40 (03-Nov-2016) - add option to configure sunset offset
- *    v1.31 (02-Nov-2016) - add link for Apache license
- *    v1.30 (02-Nov-2016) - implement multi-level debug logging function
- *	  v1.20 (01-Nov-2016) - code improvement: standardize pages layout
- *	  v1.11 (01-Nov-2016) - code improvement: standardize section headers
- *	  v1.10 (27-Oct-2016) - change layout of preferences pages, default value for app name
- *    v1.02 (26-Oct-2016) - code improvement: added trace for each event handler
- *    v1.01 (26-Oct-2016) - added 'About' section in preferences
+ *    v1.31 (04-Nov-2016) - update href state & images
+ *	  v1.30 (03-Nov-2016) - add option to configure sunset offset
+ *    v1.21 (02-Nov-2016) - add link for Apache license
+ *    v1.20 (02-Nov-2016) - implement multi-level debug logging function
+ *	  v1.14 (01-Nov-2016) - code improvement: standardize pages layout
+ *	  v1.13 (01-Nov-2016) - code improvement: standardize section headers
+ *	  v1.12 (27-Oct-2016) - change layout of preferences pages, default value for app name
+ *    v1.11 (26-Oct-2016) - code improvement: added trace for each event handler
+ *    v1.10 (26-Oct-2016) - added 'About' section in preferences
  *    v1.00               - initial release, no version tracking up to this point
  *
 */

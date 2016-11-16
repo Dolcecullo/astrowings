@@ -15,10 +15,10 @@
  *
  *
  *	VERSION HISTORY										*/
- 	 private versionNum() {	return "version 3.00" }
+ 	 private versionNum() {	return "version 2.00" }
      private versionDate() { return "15-Nov-2016" }     /*
  *
- *    v3.00 (15-Nov-2016) - code improvement: store images on GitHub, use getAppImg() to display app images
+ *    v2.00 (15-Nov-2016) - code improvement: store images on GitHub, use getAppImg() to display app images
  *                        - added option to disable icons
  *                        - added option to disable multi-level logging
  *                        - configured default values for app settings
@@ -27,18 +27,18 @@
  *						  - bug fix: removed log level increase for sunset/sunrise handler events because it was causing the log
  *							level to keep increasing without ever applying the '-1' at the end to restore the log level
  *						  - list current schedule/random settings in associated links
- *    v2.23 (04-Nov-2016) - update href state & images
- *    v2.22 (03-Nov-2016) - code improvement: use constants instead of hard-coding
- *    v2.21 (02-Nov-2016) - add link for Apache license
- *    v2.20 (02-Nov-2016) - implement multi-level debug logging function
- *    v2.10 (01-Nov-2016) - code improvement: standardize pages layout
- *	  v2.01 (01-Nov-2016) - code improvement: standardize section headers
- *	  v2.00 (28-Oct-2016) - new feature: add option to insert random delay between the switching of individual lights,
+ *    v1.33 (04-Nov-2016) - update href state & images
+ *    v1.32 (03-Nov-2016) - code improvement: use constants instead of hard-coding
+ *    v1.31 (02-Nov-2016) - add link for Apache license
+ *    v1.30 (02-Nov-2016) - implement multi-level debug logging function
+ *    v1.22 (01-Nov-2016) - code improvement: standardize pages layout
+ *	  v1.21 (01-Nov-2016) - code improvement: standardize section headers
+ *	  v1.20 (28-Oct-2016) - new feature: add option to insert random delay between the switching of individual lights,
  *                        - code improvement: change method to evaluate which turn-off time to use
  *                        - code improvement: move off-time comparison to turnOn()
  *                        - new feature: add option to apply random factor to ON time
- *    v1.02 (26-Oct-2016) - code improvement: added trace for each event handler
- *    v1.01 (26-Oct-2016) - added 'About' section in preferences
+ *    v1.11 (26-Oct-2016) - code improvement: added trace for each event handler
+ *    v1.10 (26-Oct-2016) - added 'About' section in preferences
  *    v1.00               - initial release, no version tracking up to this point
  *
 */

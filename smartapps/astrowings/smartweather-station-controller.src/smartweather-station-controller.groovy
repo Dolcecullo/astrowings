@@ -26,11 +26,11 @@
  *                        - added option to disable multi-level logging
  *						  - moved 'About' to its own page
  *						  - added link to readme file
- *    v1.73 (04-Nov-2016) - update href state & images
- *    v1.72 (03-Nov-2016) - code improvement: use constant instead of hard-coding for minimum refresh rate
- *    v1.71 (02-Nov-2016) - add link for Apache license
- *    v1.70 (02-Nov-2016) - implement multi-level debug logging function
- *    v1.60 (01-Nov-2016) - code improvement: standardize pages layout
+ *    v1.63 (04-Nov-2016) - update href state & images
+ *    v1.62 (03-Nov-2016) - code improvement: use constant instead of hard-coding for minimum refresh rate
+ *    v1.61 (02-Nov-2016) - add link for Apache license
+ *    v1.60 (02-Nov-2016) - implement multi-level debug logging function
+ *    v1.53 (01-Nov-2016) - code improvement: standardize pages layout
  *    v1.52 (01-Nov-2016) - code improvement: standardize section headers
  *    v1.51 (30-Oct-2016) - adopted code from RBoy
  *             2016-10-30 - set updateInterval minimum value of 5 minutes in scheduledEvent()

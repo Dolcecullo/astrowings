@@ -15,11 +15,11 @@
  *
  *
  *	VERSION HISTORY										*/
- 	 private versionNum() {	return "version 2.10" }
-     private versionDate() { return "12-Nov-2016" }     /*
+ 	 private versionNum() {	return "version 1.10" }
+     private versionDate() { return "14-Nov-2016" }     /*
  *
- *	  v2.10 (14-Nov-2016) - add debbuging option to re-initialize all child apps
- *    v2.00 (12-Nov-2016) - convert into parent app using 'astrowings/Switches on Motion' as template
+ *	  v1.10 (14-Nov-2016) - add debbuging option to re-initialize all child apps
+ *    v1.00 (12-Nov-2016) - create parent app for 'Away Lights' (using 'astrowings/Switches on Motion' as template)
  *
 */
 definition(

@@ -15,10 +15,10 @@
  *
  *
  *	VERSION HISTORY										*/
- 	 private versionNum() {	return "version 3.00" }
+ 	 private versionNum() {	return "version 2.00" }
      private versionDate() { return "15-Nov-2016" }		/*
  *
- *    v3.00 (15-Nov-2016) - code improvement: store images on GitHub, use getAppImg() to display app images
+ *    v2.00 (15-Nov-2016) - code improvement: store images on GitHub, use getAppImg() to display app images
  *                        - added option to disable icons
  *                        - added option to disable multi-level logging
  *                        - configured default values for app settings
@@ -27,14 +27,14 @@
  *						  - bug fix: removed log level increase for sunrise handler event because it was causing the log
  *							level to keep increasing without ever applying the '-1' at the end to restore the log level
  *						  - list current schedule/random settings in associated links
- *    v2.31 (04-Nov-2016) - update href state & images
- *	  v2.30 (03-Nov-2016) - new feature: add option to specify turn-off time
+ *    v1.41 (04-Nov-2016) - update href state & images
+ *	  v1.40 (03-Nov-2016) - new feature: add option to specify turn-off time
  *                        - code improvement: use constants instead of hard-coding
- *    v2.21 (02-Nov-2016) - add link for Apache license
- *    v2.20 (02-Nov-2016) - implement multi-level debug logging function
- *    v2.10 (01-Nov-2016) - code improvement: standardize pages layout
- *	  v2.01 (01-Nov-2016) - code improvement: standardize section headers
- *    v2.00 (29-Oct-2016) - inital version base code adapted from 'Sunset Lights - v2'
+ *    v1.31 (02-Nov-2016) - add link for Apache license
+ *    v1.30 (02-Nov-2016) - implement multi-level debug logging function
+ *    v1.22 (01-Nov-2016) - code improvement: standardize pages layout
+ *	  v1.21 (01-Nov-2016) - code improvement: standardize section headers
+ *    v1.20 (29-Oct-2016) - inital version base code adapted from 'Sunset Lights - v1.20'
  *
 */
 definition(

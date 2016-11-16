@@ -18,12 +18,12 @@
  	 private versionNum() {	return "version 2.00" }
      private versionDate() { return "15-Nov-2016" }     /*
  *
- *    v2.00 (xx-Nov-2016) - code improvement: store images on GitHub, use getAppImg() to display app images
+ *    v2.00 (15-Nov-2016) - code improvement: store images on GitHub, use getAppImg() to display app images
  *                        - added option to disable icons
  *                        - added option to disable multi-level logging
  *						  - moved 'About' to its own page
  *						  - added link to readme file
- *    v0.10 (06-Nov-2016) - initial coding for parent app
+ *    v1.00 (06-Nov-2016) - initial release for parent app
  *
 */
 definition(

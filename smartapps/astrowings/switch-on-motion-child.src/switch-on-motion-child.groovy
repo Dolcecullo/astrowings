@@ -22,14 +22,14 @@
  *                        - added option to disable icons
  *                        - added option to disable multi-level logging
  *                        - configured default values for app settings
- *    v1.23 (06-Nov-2016) - added parent definition
+ *    v1.30 (06-Nov-2016) - added parent definition
  *    v1.22 (04-Nov-2016) - update href state & images
  *    v1.21 (02-Nov-2016) - add link for Apache license
  *    v1.20 (02-Nov-2016) - implement multi-level debug logging function
- *    v1.10 (01-Nov-2016) - code improvement: standardize pages layout
- *	  v1.03 (01-Nov-2016) - code improvement: standardize section headers
- *    v1.02 (26-Oct-2016) - code improvement: added trace for each event handler
- *    v1.01 (26-Oct-2016) - added 'About' section in preferences
+ *    v1.13 (01-Nov-2016) - code improvement: standardize pages layout
+ *	  v1.12 (01-Nov-2016) - code improvement: standardize section headers
+ *    v1.11 (26-Oct-2016) - code improvement: added trace for each event handler
+ *    v1.10 (26-Oct-2016) - added 'About' section in preferences
  *    v1.00               - initial release, no version tracking up to this point
  *
 */

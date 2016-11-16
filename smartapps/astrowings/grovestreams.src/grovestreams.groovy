@@ -18,7 +18,7 @@
  *  
  * 
  *	VERSION HISTORY										*/
- 	 private versionNum() { return "version 2.002" }
+ 	 private versionNum() { return "version 2.00" }
      private versionDate() { return "15-Nov-2016" }		/*
  * 
  *    v2.00 (15-Nov-2016) - code improvement: store images on GitHub, use getAppImg() to display app images
@@ -26,12 +26,12 @@
  *                        - added option to disable multi-level logging
  *						  - moved 'About' to its own page
  *						  - added link to readme file
- *    v1.31 (07-Nov-2016) - bug fix: modify thermostat logging to output true/false instead of heating/idle
- *    v1.30 (06-Nov-2016) - added device type 'thermostat' and logging of 'thermostatOperatingState' attribute
- *    v1.22 (04-Nov-2016) - update href state & images
- *    v1.21 (02-Nov-2016) - add link for Apache license
- *    v1.20 (02-Nov-2016) - implement multi-level debug logging function
- *    v1.10 (01-Nov-2016) - code improvement: standardize pages layout
+ *    v1.21 (07-Nov-2016) - bug fix: modify thermostat logging to output true/false instead of heating/idle
+ *    v1.20 (06-Nov-2016) - added device type 'thermostat' and logging of 'thermostatOperatingState' attribute
+ *    v1.12 (04-Nov-2016) - update href state & images
+ *    v1.11 (02-Nov-2016) - add link for Apache license
+ *    v1.10 (02-Nov-2016) - implement multi-level debug logging function
+ *    v1.02 (01-Nov-2016) - code improvement: standardize pages layout
  *	  v1.01 (01-Nov-2016) - code improvement: standardize section headers
  *    v1.00 (30-Oct-2016) - copied code from example (https://www.grovestreams.com/developers/getting_started_smartthings.html)
  *
