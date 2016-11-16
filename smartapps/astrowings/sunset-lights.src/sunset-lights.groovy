@@ -15,10 +15,10 @@
  *
  *
  *	VERSION HISTORY										*/
- 	 private versionNum() {	return "version 2.24" }
-     private versionDate() { return "09-Nov-2016" }     /*
+ 	 private versionNum() {	return "version 3.00" }
+     private versionDate() { return "15-Nov-2016" }     /*
  *
- *    vx.xx (xx-Nov-2016) - code improvement: store images on GitHub, use getAppImg() to display app images
+ *    v3.00 (15-Nov-2016) - code improvement: store images on GitHub, use getAppImg() to display app images
  *                        - added option to disable icons
  *                        - added option to disable multi-level logging
  *                        - configured default values for app settings
