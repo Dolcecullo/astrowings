@@ -18,9 +18,10 @@
  *  
  * 
  *	VERSION HISTORY										*/
- 	 private versionNum() { return "version 2.00" }
-     private versionDate() { return "15-Nov-2016" }		/*
+ 	 private versionNum() { return "version 2.10" }
+     private versionDate() { return "17-Nov-2016" }		/*
  * 
+ *    v2.10 (17-Nov-2016) - added logging of 'thermostatSetpoint' attribute
  *    v2.00 (15-Nov-2016) - code improvement: store images on GitHub, use getAppImg() to display app images
  *                        - added option to disable icons
  *                        - added option to disable multi-level logging
@@ -200,7 +201,8 @@ def subscribeToEvents() {
     subscribe(batteries, "battery", handleBatteryEvent)
     subscribe(powers, "power", handlePowerEvent)
     subscribe(energies, "energy", handleEnergyEvent)
-    subscribe(thermostats, "thermostatOperatingState", handleThermostatEvent)
+    subscribe(thermostats, "thermostatOperatingState", handleThermostatStateEvent)
+    subscribe(thermostats, "thermostatSetpoint", handleThermostatSetpointEvent)
     debug "subscriptions complete", "trace", -1
 }
 
@@ -252,8 +254,12 @@ def handleEnergyEvent(evt) {
     sendValue(evt) { it.toString() }
 }
 
-def handleThermostatEvent(evt) {
+def handleThermostatStateEvent(evt) {
     sendValue(evt) { it == "heating" ? "true" : "false" }
+}
+
+def handleThermostatSetpointEvent(evt) {
+    sendValue(evt) { it.toString() }
 }
 
 
