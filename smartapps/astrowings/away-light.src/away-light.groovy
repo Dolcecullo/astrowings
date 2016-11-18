@@ -120,12 +120,11 @@ def pageSchedule() {
         }
         /*
         if (!daytime) {
-            section("This SmartApp uses luminance as a criteria to trigger actions; select the illuminance-capable " +
+            section("This SmartApp uses illuminance as a criteria to trigger actions; select the illuminance-capable " +
                     "device to use (if none selected, sunset/sunrise times will be used instead.",
                     hideWhenEmpty: true, required: true, state: (theLuminance ? "complete" : null)) {
-                //TODO: test using virtual luminance device based on sunrise/sunset
-                //TODO: enable use of device everywhere there's a reference to darkness setting (i.e. sunset/sunrise)
-                input "theLuminance", "capability.illuminance", title: "Which illuminance device?", multiple: false, required: false, submitOnChange: true
+                //TODO: implement use of illuminance device
+                input "theLuminance", "capability.illuminanceMeasurement", title: "Which illuminance device?", multiple: false, required: false, submitOnChange: true
             }
         }
         */
@@ -310,7 +309,7 @@ def turnOn(delay) {
                 def rdmOffset = random.nextInt(randomMinutes)
                 sunsetDate = new Date(sunsetDate.time - (randomMinutes * 30000) + (rdmOffset * 60000))
             }
-            debug "light activation is not enabled during daytime; check again at sunset (${sunsetDate})"
+            debug "light activation is not enabled during daytime; check again at sunset (${sunsetDate})" //TODO: this is going to be a problem if using illuminance instead of sunset time
             runOnce(sunsetDate, schedTurnOn)
         }
 	}
