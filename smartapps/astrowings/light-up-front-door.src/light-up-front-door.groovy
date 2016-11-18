@@ -15,9 +15,10 @@
  *
  *
  *	VERSION HISTORY										*/
- 	 private versionNum() {	return "version 2.00" }
-     private versionDate() { return "15-Nov-2016" }		/*
+ 	 private versionNum() {	return "version 2.10" }
+     private versionDate() { return "18-Nov-2016" }		/*
  *
+ *    v2.10 (18-Nov-2016) - added option to enable during daytime
  *    v2.00 (15-Nov-2016) - code improvement: store images on GitHub, use getAppImg() to display app images
  *                        - added option to disable icons
  *                        - added option to disable multi-level logging
@@ -105,9 +106,11 @@ def pageSettings() {
 			label title: "Assign a name", defaultValue: "${app.name}", required: false
             href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: getAppImg("trash-circle-red-512.png"), state: null, required: true
 		}
-        //TODO: option to override darkness (i.e. run even during daytime)
-        if (!theLuminance) {
-            section("This SmartApp uses the sunset/sunrise time to evaluate luminance as a criteria to trigger actions. " +
+    	section("Enable even during daytime") {
+        	input "daytime", "bool", title: "Yes/No?", required: false, defaultValue: false
+        }
+        if (!theLuminance && !daytime) {
+            section("This SmartApp uses the sunset/sunrise time to evaluate illuminance as a criteria to trigger actions. " +
                     "If required, you can adjust the amount time before/after sunset when the app considers that it's dark outside " +
                     "(e.g. use '-20' to adjust the sunset time 20 minutes earlier than actual).") {
                 input "sunsetOffset", "number", title: "Sunset offset time", description: "How many minutes (+/- 60)?", range: "-60..60", required: false
@@ -204,7 +207,7 @@ def presenceHandler(evt) {
     debug "presenceHandler event: ${evt.descriptionText}", "trace", 1
     debug "$evt.displayName has arrived", "info"
 
-	if (itsDarkOut && (theLight.currentSwitch != "on")) {
+	if (allOk) {
         debug "call to turn on the $theLight.displayName"
         turnOn()
     } else {
@@ -245,7 +248,12 @@ def turnOff() {
 //   ------------------------
 //   ***   COMMON UTILS   ***
 
-def getItsDarkOut() { //implement use of illuminance capability
+def getAllOk() {
+	def result = (theLight.currentSwitch != "on") && (itsDarkOut || daytime)
+    return result
+}
+
+def getItsDarkOut() { //TODO: implement use of illuminance capability
     def sunTime = getSunriseAndSunset(sunsetOffset: sunsetOffset)
     def nowDate = new Date(now() + 2000) // be safe and set current time for 2 minutes later
     def result = false
