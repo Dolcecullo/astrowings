@@ -114,10 +114,9 @@ def pageSchedule() {
                 "lights activation is disabled otherwise)") {
             input "defaultOn", "time", title: "Default time ON?", required: false
         }
-        //TODO: option to turn lights off when mode changes to Away
         //TODO: use illuminance-capable device instead of sunrise/sunset to detect darkness
         section("Turn the lights off at this time " +
-                "(optional - app will use the earliest of sunrise and this time)") { //TODO: reword this
+                "(optional - if not set, lights will turn off at sunrise)") {
             input "timeOff", "time", title: "Time OFF?", required: false
         }
 	}
