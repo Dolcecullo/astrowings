@@ -203,6 +203,7 @@ def subscribeToEvents() {
     subscribe(energies, "energy", handleEnergyEvent)
     subscribe(thermostats, "thermostatOperatingState", handleThermostatStateEvent)
     subscribe(thermostats, "thermostatSetpoint", handleThermostatSetpointEvent)
+    subscribe(thermostats, "heatingSetpoint", handleHeatingSetpointEvent)
     debug "subscriptions complete", "trace", -1
 }
 
@@ -260,6 +261,10 @@ def handleThermostatStateEvent(evt) {
 
 def handleThermostatSetpointEvent(evt) {
     sendValue(evt) { it.toString() }
+}
+
+def handleHeatingSetpointEvent(evt) {
+    //sendValue(evt) { it.toString() }
 }
 
 
