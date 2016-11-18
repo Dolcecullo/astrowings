@@ -15,9 +15,11 @@
  *
  *
  *	VERSION HISTORY										*/
- 	 private versionNum() {	return "version 2.00" }
-     private versionDate() { return "15-Nov-2016" }		/*
+ 	 private versionNum() {	return "version 2.10" }
+     private versionDate() { return "17-Nov-2016" }		/*
  *
+ *    v2.10 (17-Nov-2016) - execute unlockHandler only when door is unlocked from outside (using keypad)
+ *						  - enable multiple locks
  *    v2.00 (15-Nov-2016) - bug fix: fix 'Notification Options' page not appearing due to incorrect paragraph definition format
  *                        - code improvement: store images on GitHub, use getAppImg() to display app images
  *                        - added option to disable icons
@@ -51,7 +53,6 @@ definition(
 //   ---------------------------
 //   ***   APP PREFERENCES   ***
 
-//TODO: make parent app or enable multiple doors
 preferences {
 	page(name: "pageMain")
     page(name: "pageNotify")
@@ -73,19 +74,18 @@ private		readmeLink()			{ return "https://github.com/astrowings/SmartThings/blob
 //   ***   PAGES DEFINITIONS   ***
 
 def pageMain() {
-    //TODO: add the option to enable based on presence
     dynamicPage(name: "pageMain", install: true, uninstall: false) {
     	section(){
         	paragraph "", title: "This SmartApp sends a push notification if a lock gets unlocked or if the mode changes while the lock is unlocked."
         }
         section("Monitor this door lock") {
-            input "theLock", "capability.lock", required: true, title: "Which lock?"
-            if (theLock) {
+            input "theLocks", "capability.lock", title: "Which lock(s)?", required: true, multiple: true, submitOnChange: true
+            if (theLocks) {
             	href "pageNotify", title: "Notification Options", description: notifyOptionsDesc, image: getAppImg("notify-icn.png"), required: true, state: (pushUnlock || pushMode) ? "complete" : null
             }
         }
 		section() {
-			if (theLock) {
+			if (theLocks) {
             	href "pageSettings", title: "App settings", description: "", image: getAppImg("configure_icon.png"), required: false
             }
             href "pageAbout", title: "About", description: "", image: getAppImg("info-icn.png"), required: false
@@ -95,10 +95,11 @@ def pageMain() {
 
 def pageNotify() {
 	dynamicPage(name: "pageNotify", install: false, uninstall: false) {
+    //TODO: add the option to enable based on presence?
         section() {
         	paragraph "Send a push notification when...", title: "Notification Options"
             input "pushUnlock", "bool", title: "Door gets unlocked", defaultValue: true, required: false, submitOnChange: true
-            input "pushMode", "bool", title: "Door is left unlocked at mode change", defaultValue: true, required: false, submitOnChange: true //TODO: test if this works on change from Home to Night when app is set to work only during Away and Night
+            input "pushMode", "bool", title: "Door is left unlocked at mode change", defaultValue: true, required: false
         }
     }
 }
@@ -151,7 +152,7 @@ def pageLogOptions() {
 def pageUninstall() {
 	dynamicPage(name: "pageUninstall", title: "Uninstall", install: false, uninstall: true) {
 		section() {
-        	paragraph parent ? "CAUTION: You are about to disable monitoring of the '${theLock.label}'. This action is irreversible. If you want to proceed, tap on the 'Remove' button below." : "CAUTION: You are about to completely remove the SmartApp '${app.name}'. This action is irreversible. If you want to proceed, tap on the 'Remove' button below.",
+        	paragraph parent ? "CAUTION: You are about to disable monitoring of the door locks. This action is irreversible. If you want to proceed, tap on the 'Remove' button below." : "CAUTION: You are about to completely remove the SmartApp '${app.name}'. This action is irreversible. If you want to proceed, tap on the 'Remove' button below.",
                 required: true, state: null
         }
 	}
@@ -164,8 +165,8 @@ def pageUninstall() {
 def getNotifyOptionsDesc() {
     def strDesc = ""
     strDesc += (!pushUnlock && !pushMode)	? "Notifications are not set" : "You will receive a notification when...\n"
-    strDesc += pushUnlock					? " • the door gets unlocked\n" : ""
-    strDesc += pushMode						? " • the door is left unlocked at mode change" : ""
+    strDesc += pushUnlock					? " • a door gets unlocked\n" : ""
+    strDesc += pushMode						? " • a door is left unlocked at mode change" : ""
     return strDesc
 }
 
@@ -198,7 +199,7 @@ def initialize() {
 
 def subscribeToEvents() {
     debug "subscribing to events", "trace", 1
-    subscribe(theLock, "lock.unlocked", unlockHandler)
+    subscribe(theLocks, "lock.unlocked", unlockHandler)
     subscribe(location, modeChangeHandler)
     subscribe(location, "position", locationPositionChange) //update settings if the hub location changes
     debug "subscriptions complete", "trace", -1
@@ -210,21 +211,23 @@ def subscribeToEvents() {
 
 def unlockHandler(evt) {
     debug "unlockHandler event: ${evt.descriptionText}", "trace", 1
-    def warnUnlock = evt.descriptionText
-	debug "warnUnlock : $warnUnlock", "warn"
-	if (pushUnlock) {
-    	sendPush(warnUnlock)
+    def unlockText = evt.descriptionText
+	debug "unlockText : $unlockText", "warn"
+    if (pushUnlock && unlockText.contains("was unlocked with code")) {
+    	sendPush(unlockText)
     }
     debug "unlockHandler complete", "trace", -1
 }
 
 def modeChangeHandler(evt) {
     debug "modeChangeHandler event: ${evt.descriptionText}", "trace", 1
-    if (theLock.currentLock == "unlocked") {
-    	def warnMode = "The mode changed to $location.currentMode and the $theLock.label is $theLock.currentLock"
-        debug "warnMode : $warnMode", "warn"
-        if (pushMode) {
-        	sendPush(warnMode)
+    theLocks.each { theLock ->
+        if (theLock.currentLock == "unlocked") {
+            def warnMode = "The mode changed to $location.currentMode and the $theLock.label is $theLock.currentLock"
+            debug "warnMode : $warnMode", "warn"
+            if (pushMode) {
+                sendPush(warnMode)
+            }
         }
     }
     debug "modeChangeHandler complete", "trace", -1
