@@ -78,7 +78,7 @@ def pageSettings() {
             href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: getAppImg("trash-circle-red-512.png"), state: null, required: true
 		}
         if (!theLuminance) {
-            section("This SmartApp uses the sunset/sunrise time to evaluate luminance as a criteria to trigger actions. " +
+            section("This SmartApp uses the sunset/sunrise time to evaluate illuminance as a criteria to trigger actions. " +
                     "If required, you can adjust the amount time before/after sunset when the app considers that it's dark outside " +
                     "(e.g. use '-20' to adjust the sunset time 20 minutes earlier than actual).") {
                 input "sunsetOffset", "number", title: "Sunset offset time", description: "How many minutes (+/- 60)?", range: "-60..60", required: false
