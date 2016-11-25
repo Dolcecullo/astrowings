@@ -15,9 +15,12 @@
  *
  *
  *	VERSION HISTORY										*/
- 	 private versionNum() {	return "version 2.00" }
-     private versionDate() { return "15-Nov-2016" }		/*
+ 	 private versionNum() {	return "version 2.10" }
+     private versionDate() { return "24-Nov-2016" }		/*
  *
+ *    v2.10 (24-Nov-2016) - add option to specify sunrise time offset
+ *						  - add option to turn lights off when leaving
+ *						  - removed option to specify default turn-on time
  *    v2.00 (15-Nov-2016) - code improvement: store images on GitHub, use getAppImg() to display app images
  *                        - added option to disable icons
  *                        - added option to disable multi-level logging
@@ -103,21 +106,19 @@ def pageSchedule() {
         section(){
         	paragraph title: "Scheduling Options", "Use the options on this page to set the scheduling preferences."
         }
-        section("Set a different time to turn on the lights on each day " +
-                "(optional - lights will turn on at the default time if not set)") {
+        section("Set a time to turn on the lights each day " +
+                "(optional - lights will not turn on if no time is set for that day)") {
             input "weekdayOn", "time", title: "Mon-Fri", required: false
             input "saturdayOn", "time", title: "Saturday", required: false
             input "sundayOn", "time", title: "Sunday", required: false
-        }
-        section("Turn the lights on at this time if no weekday time is set " +
-                "(optional - this setting used only if no weekday time is specified; " +
-                "lights activation is disabled otherwise)") {
-            input "defaultOn", "time", title: "Default time ON?", required: false
         }
         //TODO: use illuminance-capable device instead of sunrise/sunset to detect darkness
         section("Turn the lights off at this time " +
                 "(optional - if not set, lights will turn off at sunrise)") {
             input "timeOff", "time", title: "Time OFF?", required: false
+        }
+        section("Turn the lights off when everyone leaves (i.e. the mode changes to 'Away')") {
+            input "awayOff", "bool", title: "Off on Away?", required: false
         }
 	}
 }
@@ -152,11 +153,16 @@ def pageRandom() {
 
 def pageSettings() {
 	dynamicPage(name: "pageSettings", install: false, uninstall: false) {
-   		//TODO: add option for sunrise offset
         section() {
 			label title: "Assign a name", defaultValue: "${app.name}", required: false
             href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: getAppImg("trash-circle-red-512.png"), state: null, required: true
 		}
+        if (!theLuminance) {
+            section("If desired, you can adjust the amount time before/after sunrise when the app will turn the lights off " +
+                    "(e.g. use '-20' to adjust the sunrise time 20 minutes earlier than actual).") {
+                input "sunriseOffset", "number", title: "Sunrise offset time", description: "How many minutes (+/- 60)?", range: "-60..60", required: false
+            }
+   		}
         section("Debugging Options", hideable: true, hidden: true) {
             input "noAppIcons", "bool", title: "Disable App Icons", description: "Do not display icons in the configuration pages", image: getAppImg("disable_icon.png"), defaultValue: false, required: false, submitOnChange: true
             href "pageLogOptions", title: "IDE Logging Options", description: "Adjust how logs are displayed in the SmartThings IDE", image: getAppImg("office8-icn.png"), required: true, state: "complete"
@@ -221,16 +227,21 @@ def getSchedOptionsDesc() {
     strDesc += weekdayOn	? "   └ weekdays: ${strWeekdayOn}\n" : ""
     strDesc += saturdayOn	? "   └ saturday: ${strSaturdayOn}\n" : ""
     strDesc += sundayOn		? "   └ sunday: ${strSundayOn}\n" : ""
-    strDesc += timeOff		? " • Turn-off time: ${strTimeOff}" : " • Turn off at sunrise"
+    strDesc += timeOff		? " • Turn-off time: ${strTimeOff}\n" : " • Turn off at sunrise\n"
+    strDesc += awayOff		? " • Turn off when leaving" : ""
     return startTimeOk ? strDesc : "Turn-on time not set; automation disabled."
 }
 
 def getRandomOptionsDesc() {
     def delayType = (onDelay && offDelay) ? "on & off" : (onDelay ? "on" : "off")
+    def randOn  =  settings.randOn  ? (double) settings.randOn  : null
+    def randOff =  settings.randOff ? (double) settings.randOff : null
+    double randOnWindow  = randOn  ? (randOn/2).round(1)  : 0
+    double randOffWindow = randOff ? (randOff/2).round(1) : 0
     def strDesc = ""
     strDesc += (randOn || randOff)	? " • Random window:\n" : ""
-    strDesc += randOn				? "   └ turn on:  +/-${randOn/2} minutes\n" : ""
-    strDesc += randOn				? "   └ turn off: +/-${randOff/2} minutes\n" : ""
+    strDesc += randOn				? "   └ turn on:  +/-${randOnWindow} minutes\n" : ""
+    strDesc += randOff				? "   └ turn off: +/-${randOffWindow} minutes\n" : ""
     strDesc += delaySeconds			? " • Light-light delay: ${delaySeconds} seconds\n    (when switching ${delayType})" : ""
     return (randOn || randOff || delaySeconds) ? strDesc : "Tap to configure random settings..."
 }
@@ -267,6 +278,7 @@ def initialize() {
 def subscribeToEvents() {
     debug "subscribing to events", "trace", 1
     subscribe(location, "sunriseTime", sunriseTimeHandler)	//triggers at sunrise, evt.value is the sunrise String (time for next day's sunrise)
+    subscribe(location, "mode", modeChangeHandler)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
     //TODO: subscribe to lights on/off events IF commanded by this app (and log events)
     debug "subscriptions complete", "trace", -1
@@ -289,6 +301,14 @@ def locationPositionChange(evt) {
 	initialize()
 }
 
+def modeChangeHandler(evt) {
+	//debug "modeChangeHandler event: ${evt.descriptionText}", "trace"
+    if(awayOff && evt.value == "Away") {
+        debug "mode changed to ${evt.value}; calling turnOff()"
+        turnOff()
+    }
+    //debug "modeChangeHandler complete", "trace"
+}
 
 //   -------------------
 //   ***   METHODS   ***
@@ -296,8 +316,16 @@ def locationPositionChange(evt) {
 def schedTurnOff(sunriseString) {
     debug "executing schedTurnOff(sunriseString: ${sunriseString})", "trace", 1
 	
+    //convert sunriseString into date
     def datTurnOff = Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", sunriseString)
-    debug "sunrise date : ${datTurnOff}"
+    if (sunriseOffset) {
+    	int offset = sunriseOffset * 60000
+        def offsetSunriseTime = datTurnOff.time + offset
+        datTurnOff = new Date(offsetSunriseTime)
+        debug "sunrise date (with ${sunriseOffset} offset) : ${datTurnOff}"
+    } else {
+    	debug "sunrise date : ${datTurnOff}"
+    }
 
     if (timeOff) {
     	def userOff = timeTodayAfter("12:00", timeOff, location.timeZone)
@@ -324,23 +352,9 @@ def schedTurnOn(datTurnOff) {
 	//fires at sunrise to schedule next day's turn-on
     debug "executing schedTurnOn(datTurnOff: ${datTurnOff})", "trace", 1
     
-    def DOW_TurnOn = DOWTurnOnTime
-    def default_TurnOn = defaultTurnOnTime
-    def datTurnOn
+    def datTurnOn = DOWTurnOnTime
     
-	if (!DOW_TurnOn && !default_TurnOn) {
-    	debug "user didn't specify turn-on time; scheduling cancelled", "warn"
-    } else {
-        //select which turn-on time to use (1st priority: weekday-specific, 2nd: default, else: no turn-on)
-        def useTime
-        if (DOW_TurnOn) {
-            datTurnOn = DOW_TurnOn
-            useTime = "using the weekday turn-on time"
-        } else if (default_TurnOn) {
-            datTurnOn = default_TurnOn
-            useTime = "using the default turn-on time"
-    	}
-        
+	if (datTurnOn) {
         //check that turn-on is scheduled earlier than turn-off by at least 'minTimeOn' minutes
 	    def minTimeOn = C_MIN_TIME_ON()
         def safeOff = datTurnOff.time - (minTimeOn * 60 * 1000) //subtract 'minTimeOn' from scheduled turn-off time to ensure lights will stay on for at least 'minTimeOn' minutes
@@ -352,6 +366,8 @@ def schedTurnOn(datTurnOff) {
             	"would be later than (or less than ${minTimeOn} minutes before) " +
                 "the scheduled turn-off time (${datTurnOff}).", "info"
         }
+    } else {
+    	debug "user didn't specify turn-on time; scheduling cancelled", "warn"
     }
     debug "schedTurnOn() complete", "trace", -1
 }
@@ -393,34 +409,6 @@ def turnOff() {
 
 //   -------------------------
 //   ***   APP FUNCTIONS   ***
-
-def getDefaultTurnOnTime() {
-    //calculate default turn-on time
-    //this gets called at sunrise, so when the sun rises on Tuesday, it will
-    //schedule the lights' turn-on time for Wednesday morning
-	debug "start evaluating defaultTurnOnTime", "trace", 1
-    
-    if (defaultOn) {
-    	//convert preset time to next morning's date
-        def timeOn = timeTodayAfter("12:00", defaultOn, location.timeZone)
-        
-        //apply random factor to turn-on time
-        if (randOn) {
-	    	def random = new Random()
-			def randOffset = random.nextInt(randOn)
-            timeOn = new Date(timeOn.time - (randOn * 30000) + (randOffset * 60000))
-            debug "randomized default turn-on time: ${timeOn}"
-        } else {
-        	debug "default turn-on time: ${timeOn}"
-        }
-        debug "finished evaluating defaultTurnOnTime", "trace", -1
-        return timeOn
-    } else {
-        debug "default turn-on time not specified"
-        debug "finished evaluating defaultTurnOnTime", "trace", -1
-        return false
-	}
-}
 
 def getDOWTurnOnTime() {
     //calculate weekday-specific turn-on time
@@ -464,7 +452,7 @@ def getDOWTurnOnTime() {
         debug "finished evaluating DOWTurnOnTime", "trace", -1
         return tmrOn
     } else {
-    	debug "DOW turn-on time not specified"
+    	debug "DOW turn-on time not specified for ${tmrDOW}"
         debug "finished evaluating DOWTurnOnTime", "trace", -1
         return false
     }
