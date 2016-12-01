@@ -158,7 +158,7 @@ def pageSettings() {
             href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: getAppImg("trash-circle-red-512.png"), state: null, required: true
 		}
         if (!theLuminance) {
-            section("If desired, you can adjust the amount time before/after sunrise when the app will turn the lights off " +
+            section("If desired, you can adjust the amount of time before/after sunrise when the app will turn the lights off " +
                     "(e.g. use '-20' to adjust the sunrise time 20 minutes earlier than actual).") {
                 input "sunriseOffset", "number", title: "Sunrise offset time", description: "How many minutes (+/- 60)?", range: "-60..60", required: false
             }
