@@ -15,9 +15,10 @@
  *
  *
  *	VERSION HISTORY										*/
- 	 private versionNum() { return "version 2.10" }
-     private versionDate() { return "14-Nov-2016" }		/*
+ 	 private versionNum() { return "version 2.20" }
+     private versionDate() { return "29-Dec-2016" }		/*
  *
+ *    v2.20 (29-Dec-2016) - add user-configurable activation delay after mode changes
  *	  v2.10 (14-Nov-2016) - create reinit() method to allow parent to re-initialize all child apps
  *						  - bug fix: specify int data type to strip decimals when using the result of a division
  * 							to obtain a date, which returns the following error if trying to convert a decimal:
@@ -113,7 +114,10 @@ def pageSchedule() {
         	input "theDays", "enum", title: "On which days?", options: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], required: false, multiple: true
         }
         section("Only run in selected modes (automation disabled if none selected)") {
-            input "theModes", "mode", title: "Select the mode(s)", multiple: true, required: false
+            input "theModes", "mode", title: "Select the mode(s)", multiple: true, required: false, submitOnChange: true
+            if (theModes) {
+                input "activationDelay", "number", title: "Activation delay", required: false, defaultValue: 2, range: "0..60"
+            }
         }
     	section("Enable even during daytime") {
         	input "daytime", "bool", title: "Yes/No?", required: false, defaultValue: false
@@ -148,7 +152,7 @@ def getSchedOptionsDesc() {
     strDesc += (onFor && offFor)				? "   └ ${onFor} minutes on / ${offFor} off\n" : ""
     strDesc += randomMinutes					? " • ${randomMinutes}-min random window\n" : ""
     strDesc += theDays							? " • Only on selected days\n   └ ${theDays}\n" : " • Every day\n"
-    strDesc += theModes							? " • While in modes:\n   └ ${theModes}\n" : ""
+    strDesc += theModes							? " • While in modes:\n   └ ${theModes}\n   └ delay: ${activationDelay} minutes\n" : ""
     strDesc += daytime	 						? " • Enabled during daytime\n" : ""
     return theModes ? strDesc : "No modes selected; automation disabled"
 }
@@ -209,8 +213,9 @@ def subscribeToEvents() {
 def modeChangeHandler(evt) {
     debug "modeChangeHandler event: ${evt.descriptionText}", "trace"
     if(modeOk) {
-        debug "mode changed to ${location.currentMode}; calling schedTurnOn()"
-        schedTurnOn()
+        int delay = activationDelay ? activationDelay * 60 : 5
+        debug "mode changed to ${location.currentMode}; calling schedTurnOn() in ${delay} seconds"
+        runIn(delay,schedTurnOn)
     } else {
         debug "mode changed to ${location.currentMode}; cancelling scheduled tasks"
         unschedule()
