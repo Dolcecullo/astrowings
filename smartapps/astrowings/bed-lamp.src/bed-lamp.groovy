@@ -59,7 +59,7 @@ private		readmeLink()			{ return "https://github.com/astrowings/SmartThings/blob
 def pageMain() {
     dynamicPage(name: "pageMain", install: true, uninstall: false) {
     	section(){
-        	paragraph "", title: "This SmartApp turns on selected lights after dark and turns them off when the mode changes to Night."
+        	paragraph "", title: "This SmartApp turns on selected lights after dark (or at a preset time) and turns them off when the mode changes to Night."
         }
         section() {
             input "theLights", "capability.switch", title: "Which lights?", description: "Choose the lights to turn on", multiple: true, required: true, submitOnChange: true
