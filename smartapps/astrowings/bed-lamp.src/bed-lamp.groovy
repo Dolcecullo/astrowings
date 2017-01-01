@@ -50,7 +50,7 @@ preferences {
 //   ***   CONSTANTS DEFINITIONS  ***
 
 private		appImgPath()			{ return "https://raw.githubusercontent.com/astrowings/SmartThings/master/images/" }
-private		readmeLink()			{ return "https://github.com/astrowings/SmartThings/blob/master/smartapps/astrowings/bed-lamp.src/readme.md" } //TODO: write the readme
+private		readmeLink()			{ return "https://github.com/astrowings/SmartThings/blob/master/smartapps/astrowings/bed-lamp.src/readme.md" }
 
 
 //   -----------------------------
