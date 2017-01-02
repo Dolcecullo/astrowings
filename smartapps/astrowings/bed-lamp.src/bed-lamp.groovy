@@ -15,9 +15,11 @@
  *
  *
  *	VERSION HISTORY										*/
- 	 private versionNum() {	return "version 1.00" }
-     private versionDate() { return "31-Dec-2016" }		/*
+ 	 private versionNum() {	return "version 1.01" }
+     private versionDate() { return "01-Jan-2017" }		/*
  *
+ *    v1.01 (01-Jan-2017) - added call to timeCheck() during initialization
+ *                        - moved 'thePeople' input to pageSettings
  *    v1.00 (31-Dec-2016) - initial release
  *    v0.10 (27-Nov-2016) - developing
  *
@@ -64,11 +66,6 @@ def pageMain() {
         section() {
             input "theLights", "capability.switch", title: "Which lights?", description: "Choose the lights to turn on", multiple: true, required: true, submitOnChange: true
         }
-        if (theLights) {
-        	section("Optionally, you can choose to enable this SmartApp only when selected persons are home; if none selected, it will run whenever the mode is set to Home.") {
-            	input "thePeople", "capability.presenceSensor", title: "Who?", description: "Only when these persons are home", multiple: true, required: false
-            }
-        }
 		section() {
 			if (theLights) {
 	            href "pageSettings", title: "App settings", description: "", image: getAppImg("configure_icon.png"), required: false
@@ -92,7 +89,10 @@ def pageSettings() {
                 input "sunsetOffset", "number", title: "Sunset offset time", description: "How many minutes?", range: "0..180", required: false
             }
    		}
-        section("Debugging Options", hideable: true, hidden: true) {
+        section("Optionally, you can choose to enable this SmartApp only when selected persons are home; if none selected, it will run whenever the mode is set to Home.") {
+            input "thePeople", "capability.presenceSensor", title: "Who?", description: "Only when these persons are home", multiple: true, required: false
+        }
+		section("Debugging Options", hideable: true, hidden: true) {
             input "noAppIcons", "bool", title: "Disable App Icons", description: "Do not display icons in the configuration pages", image: getAppImg("disable_icon.png"), defaultValue: false, required: false, submitOnChange: true
             href "pageLogOptions", title: "IDE Logging Options", description: "Adjust how logs are displayed in the SmartThings IDE", image: getAppImg("office8-icn.png"), required: true, state: "complete"
         }
@@ -172,6 +172,7 @@ def initialize() {
     if (presetOnTime) { //if the user set an ON time, schedule the switch
     	schedule(presetOnTime, turnOn)
     }
+    timeCheck()
     debug "initialization complete", "trace", -1
 }
 
