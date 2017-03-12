@@ -281,7 +281,6 @@ def initialize() {
 	subscribeToEvents()
 	scheduleTurnOn(location.currentValue("sunsetTime"))
     scheduleTurnOff(location.currentValue("sunriseTime"))
-    //TODO: subscribe to lights on/off events IF commanded by this app (and log events)
     debug "initialization complete", "trace", -1
 }
 
@@ -290,7 +289,6 @@ def subscribeToEvents() {
     subscribe(location, "sunsetTime", sunsetTimeHandler)	//triggers at sunset, evt.value is the sunset String (time for next day's sunset)
     subscribe(location, "sunriseTime", sunriseTimeHandler)	//triggers at sunrise, evt.value is the sunrise String (time for next day's sunrise)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
-    //TODO: subscribe to lights on/off events IF commanded by this app (and log events)
     debug "subscriptions complete", "trace", -1
 }
 

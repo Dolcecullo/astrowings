@@ -80,7 +80,6 @@ def pageMain() {
         }
         section("Turn on these lights") {
             input "theSwitches", "capability.switch", title: "Which lights?", required: true, multiple: true
-            //TODO: enable dimmer device; set dimmer to max on turn-on, reset before turn-off
             input "leaveOn", "number", title: "For how long (minutes)?", description: "max 15 minutes", range: "1..15", defaultValue: 3,required: true
         }
     	//TODO: remove this option (make it true by default) and allow override in Settings page
@@ -93,7 +92,7 @@ def pageMain() {
                     "device to use (if none selected, sunset/sunrise times will be used instead.",
                     hideWhenEmpty: true, required: true, state: (theLuminance ? "complete" : null)) {
                 //TODO: test using virtual luminance device based on sunrise/sunset
-                //TODO: enable use of device everywhere there's a reference to darkness setting (i.e. sunset/sunrise)
+                //TODO: enable use of luminance device everywhere there's a reference to darkness setting (i.e. sunset/sunrise)
                 input "theLuminance", "capability.illuminance", title: "Which illuminance device?", multiple: false, required: false, submitOnChange: true
             }
         }
@@ -198,7 +197,6 @@ def subscribeToEvents() {
     debug "subscribing to events", "trace", 1
     subscribe(theLock, "lock.unlocked", unlockHandler)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
-    //TODO: subscribe to lights on/off events IF commanded by this app (and log events)
     debug "subscriptions complete", "trace", -1
 }
 

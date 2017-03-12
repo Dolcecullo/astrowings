@@ -183,7 +183,6 @@ def subscribeToEvents() {
     }
     subscribe(location, "mode", modeChangeHandler)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
-    //TODO: subscribe to lights on/off events IF commanded by this app (and log events)
     debug "subscriptions complete", "trace", -1
 }
 
@@ -192,9 +191,9 @@ def subscribeToEvents() {
 //   ***   EVENT HANDLERS   ***
 
 def sunsetTimeHandler(evt) {
-    debug "sunriseTimeHandler event: ${evt.descriptionText}", "trace"
+    debug "sunsetTimeHandler event: ${evt.descriptionText}", "trace"
     timeCheck()
-    debug "sunriseTimeHandler complete", "trace"
+    debug "sunsetTimeHandler complete", "trace"
 }    
 
 def locationPositionChange(evt) {

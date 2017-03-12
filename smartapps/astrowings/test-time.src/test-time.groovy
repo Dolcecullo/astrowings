@@ -63,7 +63,7 @@ def uninstalled() {
 
 def initialize() {
 	log.info "initializing"
-	subscribe(theswitch, "switch", runTest)
+	runTest()
 }
 
 
@@ -71,14 +71,14 @@ def initialize() {
 //   ***   EVENT HANDLERS   ***
 
 def runTest(evt) {
-	log.trace "runTest>${evt.descriptionText}"
+//	log.trace "runTest>${evt.descriptionText}"
 //	log.info " *** EVENT PROPERTIES ***"
 //	log.debug "The runTest event was triggered on :: $evt.date (Date)"
 //	log.debug "The runTest event dateValue is :: $evt.dateValue (Date)"
 //	log.debug "The runTest event isoDate is :: $evt.isoDate (String)"
 
-//	testSun()
-	testDate()
+	testSun()
+//	testDate()
 //	testString()
 //  testParsing()
 //	testJava()

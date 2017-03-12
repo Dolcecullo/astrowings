@@ -89,7 +89,7 @@ def pageMain() {
                     "device to use (if none selected, sunset/sunrise times will be used instead.",
                     hideWhenEmpty: true, required: true, state: (theLuminance ? "complete" : null)) {
                 //TODO: test using virtual luminance device based on sunrise/sunset
-                //TODO: enable use of device everywhere there's a reference to darkness setting (i.e. sunset/sunrise)
+                //TODO: enable use of luminance device everywhere there's a reference to darkness setting (i.e. sunset/sunrise)
                 input "theLuminance", "capability.illuminance", title: "Which illuminance device?", multiple: false, required: false, submitOnChange: true
             }
         }
@@ -208,7 +208,6 @@ def subscribeToEvents() {
     subscribe(theSwitch, "switch.on", switchOnHandler)
     subscribe(theSwitch, "switch.off", switchOffHandler)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
-    //TODO: subscribe to lights on/off events IF commanded by this app (and log events)
     debug "subscriptions complete", "trace", -1
 }
 

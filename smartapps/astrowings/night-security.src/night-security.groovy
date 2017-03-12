@@ -18,6 +18,7 @@
  	 private versionNum() {	return "version 2.00" }
      private versionDate() { return "15-Nov-2016" }     /*
  *
+ *    v2.01 (13-Jan-2017) - unschedule any future deactivateLights() at mode change
  *    v2.00 (15-Nov-2016) - code improvement: store images on GitHub, use getAppImg() to display app images
  *                        - added option to disable icons
  *                        - added option to disable multi-level logging
@@ -389,7 +390,6 @@ def subscribeToEvents() {
     debug "subscribing to events", "trace", 1
 	subscribe(location, "mode", modeChangeHandler)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
-    //TODO: subscribe to lights on/off events IF commanded by this app (and log events)
 	if (theContacts) {
 		subscribe(theContacts, "contact.open", intrusionHandler)
     }
@@ -431,11 +431,13 @@ def modeChangeHandler(evt) {
     if (!modeOk && alarmOn) {
     	if (state.alarmFlash == "on") {
         	deactivateFlash()
+            unschedule(deactivateFlash)
         }
         if (state.alarmLights == "on") {
         	deactivateLights()
+            unschedule(deactivateLights)
         }
-	}
+    }
     debug "modeChangeHandler complete", "trace", -1
 }
 

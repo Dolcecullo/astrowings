@@ -15,9 +15,10 @@
  *
  *
  *	VERSION HISTORY										*/
- 	 private versionNum() { return "version 2.20" }
-     private versionDate() { return "29-Dec-2016" }		/*
+ 	 private versionNum() { return "version 2.21" }
+     private versionDate() { return "09-Jan-2017" }		/*
  *
+ *    v2.21 (09-Jan-2017) - add schedule to run schedTurnOn() daily
  *    v2.20 (29-Dec-2016) - add user-configurable activation delay after mode changes
  *	  v2.10 (14-Nov-2016) - create reinit() method to allow parent to re-initialize all child apps
  *						  - bug fix: specify int data type to strip decimals when using the result of a division
@@ -190,6 +191,7 @@ def initialize() {
     subscribeToEvents()
     debug "initialization complete", "trace", -1
 	schedTurnOn()
+    schedule("0 0 4 1/1 * ?", schedTurnOn) //run schedule at 04:00 daily
 }
 
 def reinit() {
@@ -200,7 +202,6 @@ def reinit() {
 
 def subscribeToEvents() {
     debug "subscribing to events", "trace", 1
-    //TODO: subscribe to lights on/off events IF commanded by this app (and log events)
     subscribe(location, "mode", modeChangeHandler)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
     debug "subscriptions complete", "trace", -1
@@ -314,7 +315,7 @@ def turnOn(delay) {
                 def rdmOffset = random.nextInt(randomMinutes)
                 sunsetDate = new Date(sunsetDate.time - (randomMinutes * 30000) + (rdmOffset * 60000))
             }
-            debug "light activation is not enabled during daytime; check again at sunset (${sunsetDate})" //TODO: this is going to be a problem if using illuminance instead of sunset time
+            debug "light activation is not enabled during daytime; check again at sunset (${sunsetDate})" //TODO: if using illuminance, subscribe to the sensor and check again when dark
             runOnce(sunsetDate, schedTurnOn)
         }
 	}

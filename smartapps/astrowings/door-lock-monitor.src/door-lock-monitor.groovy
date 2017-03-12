@@ -95,7 +95,6 @@ def pageMain() {
 
 def pageNotify() {
 	dynamicPage(name: "pageNotify", install: false, uninstall: false) {
-    //TODO: add the option to enable based on presence?
         section() {
         	paragraph "Send a push notification when...", title: "Notification Options"
             input "pushUnlock", "bool", title: "Door gets unlocked", defaultValue: true, required: false, submitOnChange: true

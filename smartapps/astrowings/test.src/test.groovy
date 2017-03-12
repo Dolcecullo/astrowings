@@ -66,16 +66,19 @@ def pageMain() {
         	paragraph "", title: "This SmartApp is used for various tests."
         }
         section("Inputs") {
-            input "theSwitches", "capability.switch",
+            /*input "theSwitches", "capability.switch",
             	title: "Select the switches",
                 description: "This is a long input description to demonstrate that it will wrap over multiple lines",
                 multiple: true,
                 required: false,
-                submitOnChange: false
+                submitOnChange: false*/
+            input "theDimmer", "capability.switchLevel", required: false
+            input "theSwitch", "capability.switch", required: false, multiple: true
+            input "theContact", "capability.contactSensor", required: false, multiple: true
         }
         section("Other test parameters") {
-        	input "myTime", "time", title: "What time?"
-            input "myRandom", "number", title: "Random minutes?"
+        	//input "myTime", "time", title: "What time?"
+            //input "myRandom", "number", title: "Random minutes?"
         }
 		section() {
             href "pageSettings", title: "App settings", description: "", image: getAppImg("configure_icon.png"), required: false
@@ -157,7 +160,6 @@ def updated() {
 }
 
 def uninstalled() {
-    //theLights?.off()
     state.debugLevel = 0
     debug "application uninstalled", "trace"
 }
@@ -165,25 +167,35 @@ def uninstalled() {
 def initialize() {
     state.debugLevel = 0
     debug "initializing", "trace", 1
-    //theLights?.off()
     subscribeToEvents()
     debug "initialization complete", "trace", -1
-    testStart()
+    //testStart()
 }
 
 def subscribeToEvents() {
     debug "subscribing to events", "trace", 1
-    subscribe(theSwitches, "switch", switchEvent)
+    subscribe(theContact, "contact", testEvent)
+    subscribe(theSwitch, "switch", testDimmer)    
     debug "subscriptions complete", "trace", -1
 }
 
 //   --------------------------
 //   ***   EVENT HANDLERS   ***
 
-def switchEvent(evt) {
-    debug "switchEvent event: ${evt.descriptionText}", "trace", 1
-	randomTest()
-    debug "switchEvent complete", "trace", -1
+def testEvent(evt) {
+    debug "testEvent event: ${evt.descriptionText}", "trace", 1
+    debug "testEvent complete", "trace", -1
+}
+
+def testDimmer(evt) {
+    debug "testDimmer event: ${evt.descriptionText}", "trace", 1
+	if (evt.value == "off") {
+		theDimmer.setLevel(30)
+        theDimmer.setLevel(0)
+    } else {
+        theDimmer.setLevel(100)
+    }
+    debug "testDimmer complete", "trace", -1
 }
 
 def testProperties(evt) {
@@ -213,7 +225,13 @@ def testProperties(evt) {
 def testStart() {
 	debug "executing testStart()", "trace", 1
 	//runIn(30, toggleSwitches)
+    deviceProperties()
 	debug "testStart() complete", "trace", -1
+}
+
+def deviceProperties() {
+	debug "testDevice?.displayName:${testDevice.displayName}"
+    debug "testDevice?.label:${testDevice.label}"
 }
 
 def toggleSwitches() {
