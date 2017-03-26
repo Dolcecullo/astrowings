@@ -89,7 +89,7 @@ def pageMain() {
 def pageSettings() {
 	dynamicPage(name: "pageSettings", install: false, uninstall: false) {
    		section() {
-            label title: "Assign a name", defaultValue: "${app.name} - ${theLock.label}", required: false
+            label title: "Assign a name", defaultValue: "${app.name}", required: false
             href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: getAppImg("trash-circle-red-512.png"), state: null, required: true
 		}
         section("Debugging Options", hideable: true, hidden: true) {
