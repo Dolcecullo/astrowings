@@ -15,9 +15,10 @@
  *
  *
  *	VERSION HISTORY										*/
- 	 private versionNum() {	return "version 1.01" }
-     private versionDate() { return "01-Jan-2017" }		/*
+ 	 private versionNum() {	return "version 1.02" }
+     private versionDate() { return "26-Mar-2017" }		/*
  *
+ *    v1.02 (26-Mar-2017) - removed unused reference to pageSchedule from preferences section
  *    v1.01 (01-Jan-2017) - added call to timeCheck() during initialization
  *                        - moved 'thePeople' input to pageSettings
  *    v1.00 (31-Dec-2016) - initial release
@@ -32,7 +33,8 @@ definition(
     category: "Convenience",
     iconUrl: "http://cdn.device-icons.smartthings.com/Lighting/light2-icn.png",
     iconX2Url: "http://cdn.device-icons.smartthings.com/Lighting/light2-icn@2x.png",
-    iconX3Url: "http://cdn.device-icons.smartthings.com/Lighting/light2-icn@3x.png")
+    iconX3Url: "http://cdn.device-icons.smartthings.com/Lighting/light2-icn@3x.png"
+)
 
 
 //   ---------------------------
