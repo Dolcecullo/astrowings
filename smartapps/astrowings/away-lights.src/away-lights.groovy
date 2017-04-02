@@ -27,7 +27,7 @@ definition(
     namespace: "astrowings",
     author: "Phil Maynard",
     description: "Parent app for 'Away Light'",
-    category: "Convenience",
+    category: "Safety & Security",
     iconUrl: "http://cdn.device-icons.smartthings.com/Lighting/light17-icn.png",
     iconX2Url: "http://cdn.device-icons.smartthings.com/Lighting/light17-icn@2x.png",
     iconX3Url: "http://cdn.device-icons.smartthings.com/Lighting/light17-icn@3x.png")
