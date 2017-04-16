@@ -87,6 +87,7 @@ def pageMain() {
 def pageSettings() {
 	dynamicPage(name: "pageSettings", install: false, uninstall: false) {
         section() {
+			mode title: "Set for specific mode(s)"
 			label title: "Assign a name", defaultValue: "${app.name}", required: false
             href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: getAppImg("trash-circle-red-512.png"), state: null, required: true
 		}
