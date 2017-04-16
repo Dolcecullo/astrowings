@@ -15,10 +15,10 @@
  *
  *
  *	VERSION HISTORY										*/
- 	 private versionNum() {	return "version 0.10" }
+ 	 private versionNum() {	return "version 1.00" }
      private versionDate() { return "26-Mar-2017" }		/*
  *
- *    v1.00 (dd-mmm-2017) - initial release
+ *    v1.00 (15-Apr-2017) - initial release
  *    v0.10 (26-Mar-2017) - developing
  *
 */
@@ -28,9 +28,9 @@ definition(
     author: "Phil Maynard",
     description: "Send notifications based on selected thermostat events.",
     category: "Convenience",
-    iconUrl: "https://raw.githubusercontent.com/astrowings/SmartThings/master/images/Cat-FunAndSocial.png",
-    iconX2Url: "https://raw.githubusercontent.com/astrowings/SmartThings/master/images/Cat-FunAndSocial@2x.png",
-    iconX3Url: "https://raw.githubusercontent.com/astrowings/SmartThings/master/images/Cat-FunAndSocial@3x.png"
+    iconUrl: "http://cdn.device-icons.smartthings.com/Electronics/electronics1-icn.png",
+    iconX2Url: "http://cdn.device-icons.smartthings.com/Electronics/electronics1-icn@2x.png",
+    iconX3Url: "http://cdn.device-icons.smartthings.com/Electronics/electronics1-icn@3x.png"
 )
 
 
@@ -62,10 +62,15 @@ def pageMain() {
         	paragraph "", title: "This SmartApp sends notifications based on selected thermostat events."
         }
         section() {
-            input "theThermostat", "capability.thermostatMode", title: "Which thermostat?", description: "Monitor mode changes on this thermostat", required: false, submitOnChange: true
-            //TODO: add option to monitor changes in temperature setpoint
+            input "theThermostat", "capability.Thermostat", title: "Which thermostat?", description: "Monitor changes on this thermostat", required: false, submitOnChange: true
         }
-		section() {
+        section("Select monitoring functions") {
+			if (theThermostat) {
+            	input "chkMode", "bool", title: "Monitor changes in thermostat operation mode (off, eco, heat, cool)?", defaultValue: true
+                input "chkTemp", "bool", title: "Monitor changes in temperature setpoint?"
+			}        
+        }
+		section("Select notification method") {
 			if (theThermostat) {
                 input "sendPush", "bool", title: "Send push notification on selected events", defaultValue: true, required: false
                 input "sendSMS", "bool", title: "Send SMS notification on selected events", defaultValue: false, required: false, submitOnChange: true
@@ -166,8 +171,9 @@ def initialize() {
 
 def subscribeToEvents() {
     debug "subscribing to events", "trace", 1
-	subscribe(theThermostat, "nestThermostatMode", eventHandler)
-    subscribe(location, "mode", modeChangeHandler)
+	subscribe(theThermostat, "nestThermostatMode", handleThermostatChange)
+    subscribe(theThermostat, "thermostatSetpoint", handleThermostatChange)
+    //subscribe(location, "mode", modeChangeHandler) //TODO: is there anything to do on mode change?
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
     debug "subscriptions complete", "trace", -1
 }
@@ -176,15 +182,26 @@ def subscribeToEvents() {
 //   --------------------------
 //   ***   EVENT HANDLERS   ***
 
-def eventHandler(evt) {
-	debug "${theThermostat.nestThermostatMode}"
-    /*if (sendPush) {
-    	sendNotification(evt.description)
+def handleThermostatChange(evt) {
+	debug "thermostat event triggered: ${evt.descriptionText}", "trace", 1
+    debug "thermostat: ${theThermostat.label}"
+	debug "mode: ${theThermostat.currentNestThermostatMode}"
+    debug "setpoint: ${theThermostat.currentThermostatSetpoint}"
+    debug "temp: ${theThermostat.currentTemperature}"
+    
+    //take appropriate action based on type of event detected
+    if (evt.descriptionText.contains("Nest HVAC mode is")) {
+    	debug "nestThermostatMode event detected"
+        notifyMode()
+    } else if (evt.descriptionText.contains("thermostatSetpoint")) {
+    	debug "thermostatSetpoint event detected"
+        notifySetpoint()
+    } else {
+    	debug "other event detected"
     }
-    if (sendSMS) {
-    	sendText(evt.description)
-    }*/
-}
+    
+    debug "thermostat event handler complete", "trace", -1
+	}
 
 def locationPositionChange(evt) {
     debug "locationPositionChange(${evt.descriptionText})", "warn"
@@ -201,16 +218,37 @@ def modeChangeHandler(evt) {
 //   -------------------
 //   ***   METHODS   ***
 
-def sendNotification(strMsg) {
-	debug "executing sendNotification()", "trace", 1
-    sendPush(strMsg)
-    debug "sendNotification() complete", "trace", -1
+def notifyMode() {
+	debug "executing notifyMode()", "trace", 1
+	if (chkMode) {
+        def msg = "Nest thermostat mode changed to '${theThermostat.currentNestThermostatMode}'"
+        sendNotification(msg)
+    } else {
+    	debug "notifications not enabled for thermostat mode changes"
+    }
+    debug "notifyMode() complete", "trace", -1
 }
 
-def sendText(strMsg) {
-    debug "executing sendText(msg: ${strMsg})", "trace", 1
-	sendSms(phone, strMsg)
-    debug "sendText() complete", "trace", -1
+def notifySetpoint() {
+	debug "executing notifySetpoint()", "trace", 1
+	if (chkTemp) {
+    	def msg = "Nest thermostat setpoint changed to ${theThermostat.currentThermostatSetpoint}°"
+        sendNotification(msg)
+    } else {
+    	debug "notifications not enabled for thermostat setpoint changes"
+    }
+    debug "notifySetpoint() complete", "trace", -1
+}
+
+def sendNotification(msg) {
+	debug "executing sendNotification()", "trace", 1
+    if (sendPush) {
+    	sendPush(msg)
+    }
+    if (sendSMS) {
+    	sendSms(phone, msg)
+    }
+    debug "sendNotification() complete", "trace", -1
 }
 
 
@@ -306,99 +344,3 @@ def debug(message, lvl = null, shift = null, err = null) {
 		log.debug "$prefix$message", err
 	}
 }
-
-
-/* from original code
-preferences {
-	section("Send this message (optional, sends standard status message if not specified)"){
-		input "messageText", "text", title: "Message Text", required: false
-	}
-	section("Via a push notification and/or an SMS message"){
-		input("recipients", "contact", title: "Send notifications to") {
-			input "phone", "phone", title: "Enter a phone number to get SMS", required: false
-			paragraph "If outside the US please make sure to enter the proper country code"
-			input "pushAndPhone", "enum", title: "Notify me via Push Notification", required: false, options: ["Yes", "No"]
-		}
-	}
-	section("Minimum time between messages (optional, defaults to every message)") {
-		input "frequency", "decimal", title: "Minutes", required: false
-	}
-}
-
-def eventHandler(evt) {
-	log.debug "Notify got evt ${evt}"
-	if (frequency) {
-		def lastTime = state[evt.deviceId]
-		if (lastTime == null || now() - lastTime >= frequency * 60000) {
-			sendMessage(evt)
-		}
-	}
-	else {
-		sendMessage(evt)
-	}
-}
-
-private sendMessage(evt) {
-	String msg = messageText
-	Map options = [:]
-
-	if (!messageText) {
-		msg = defaultText(evt)
-		options = [translatable: true, triggerEvent: evt]
-	}
-	log.debug "$evt.name:$evt.value, pushAndPhone:$pushAndPhone, '$msg'"
-
-	if (location.contactBookEnabled) {
-		sendNotificationToContacts(msg, recipients, options)
-	} else {
-		if (phone) {
-			options.phone = phone
-			if (pushAndPhone != 'No') {
-				log.debug 'Sending push and SMS'
-				options.method = 'both'
-			} else {
-				log.debug 'Sending SMS'
-				options.method = 'phone'
-			}
-		} else if (pushAndPhone != 'No') {
-			log.debug 'Sending push'
-			options.method = 'push'
-		} else {
-			log.debug 'Sending nothing'
-			options.method = 'none'
-		}
-		sendNotification(msg, options)
-	}
-	if (frequency) {
-		state[evt.deviceId] = now()
-	}
-}
-
-private defaultText(evt) {
-	if (evt.name == 'presence') {
-		if (evt.value == 'present') {
-			if (includeArticle) {
-				'{{ triggerEvent.linkText }} has arrived at the {{ location.name }}'
-			}
-			else {
-				'{{ triggerEvent.linkText }} has arrived at {{ location.name }}'
-			}
-		} else {
-			if (includeArticle) {
-				'{{ triggerEvent.linkText }} has left the {{ location.name }}'
-			}
-			else {
-				'{{ triggerEvent.linkText }} has left {{ location.name }}'
-			}
-		}
-	} else {
-		'{{ triggerEvent.descriptionText }}'
-	}
-}
-
-private getIncludeArticle() {
-	def name = location.name.toLowerCase()
-	def segs = name.split(" ")
-	!(["work","home"].contains(name) || (segs.size() > 1 && (["the","my","a","an"].contains(segs[0]) || segs[0].endsWith("'s"))))
-}
-*/
