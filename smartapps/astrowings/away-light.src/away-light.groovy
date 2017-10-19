@@ -15,9 +15,10 @@
  *
  *
  *	VERSION HISTORY										*/
- 	 private versionNum() { return "version 2.21" }
-     private versionDate() { return "09-Jan-2017" }		/*
+ 	 private versionNum() { return "version 2.30" }
+     private versionDate() { return "18-Oct-2017" }		/*
  *
+ *    v2.30 (18-Oct-2017) - add call to terminate() method to turn light off when mode changes to one that isn't enabled
  *    v2.21 (09-Jan-2017) - add schedule to run schedTurnOn() daily
  *    v2.20 (29-Dec-2016) - add user-configurable activation delay after mode changes
  *	  v2.10 (14-Nov-2016) - create reinit() method to allow parent to re-initialize all child apps
@@ -220,6 +221,7 @@ def modeChangeHandler(evt) {
     } else {
         debug "mode changed to ${location.currentMode}; cancelling scheduled tasks"
         unschedule()
+        terminate()
     }
     debug "modeChangeHandler complete", "trace"
 }
