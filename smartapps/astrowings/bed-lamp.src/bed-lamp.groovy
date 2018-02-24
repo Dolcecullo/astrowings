@@ -15,9 +15,10 @@
  *
  *
  *	VERSION HISTORY										*/
- 	 private versionNum() {	return "version 1.02" }
-     private versionDate() { return "26-Mar-2017" }		/*
+ 	 private versionNum() {	return "version 1.10" }
+     private versionDate() { return "24-Feb-2018" }		/*
  *
+ *    v1.10 (24-Feb-2018) - added option to turn lights on in the morning
  *    v1.02 (26-Mar-2017) - removed unused reference to pageSchedule from preferences section
  *    v1.01 (01-Jan-2017) - added call to timeCheck() during initialization
  *                        - moved 'thePeople' input to pageSettings
@@ -91,6 +92,12 @@ def pageSettings() {
                 input "sunsetOffset", "number", title: "Sunset offset time", description: "How many minutes?", range: "0..180", required: false
             }
    		}
+        section("You can also have the lights turn on for a set amount of time in the morning (i.e. when the mode changes from Night to Home).") {
+        	input "morningOn", "bool", title: "Turn on in the morning?", required: false, submitOnChange: true
+            if (morningOn) {
+            	input "morningDuration", "number", title: "How many minutes?", description: "description", range: "1..60", required: true
+            }
+        }
         section("Optionally, you can choose to enable this SmartApp only when selected persons are home; if none selected, it will run whenever the mode is set to Home.") {
             input "thePeople", "capability.presenceSensor", title: "Who?", description: "Only when these persons are home", multiple: true, required: false
         }
@@ -169,6 +176,7 @@ def uninstalled() {
 
 def initialize() {
     state.debugLevel = 0
+    state.lastMode = location.mode
     debug "initializing", "trace", 1
     subscribeToEvents()
     if (presetOnTime) { //if the user set an ON time, schedule the switch
@@ -204,13 +212,18 @@ def locationPositionChange(evt) {
 }
 
 def modeChangeHandler(evt) {
-	debug "modeChangeHandler event: ${evt.descriptionText}", "trace"
+	debug "modeChangeHandler event: from ${state.lastMode} to ${evt.value}", "trace"
+    if (isMorning && morningOn) {
+		runIn(morningDuration*60, turnOff)
+        turnOn()
+	}
     if (modeOk) {
     	timeCheck()
     } else {
     	turnOff()
     }
-    debug "modeChangeHandler complete", "trace"
+	debug "modeChangeHandler complete, setting lastMode to ${state.lastMode}", "trace"
+    state.lastMode = evt.value
 }
 
 //   -------------------
@@ -269,6 +282,13 @@ def getPresenceOk() {
             }
 		}
     }
+    return result
+}
+
+def getIsMorning() {
+	def nowMode = location.mode
+    def lastMode = state.lastMode
+    def result = (lastMode == "Night" && nowMode == "Home") ? true : false
     return result
 }
 
