@@ -15,9 +15,10 @@
  *
  *
  *	VERSION HISTORY										*/
- 	 private versionNum() {	return "version 2.00" }
-     private versionDate() { return "15-Nov-2016" }		/*
+ 	 private versionNum() {	return "version 2.10" }
+     private versionDate() { return "20-Apr-2018" }		/*
  *
+ *    v2.10 (20-Apr-2018) - updated condition used to detect when the door is unlocked using the keypad
  *    v2.00 (15-Nov-2016) - code improvement: store images on GitHub, use getAppImg() to display app images
  *                        - added option to disable icons
  *                        - added option to disable multi-level logging
@@ -213,7 +214,7 @@ def unlockHandler(evt) {
     debug "unlockHandler event: ${evt.descriptionText}", "trace", 1
     if (darkOk) {
     	def unlockText = evt.descriptionText
-        if (unlockText.contains("was unlocked with code")) {
+        if (!unlockText.contains("manually")) {
             debug "calling to turn the lights on"
             switchOn()
         } else {
