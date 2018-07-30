@@ -18,6 +18,7 @@
  	 private versionNum() {	return "version 2.00" }
      private versionDate() { return "15-Nov-2016" }     /*
  *
+ *    v2.01 (30-Jul-2018) - display app info as section label instead of para
  *    v2.00 (15-Nov-2016) - code improvement: store images on GitHub, use getAppImg() to display app images
  *                        - added option to disable icons
  *                        - added option to disable multi-level logging
@@ -82,10 +83,9 @@ private		readmeLink()			{ return "https://github.com/astrowings/SmartThings/blob
 
 def pageMain() {
     dynamicPage(name: "pageMain", install: true, uninstall: false) {
-    	section(){
-        	paragraph "", title: "This SmartApp turns on selected lights at sunset and turns them off at a specified time." +
+    	section("This SmartApp turns on selected lights at sunset and turns them off at a specified time." +
             	"Different turn-off times can be configured for each day of the week, and they can be " +
-                "randomized within a specified window to simulate manual operation."
+                "randomized within a specified window to simulate manual operation."){
         }
         section() {
             input "theLights", "capability.switch", title: "Which lights?", description: "Choose the lights to turn on", multiple: true, required: true, submitOnChange: true
@@ -154,7 +154,7 @@ def pageRandom() {
             input "onDelay", "bool", title: "Delay switch-on?", required: false, submitOnChange: true, defaultValue: true
             input "offDelay", "bool", title: "Delay switch-off?", required: false, submitOnChange: true, defaultValue: true
             if (onDelay || offDelay) {
-            	input "delaySeconds", "number", title: "Switching delay", description: "choose 1-60 seconds", required: true, defaultValue: 5, range: "1..60"
+            	input "delaySeconds", "number", title: "Switching delay up to?", description: "choose 1-60 seconds random delay", required: true, defaultValue: 5, range: "1..60"
             }
         }
 	}
