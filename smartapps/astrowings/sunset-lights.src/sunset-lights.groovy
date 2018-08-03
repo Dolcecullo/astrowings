@@ -374,7 +374,7 @@ def scheduleTurnOff(sunriseString) {
         datOff = new Date(datOff.time - (offRand * 30000) + (randOffset * 60000)) //subtract half the random window (converted to ms) then add the random factor (converted to ms)
 	}
     
-    state.turnOff = datOff.time //store the scheduled OFF time in State so we can use it later to compare it to the ON time
+    state.schedOffTime = datOff.time //store the scheduled OFF time in State so we can use it later to compare it to the ON time
 	debug "scheduling lights OFF for: ${datOff}", "info"
     runOnce(datOff, turnOff, [overwrite: false]) //schedule this to run once (it will trigger again at next sunrise)
     debug "scheduleTurnOff() complete", "trace", -1
@@ -389,7 +389,7 @@ def turnOn() {
 	
     def minTimeOn = C_MIN_TIME_ON()
     def nowTime = now() + (minTimeOn * 60 * 1000) //making sure lights will stay on for at least 'minTimeOn'
-    def offTime = state.turnOff //retrieving the turn-off time from State
+    def offTime = state.schedOffTime //retrieving the turn-off time from State
     if (offTime < nowTime) {
 		debug "scheduled turn-off time has already passed; turn-on cancelled", "info"
 	} else {
@@ -436,13 +436,12 @@ def getDefaultTurnOffTime() {
     if (timeOff) {
         def offDate = timeTodayAfter(new Date(), timeOff, location.timeZone) //convert preset time to today's date
        	debug "default turn-off time: $offDate"
-        debug "finished evaluating defaultTurnOffTime", "trace", -1
         return offDate
     } else {
         debug "default turn-off time not specified"
-        debug "finished evaluating defaultTurnOffTime", "trace", -1
         return false
 	}
+    debug "finished evaluating defaultTurnOffTime", "trace", -1
 }
 
 def getWeekdayTurnOffTime() {
@@ -475,13 +474,12 @@ def getWeekdayTurnOffTime() {
 	if (offDOWtime) {
     	def offDOWdate = timeTodayAfter(new Date(), offDOWtime, location.timeZone)
        	debug "DOW turn-off time: $offDOWdate"
-        debug "finished evaluating weekdayTurnOffTime", "trace", -1
         return offDOWdate
     } else {
     	debug "DOW turn-off time not specified"
-        debug "finished evaluating weekdayTurnOffTime", "trace", -1
         return false
     }
+    debug "finished evaluating weekdayTurnOffTime", "trace", -1
 }
 
 
