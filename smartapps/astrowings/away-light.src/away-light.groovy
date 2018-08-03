@@ -257,7 +257,7 @@ def schedTurnOn(offForDelay) {
         def onDate = schedOnDate()
         def nowDate = new Date()
         
-        //set a delay of up to 2 min to be applied if requesting to turn on now
+        //set a delay of up to 2 min to be applied if requesting to turn on now | TODO: move to constant
         def maxDelay = 2 * 60 * 1000
         def delayOnNow = random.nextInt(maxDelay)
         
