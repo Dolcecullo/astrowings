@@ -18,6 +18,8 @@
  	 private versionNum() {	return "version 2.00" }
      private versionDate() { return "15-Nov-2016" }     /*
  *
+ *    v2.02 (03-Aug-2018) - use sunrise offset constant in calculation of turn-off time
+ *                        - move random time calculation from weekdayTurnOffTime/defaultTurnOffTime to scheduleTurnOff
  *    v2.01 (30-Jul-2018) - display app info as section label instead of para
  *    v2.00 (15-Nov-2016) - code improvement: store images on GitHub, use getAppImg() to display app images
  *                        - added option to disable icons
@@ -143,8 +145,8 @@ def pageRandom() {
     	section("Specify a window around the scheduled time when the lights will turn on/off " +
         	"(e.g. a 30-minute window would have the lights switch sometime between " +
             "15 minutes before and 15 minutes after the scheduled time.)") {
-            input "randOn", "number", title: "Random ON window (minutes)?", required: false, defaultValue: 8
-            input "randOff", "number", title: "Random OFF window (minutes)?", required: false, defaultValue: 25
+            input "onRand", "number", title: "Random ON window (minutes)?", required: false, defaultValue: 8
+            input "offRand", "number", title: "Random OFF window (minutes)?", required: false, defaultValue: 25
         }
         section("The settings above are used to randomize preset times such that lights will " +
         	"turn on/off at slightly different times from one day to another, but if multiples lights " +
@@ -247,11 +249,11 @@ def getSchedOptionsDesc() {
 def getRandomOptionsDesc() {
     def delayType = (onDelay && offDelay) ? "on & off" : (onDelay ? "on" : "off")
     def strDesc = ""
-    strDesc += (randOn || randOff)	? " • Random window:\n" : ""
-    strDesc += randOn				? "   └ turn on:  +/-${randOn/2} minutes\n" : ""
-    strDesc += randOn				? "   └ turn off: +/-${randOff/2} minutes\n" : ""
+    strDesc += (onRand || offRand)	? " • Random window:\n" : ""
+    strDesc += onRand				? "   └ turn on:  +/-${onRand/2} minutes\n" : ""
+    strDesc += offRand				? "   └ turn off: +/-${offRand/2} minutes\n" : ""
     strDesc += delaySeconds			? " • Light-light delay: ${delaySeconds} seconds\n    (when switching ${delayType})" : ""
-    return (randOn || randOff || delaySeconds) ? strDesc : "Tap to configure random settings..."
+    return (onRand || offRand || delaySeconds) ? strDesc : "Tap to configure random settings..."
 }
 
 
@@ -324,47 +326,57 @@ def scheduleTurnOn(sunsetString) {
 	
     def datSunset = Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", sunsetString)
     debug "sunset date: ${datSunset}"
-
     //calculate the offset
     def offsetTurnOn = sunsetOffset ? sunsetOffset * 60 * 1000 : 0 //convert offset to ms
 	def datTurnOn = new Date(datSunset.time + offsetTurnOn)
 
     //apply random factor
-    if (randOn) {
+    if (onRand) {
+        debug "Applying random factor to the turn-on time", "info"
         def random = new Random()
-        def randOffset = random.nextInt(randOn)
-        datTurnOn = new Date(datTurnOn.time - (randOn * 30000) + (randOffset * 60000))
+        def randOffset = random.nextInt(onRand)
+        datTurnOn = new Date(datTurnOn.time - (onRand * 30000) + (randOffset * 60000)) //subtract half the random window (converted to ms) then add the random factor (converted to ms)
 	}
     
-	//schedule this to run once (it will trigger again at next sunset)
 	debug "scheduling lights ON for: ${datTurnOn}", "info"
-    runOnce(datTurnOn, turnOn, [overwrite: false])
+    runOnce(datTurnOn, turnOn, [overwrite: false]) //schedule this to run once (it will trigger again at next sunset)
     debug "scheduleTurnOn() complete", "trace", -1
 }
 
 def scheduleTurnOff(sunriseString) {
+//schedule next day's turn-off
     debug "executing scheduleTurnOff(sunriseString: ${sunriseString})", "trace", 1
-    def DOW_TurnOff = weekdayTurnOffTime
-    def default_TurnOff = defaultTurnOffTime
-    def datTurnOff
+    def datOffDOW = weekdayTurnOffTime
+    def datOffDefault = defaultTurnOffTime
+    def datOff
 
     //select which turn-off time to use (1st priority: weekday-specific, 2nd: default, 3rd: sunrise)
-    if (DOW_TurnOff) {
+    if (datOffDOW) {
     	debug "using the weekday turn-off time", "info"
-        datTurnOff = DOW_TurnOff
-    } else if (default_TurnOff) {
+        datOff = datOffDOW
+    } else if (datOffDefault) {
     	debug "using the default turn-off time", "info"
-    	datTurnOff = default_TurnOff
+    	datOff = datOffDefault
     } else {
     	debug "user didn't specify turn-off time; using sunrise time", "info"
         def datSunrise = Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", sunriseString)
-        debug "sunrise date : $datSunrise"
+        //calculate the offset
         def sunriseOffset = C_SUNRISE_OFFSET()
-        datTurnOff = new Date(datSunrise.time + (15 * 60 * 1000)) //apply sunrise offset
+		def sunriseOffsetMS = sunriseOffset ? sunriseOffset * 60 * 1000 : 0 //convert offset to ms
+        datOff = new Date(datSunrise.time + sunriseOffsetMS)
     }
-    state.turnOff = datTurnOff.time //store the scheduled OFF time in State so we can use it later to compare it to the ON time
-	debug "scheduling lights OFF for: ${datTurnOff}", "info"
-    runOnce(datTurnOff, turnOff, [overwrite: false])
+    
+    //apply random factor
+    if (offRand) {
+        debug "Applying random factor to the turn-off time", "info"
+        def random = new Random()
+        def randOffset = random.nextInt(offRand)
+        datOff = new Date(datOff.time - (offRand * 30000) + (randOffset * 60000)) //subtract half the random window (converted to ms) then add the random factor (converted to ms)
+	}
+    
+    state.turnOff = datOff.time //store the scheduled OFF time in State so we can use it later to compare it to the ON time
+	debug "scheduling lights OFF for: ${datOff}", "info"
+    runOnce(datOff, turnOff, [overwrite: false]) //schedule this to run once (it will trigger again at next sunrise)
     debug "scheduleTurnOff() complete", "trace", -1
 }
 
@@ -422,20 +434,10 @@ def turnOff() {
 def getDefaultTurnOffTime() {
 	debug "start evaluating defaultTurnOffTime", "trace", 1
     if (timeOff) {
-    	//convert preset time to today's date
-        def default_TurnOffTime = timeTodayAfter(new Date(), timeOff, location.timeZone)
-        
-        //apply random factor to turnoff time
-        if (randOff) {
-	    	def random = new Random()
-			def randOffset = random.nextInt(randOff)
-            default_TurnOffTime = new Date(default_TurnOffTime.time - (randOff * 30000) + (randOffset * 60000))
-            debug "randomized default turn-off time: $default_TurnOffTime"
-        } else {
-        	debug "default turn-off time: $default_TurnOffTime"
-        }
+        def offDate = timeTodayAfter(new Date(), timeOff, location.timeZone) //convert preset time to today's date
+       	debug "default turn-off time: $offDate"
         debug "finished evaluating defaultTurnOffTime", "trace", -1
-        return default_TurnOffTime
+        return offDate
     } else {
         debug "default turn-off time not specified"
         debug "finished evaluating defaultTurnOffTime", "trace", -1
@@ -445,45 +447,36 @@ def getDefaultTurnOffTime() {
 
 def getWeekdayTurnOffTime() {
     //calculate weekday-specific offtime
-    //this executes at sunrise, so when the sun rises on Tuesday, it will
+    //this executes at sunrise (called from scheduleTurnOff),
+    //so when the sun rises on Tuesday, it will
     //schedule the lights' turn-off time for Tuesday night
 	debug "start evaluating weekdayTurnOffTime", "trace", 1
 
 	def nowDOW = new Date().format("E") //find out current day of week
 
     //find out the preset (if entered) turn-off time for the current weekday
-    def DOW_Off
+    def offDOWtime
     if (sundayOff && nowDOW == "Sun") {
-        DOW_Off = sundayOff
+        offDOWtime = sundayOff
     } else if (mondayOff && nowDOW == "Mon") {
-        DOW_Off = mondayOff
+        offDOWtime = mondayOff
     } else if (tuesdayOff && nowDOW == "Tue") {
-        DOW_Off = tuesdayOff
+        offDOWtime = tuesdayOff
     } else if (wednesdayOff && nowDOW == "Wed") {
-        DOW_Off = wednesdayOff
+        offDOWtime = wednesdayOff
     } else if (thursdayOff && nowDOW == "Thu") {
-        DOW_Off = thursdayOff
+        offDOWtime = thursdayOff
     } else if (fridayOff && nowDOW == "Fri") {
-        DOW_Off = fridayOff
+        offDOWtime = fridayOff
     } else if (saturdayOff && nowDOW == "Sat") {
-        DOW_Off = saturdayOff
+        offDOWtime = saturdayOff
     }
 
-	if (DOW_Off) {
-    	//convert preset time to today's date
-    	def DOW_TurnOffTime = timeTodayAfter(new Date(), DOW_Off, location.timeZone)
-        
-        //apply random factor to turnoff time
-		if (randOff) {
-        	def random = new Random()
-            def randOffset = random.nextInt(randOff)
-            DOW_TurnOffTime = new Date(DOW_TurnOffTime.time - (randOff * 30000) + (randOffset * 60000))
-            debug "randomized DOW turn-off time: $DOW_TurnOffTime"
-        } else {
-        	debug "DOW turn-off time: $DOW_TurnOffTime"
-        }
+	if (offDOWtime) {
+    	def offDOWdate = timeTodayAfter(new Date(), offDOWtime, location.timeZone)
+       	debug "DOW turn-off time: $offDOWdate"
         debug "finished evaluating weekdayTurnOffTime", "trace", -1
-        return DOW_TurnOffTime
+        return offDOWdate
     } else {
     	debug "DOW turn-off time not specified"
         debug "finished evaluating weekdayTurnOffTime", "trace", -1
