@@ -57,8 +57,7 @@ private		C_SUNRISE_OFFSET()		{ return -30 }			//offset used for sunrise time cal
 private		C_MIN_TIME_ON()			{ return 15 }			//value to use when scheduling turnOn to make sure lights will remain on for at least this long (minutes) before the scheduled turn-off time
 private		C_MIN_DIM_DURATION()	{ return 5 }			//minimum duration for temporary dim event (seconds)
 private		appImgPath()			{ return "https://raw.githubusercontent.com/astrowings/SmartThings/master/images/" }
-private		readmeLink()			{ return "https://github.com/astrowings/SmartThings/blob/master/smartapps/astrowings/sunset-lights.src/readme.md" } //TODO: update link
-
+private		readmeLink()			{ return "https://github.com/astrowings/SmartThings/blob/master/smartapps/astrowings/yard-lights.src/readme.md" }
 
 //   -----------------------------
 //   ***   PAGES DEFINITIONS   ***
@@ -70,7 +69,7 @@ def pageMain() {
                 "application does, but I also wanted to be able to program certain conditions to adjust " +
                 "the brightness so as not to inconvenience neighbours, while still getting good lighting when needed.\n\n" +
                 "This SmartApp turns on selected lights at sunset and turns them off at a specified time. " +
-            	"Different turn-off times can be configured for each day of the week, and they can be " +
+            	"Different on/off times can be configured for each day of the week, and they can be " +
                 "randomized within a specified window to simulate manual operation. This SmartApp also supports " +
                 "dimmers and can be configured to adjust the brightness of selected lights based on various conditions."){
         }
@@ -98,7 +97,7 @@ def pageOn() {
         }
         //TODO: use illuminance-capable device instead of sunrise/sunset to detect darkness
         section("Set the initial brightness setting for when the lights get turned on (optional - defaults to 100% if not set).") {
-        	input "onDim", "number", title: "Initial brightness", description: "Brightness level (0 - 100)?", range: "0..100", required: false, defaultValue: 100
+        	input "onDimLvl", "number", title: "Initial brightness", description: "Brightness level (0 - 100)?", range: "0..100", required: false, defaultValue: 100
         }
         section("Set the amount of time before/after sunset when the lights will turn on " +
         		"(e.g. use '-20' to enable lights 20 minutes before sunset; " +
@@ -158,8 +157,9 @@ def pageOff() {
 	}
 }
 
-def pageDim() { //TODO: check that all prefs are being applied in the methods
+def pageDim() {
 	dynamicPage(name: "pageDim", install: false, uninstall: false) {
+        def minDimDuration = C_MIN_DIM_DURATION()
     	section(){
         	paragraph title: "Brightness Adjustments", "Use the options on this page to set the conditions that will affect brightness level. " +
             	"The various settings are listed in increasing priority order (i.e. the brightness setting based on motion will be applied even if outside the time window)."
@@ -169,22 +169,22 @@ def pageDim() { //TODO: check that all prefs are being applied in the methods
                 "turn-on time until the 'To' time, at which point it will revert to the default turn-on brightness. You can " +
                 "also chose to apply a random on/off window to these settings (e.g. a 10-minute window would have the brightness " +
                 "adjustment occur sometime between 5 minutes before and 5 minutes after the scheduled time.)") {
-        	input "timeDimTimeLvl", "number", title: "Brightness during time window", description: "Brightness level (0 - 100)?", range: "0..100", required: false, defaultValue: 100
+        	input "timeDimLvl", "number", title: "Brightness during time window", description: "Brightness level (0 - 100)?", range: "0..100", required: false, defaultValue: 100
             input "timeDimFrom", "time", title: "From", description: "Starting when?", required: false
             input "timeDimTo", "time", title: "To", description: "Until when?", required: false
             input "timeDimRand", "number", title: "Random window (minutes)?", description: "Set random window", required: false, defaultValue: 10
         }
         section("Adjust brightness when a door is open.") {
-        	input "doorDimLvl", "number", title: "Brightness when door open", description: "Brightness level (0 - 100)?", range: "0..100", required: false, defaultValue: 100
+            input "doorDimLvl", "number", title: "Brightness when door open", description: "Brightness level (0 - 100)?", range: "0..100", required: false, defaultValue: 100
             input "doorDimSensors", "capability.contactSensor", title: "Open/Close Sensors", description: "Select which door(s)", multiple: true, required: false
             input "doorDimDelayAfterClose", "number", title: "Reset brightness x seconds after doors close", description: "Seconds (0 - 300)?", range: "0..300", required: false, defaultValue: 5
-            input "doorDimDelayFixed", "number", title: "Reset brightness after fixed delay (overrides previous setting)", description: "Seconds (0 - 300)?", range: "0..300", required: false
+            input "doorDimDelayFixed", "number", title: "Reset brightness after fixed delay (overrides previous setting)", description: "Seconds (${minDimDuration} - 300)?", range: "${minDimDuration}..300", required: false
         }
         section("Adjust brightness when motion is detected.") {
         	input "motionDimLvl", "number", title: "Brightness when motion detected", description: "Brightness level (0 - 100)?", range: "0..100", required: false, defaultValue: 100
             input "motionDimSensors", "capability.motionSensor", title: "Motion Sensors", description: "Select which sensor(s)", multiple: true, required: false
             input "motionDimDelayAfterStop", "number", title: "Reset brightness x seconds after motion stops", description: "Seconds (0 - 300)?", range: "0..300", required: false, defaultValue: 5
-            input "motionDimDelayFixed", "number", title: "Reset brightness after fixed delay (overrides previous setting)", description: "Seconds (0 - 300)?", range: "0..300", required: false
+            input "motionDimDelayFixed", "number", title: "Reset brightness after fixed delay (overrides previous setting)", description: "Seconds (${minDimDuration} - 300)?", range: "${minDimDuration}..300", required: false
         }
     }
 }
@@ -205,8 +205,7 @@ def pageSettings() {
 def pageAbout() {
 	dynamicPage(name: "pageAbout", title: "About this SmartApp", install: false, uninstall: false) { //with 'install: false', clicking 'Done' goes back to previous page
 		section() {
-        	//TODO: uncomment line below once link has been verified
-            //href url: readmeLink(), title: app.name, description: "Copyright ©2016 Phil Maynard\n${versionNum()}", image: getAppImg("readme-icn.png")
+            href url: readmeLink(), title: app.name, description: "Copyright ©2016 Phil Maynard\n${versionNum()}", image: getAppImg("readme-icn.png")
             href url: urlApache(), title: "License", description: "View Apache license", image: getAppImg("license-icn.png")
 		}
     }
@@ -248,20 +247,78 @@ def pageUninstall() {
 //   ***   PAGES SUPPORT METHODS   ***
 
 def getOnConfigDesc() {
-    //TODO: define strDesc
-    def strDesc = "Turn-on config summary"
+    def strDefaultOn = onDefaultTime?.substring(11,16)
+    def strSundayOn = onSunday?.substring(11,16)
+    def strMondayOn = onMonday?.substring(11,16)
+    def strTuesdayOn = onTuesday?.substring(11,16)
+    def strWednesdayOn = onWednesday?.substring(11,16)
+    def strThursdayOn = onThursday?.substring(11,16)
+    def strFridayOn = onFriday?.substring(11,16)
+    def strSaturdayOn = onSaturday?.substring(11,16)
+    def onTimeOk = onDefaultTime || onSunday || onMonday || onTuesday || onWednesday || onThursday || onFriday || onSaturday
+    def strDesc = ""
+        strDesc += onDimLvl        ? " • Initial brightness: ${onDimLvl} %\n" : ""
+        strDesc += onSunsetOffset  ? " • Sunset offset: ${onSunsetOffset} minutes\n" : ""
+        strDesc += onTimeOk        ? " • Turn-on time:" : " • Turn-on time not specified;\n    lights will come on at sunset."
+        strDesc += onDefaultTime   ? " ${strDefaultOn}\n" : "\n"
+        strDesc += onSunday	       ? "   └ sunday: ${strSundayOn}\n" : ""
+        strDesc += onMonday	       ? "   └ monday: ${strMondayOn}\n" : ""
+        strDesc += onTuesday       ? "   └ tuesday: ${strTuesdayOn}\n" : ""
+        strDesc += onWednesday     ? "   └ wednesday: ${strWednesdayOn}\n" : ""
+        strDesc += onThursday      ? "   └ thursday: ${strThursdayOn}\n" : ""
+        strDesc += onFriday        ? "   └ friday: ${strFridayOn}\n" : ""
+        strDesc += onSaturday      ? "   └ saturday: ${strSaturdayOn}\n" : ""
+        strDesc += onRand          ? " • Random window:\n    +/-${onRand/2} minutes" : ""
     return strDesc
 }
 
 def getOffConfigDesc() {
-    //TODO: define strDesc
-    def strDesc = "Turn-off config summary"
+    def sunriseOffset = C_SUNRISE_OFFSET()
+    def strDefaultOff = offDefaultTime?.substring(11,16)
+    def strSundayOff = offSunday?.substring(11,16)
+    def strMondayOff = offMonday?.substring(11,16)
+    def strTuesdayOff = offTuesday?.substring(11,16)
+    def strWednesdayOff = offWednesday?.substring(11,16)
+    def strThursdayOff = offThursday?.substring(11,16)
+    def strFridayOff = offFriday?.substring(11,16)
+    def strSaturdayOff = offSaturday?.substring(11,16)
+    def offTimeOk = offDefaultTime || offSunday || offMonday || offTuesday || offWednesday || offThursday || offFriday || offSaturday
+    def strDesc = ""
+        strDesc += offTimeOk        ? " • Turn-off time:" : " • Turn-off time not specified; lights will turn off ${sunriseOffset.abs()} minutes before sunrise."
+        strDesc += offDefaultTime   ? " ${strDefaultOff}\n" : "\n"
+        strDesc += offSunday        ? "   └ sunday: ${strSundayOff}\n" : ""
+        strDesc += offMonday        ? "   └ monday: ${strMondayOff}\n" : ""
+        strDesc += offTuesday       ? "   └ tuesday: ${strTuesdayOff}\n" : ""
+        strDesc += offWednesday     ? "   └ wednesday: ${strWednesdayOff}\n" : ""
+        strDesc += offThursday      ? "   └ thursday: ${strThursdayOff}\n" : ""
+        strDesc += offFriday        ? "   └ friday: ${strFridayOff}\n" : ""
+        strDesc += offSaturday      ? "   └ saturday: ${strSaturdayOff}\n" : ""
+        strDesc += offRand          ? " • Random window:\n    +/-${onRand/2} minutes" : ""
     return strDesc
 }
 
 def getDimConfigDesc() {
-    //TODO: define strDesc
-    def strDesc = "Brightness config summary"
+    def timeDimSet = (timeDimLvl && (timeDimFrom || timeDimTo))
+    def doorDimSet = (doorDimLvl && doorDimSensors && (doorDimDelayAfterClose || doorDimDelayFixed))
+    def motionDimSet = (motionDimLvl && motionDimSensors && (motionDimDelayAfterStop || motionDimDelayFixed))
+    def strTimeDimFrom = timeDimFrom?.substring(11,16)
+    def strTimeDimTo = timeDimTo?.substring(11,16)
+    def strDesc = ""
+    	strDesc += timeDimSet                                                        ? " • On time:\n" : ""
+        strDesc += timeDimSet                                                        ? "   └ dim level: ${timeDimLvl}%\n" : ""
+        strDesc += (timeDimSet && timeDimFrom)                                       ? "   └ from: ${strTimeDimFrom}\n" : ""
+        strDesc += (timeDimSet && timeDimTo)                                         ? "   └ until: ${strTimeDimTo}\n" : ""
+        strDesc += (timeDimSet && timeDimRand)                                       ? "   └ random: ${timeDimRand} minutes\n" : ""
+        strDesc += doorDimSet                                                        ? " • On door open:\n" : ""
+        strDesc += doorDimSet                                                        ? "   └ contacts: ${doorDimSensors?.size()} selected\n" : ""
+        strDesc += doorDimSet                                                        ? "   └ dim level: ${doorDimLvl}%\n" : ""
+        strDesc += (doorDimSet && doorDimDelayAfterClose && !doorDimDelayFixed)      ? "   └ until ${doorDimDelayAfterClose} seconds\n         after contacts close\n" : ""
+        strDesc += (doorDimSet && doorDimDelayFixed)                                 ? "   └ for ${doorDimDelayFixed} seconds\n" : ""
+        strDesc += motionDimSet                                                      ? " • On motion:\n" : ""
+        strDesc += motionDimSet                                                      ? "   └ sensors: ${motionDimSensors?.size()} selected\n" : ""
+        strDesc += motionDimSet                                                      ? "   └ dim level: ${motionDimLvl}%\n" : ""
+        strDesc += (motionDimSet && motionDimDelayAfterStop && !motionDimDelayFixed) ? "   └ until ${motionDimDelayAfterStop} seconds\n         after motion stops" : ""
+        strDesc += (motionDimSet && motionDimDelayFixed)                             ? "   └ for ${motionDimDelayFixed} seconds" : ""
     return strDesc
 }
 
@@ -287,8 +344,12 @@ def uninstalled() {
 }
 
 def initialize() {
-    state.debugLevel = 0
     debug "initializing", "trace", 1
+    state.debugLevel = 0
+    state.lightsOn = false
+    state.timeDimActive = false
+    state.schedOffTime = 0L
+    state.dimTime = 0L
 	subscribeToEvents()
 	scheduleTurnOn(location.currentValue("sunsetTime"))
     scheduleTurnOff(location.currentValue("sunriseTime"))
@@ -315,13 +376,19 @@ def subscribeToEvents() {
 //   ***   EVENT HANDLERS   ***
 
 def appTouch(evt) {
-	debug "appTouch event: ${evt.descriptionText}", "trace"
+	debug "appTouch event: ${evt.descriptionText}", "trace" //TODO: 'descriptionText' only displays '{{linkText}}'?
     initialize()
     debug "appTouch complete", "trace"
 }
 
 def doorHandler(evt) {
-	debug "doorHandler event: ${evt.descriptionText}", "trace"
+	debug "doorHandler event: ${evt.descriptionText}", "trace" //TODO: 'descriptionText' only displays '{{linkText}}'?
+    debug "doorHandler event raw description: ${evt.description}", "debug"
+    debug "doorHandler event description text: ${evt.descriptionText}", "debug"
+    debug "doorHandler event display name: ${evt.displayName}", "debug"
+    debug "doorHandler event source: ${evt.source}", "debug"
+    debug "doorHandler event value: ${evt.value}", "debug"
+    debug "doorHandler event string value: ${evt.stringValue}", "debug"
     if (evt.value == "open") {
     	doorOpen()
     } else if ((evt.value == "closed") && doorDimDelayAfterClose) {
@@ -331,7 +398,7 @@ def doorHandler(evt) {
 }
 
 def motionHandler(evt) {
-	debug "motionHandler event: ${evt.descriptionText}", "trace"
+	debug "motionHandler event: ${evt.descriptionText}", "trace" //TODO: 'descriptionText' only displays '{{linkText}}'?
     if (evt.value == "active") {
     	motionActive()
     } else if ((evt.value == "inactive") && motionDimDelayAfterStop) {
@@ -341,21 +408,21 @@ def motionHandler(evt) {
 }
 
 def sunsetTimeHandler(evt) {
-    debug "sunsetTimeHandler event: ${evt.descriptionText}", "trace"
+    debug "sunsetTimeHandler event: ${evt.descriptionText}", "trace" //TODO: 'descriptionText' only displays '{{linkText}}'?
     debug "next sunset will be ${evt.value}"
 	scheduleTurnOn(evt.value)
     debug "sunsetTimeHandler complete", "trace"
 }
 
 def sunriseTimeHandler(evt) {
-    debug "sunriseTimeHandler event: ${evt.descriptionText}", "trace"
+    debug "sunriseTimeHandler event: ${evt.descriptionText}", "trace" //TODO: 'descriptionText' only displays '{{linkText}}'?
     debug "next sunrise will be ${evt.value}"
     scheduleTurnOff(evt.value)
     debug "sunriseTimeHandler complete", "trace"
 }    
 
 def locationPositionChange(evt) {
-    debug "locationPositionChange(${evt.descriptionText})", "warn"
+    debug "locationPositionChange(${evt.descriptionText})", "warn" //TODO: 'descriptionText' only displays '{{linkText}}'?
 	initialize()
 }
 
@@ -364,7 +431,8 @@ def locationPositionChange(evt) {
 //   ***   METHODS   ***
 
 def scheduleTurnOn(sunsetString) {
-//schedule next day's turn-on
+	//schedule next day's turn-on
+    
     debug "executing scheduleTurnOn(sunsetString: ${sunsetString})", "trace", 1
     def datOnDOW = weekdayTurnOnTime
     def datOnDefault = defaultTurnOnTime
@@ -372,13 +440,13 @@ def scheduleTurnOn(sunsetString) {
 
     //select which turn-on time to use (1st priority: weekday-specific, 2nd: default, 3rd: sunset)
     if (datOnDOW) {
-    	debug "using the weekday turn-on time: ${datOnDOW}", "info"
+    	debug "using the weekday turn-on time: ${datOnDOW}", "debug"
         datOn = datOnDOW
     } else if (datOnDefault) {
-    	debug "using the default turn-on time: ${datOnDefault}", "info"
+    	debug "using the default turn-on time: ${datOnDefault}", "debug"
     	datOn = datOnDefault
     } else {
-    	debug "user didn't specify turn-on time; using sunset time", "info"
+    	debug "user didn't specify turn-on time; using sunset time", "debug"
         def datSunset = Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", sunsetString)
         //calculate the offset
         def offsetTurnOn = onSunsetOffset ? onSunsetOffset * 60 * 1000 : 0 //convert offset to ms
@@ -387,7 +455,7 @@ def scheduleTurnOn(sunsetString) {
     
     //apply random factor
     if (onRand) {
-        debug "Applying random factor to the turn-on time", "info"
+        debug "Applying random factor to the turn-on time", "debug"
         def random = new Random()
         def randOffset = random.nextInt(onRand)
         datOn = new Date(datOn.time - (onRand * 30000) + (randOffset * 60000)) //subtract half the random window (converted to ms) then add the random factor (converted to ms)
@@ -399,7 +467,8 @@ def scheduleTurnOn(sunsetString) {
 }
 
 def scheduleTurnOff(sunriseString) {
-//schedule next day's turn-off
+	//schedule next day's turn-off
+    
     debug "executing scheduleTurnOff(sunriseString: ${sunriseString})", "trace", 1
     def datOffDOW = weekdayTurnOffTime
     def datOffDefault = defaultTurnOffTime
@@ -407,13 +476,13 @@ def scheduleTurnOff(sunriseString) {
 
     //select which turn-off time to use (1st priority: weekday-specific, 2nd: default, 3rd: sunrise)
     if (datOffDOW) {
-    	debug "using the weekday turn-off time", "info"
+    	debug "using the weekday turn-off time", "debug"
         datOff = datOffDOW
     } else if (datOffDefault) {
-    	debug "using the default turn-off time", "info"
+    	debug "using the default turn-off time", "debug"
     	datOff = datOffDefault
     } else {
-    	debug "user didn't specify turn-off time; using sunrise time", "info"
+    	debug "user didn't specify turn-off time; using sunrise time", "debug"
         def datSunrise = Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", sunriseString)
         //calculate the offset
         def sunriseOffset = C_SUNRISE_OFFSET()
@@ -423,7 +492,7 @@ def scheduleTurnOff(sunriseString) {
     
     //apply random factor
     if (offRand) {
-        debug "Applying random factor to the turn-off time", "info"
+        debug "Applying random factor to the turn-off time", "debug"
         def random = new Random()
         def randOffset = random.nextInt(offRand)
         datOff = new Date(datOff.time - (offRand * 30000) + (randOffset * 60000)) //subtract half the random window (converted to ms) then add the random factor (converted to ms)
@@ -440,31 +509,32 @@ def turnOn() {
     //scheduled to turn on at 20:23 based on the sunset time, but the user had them set to turn
     //off at 20:00, the turn-off will fire before the lights are turned on. In that case, the
     //lights would still turn on at 20:23, but they wouldn't turn off until the next day at 20:00.
+    
     debug "executing turnOn()", "trace", 1
-	
     def onDelayS = C_ON_DELAY_S()
     def minTimeOn = C_MIN_TIME_ON()
     def onTime = now() + (minTimeOn * 60 * 1000) //making sure lights will stay on for at least 'minTimeOn'
     def offTime = state.schedOffTime //retrieving the turn-off time from State
     if (offTime < onTime) {
-		debug "scheduled turn-off time has already passed; turn-on cancelled", "info"
+		debug "scheduled turn-off time has already passed; turn-on cancelled", "debug"
 	} else {
-        debug "turning lights on", "info"
+        debug "turning lights on", "debug"
         def nextDelayMS = 0L //set-up the nextDelayMS variable that will be used to calculate a new time to turn on each light in the group
-        def onDelayMS = onDelayS ? onDelayS * 1000 : 5 //ensure delayMS != 0
+        def onDelayMS = onDelayS ? onDelayS * 1000 : 5 //ensure onDelayMS != 0
         def random = new Random()
         theDimmers.each { theDimmer ->
             if (theDimmer.currentSwitch != "on") {
-				debug "turning on the ${theDimmer.label} at ${onDim}% brightness in ${convertToHMS(nextDelayMS)}", "info"
-                theDimmer.setLevel(onDim, delay: nextDelayMS)
-                nextDelay += random.nextInt(onDelayMS) //calculate random delay before turning on next light
+				debug "turning on the ${theDimmer.label} at ${onDimLvl}% brightness in ${convertToHMS(nextDelayMS)}", "info"
+                theDimmer.setLevel(onDimLvl, delay: nextDelayMS)
+                nextDelayMS += random.nextInt(onDelayMS) //calculate random delay before turning on next light
             } else {
-            	debug "the ${theDimmer.label} is already on; doing nothing", "info"
+            	debug "the ${theDimmer.label} is already on; doing nothing", "debug"
             }
         }
        	if (timeDimLvl && (timeDimFrom || timeDimTo)) {
         	schedTimeDim() //schedule temporary brightness adjustment if configured
         }
+        state.lightsOn = true
     }
     debug "turnOn() complete", "trace", -1
 }
@@ -481,9 +551,10 @@ def turnOff() {
             theDimmer.off(delay: nextDelayMS)
             nextDelayMS += random.nextInt(offDelayMS) //calculate random delay before turning off next light
         } else {
-            debug "the ${theDimmer.label} is already off; doing nothing", "info"
+            debug "the ${theDimmer.label} is already off; doing nothing", "debug"
         }
     }
+    state.lightsOn = false
     debug "turnOff() complete", "trace", -1
 }
 
@@ -492,35 +563,30 @@ def schedTimeDim() {
     //to schedule the user-defined temporary brightness setting
 
     debug "executing schedDimStart()", "trace", 1
-    
     def minDimDuration = C_MIN_DIM_DURATION()
     def nowTime = now() + (minDimDuration * 60 * 1000) //making sure lights will stay on for at least 'minDimDuration'
     def datNow = new Date(nowTime)
     def datTimeDimFrom = timeDimFrom ? timeToday(timeDimFrom, location.timeZone) : null
     def datTimeDimTo = timeDimTo ? timeToday(timeDimTo, location.timeZone) : null
-    
     if (datTimeDimFrom && timeDimRand) {
     	//apply random factor to 'timeDimFrom'
-        debug "Applying random factor to the 'dim from' time", "info"
+        debug "Applying random factor to the 'dim from' time", "debug"
         def random = new Random()
         def randOffset = random.nextInt(timeDimRand)
         datTimeDimFrom = new Date(datTimeDimFrom.time - (timeDimRand * 30000) + (randOffset * 60000)) //subtract half the random window (converted to ms) then add the random factor (converted to ms)
     }
     if (datTimeDimTo && timeDimRand) {
     	//apply random factor to 'timeDimTo'
-        debug "Applying random factor to the 'dim to' time", "info"
+        debug "Applying random factor to the 'dim to' time", "debug"
         def random = new Random()
         def randOffset = random.nextInt(timeDimRand)
         datTimeDimTo = new Date(datTimeDimTo.time - (timeDimRand * 30000) + (randOffset * 60000)) //subtract half the random window (converted to ms) then add the random factor (converted to ms)
     }
-    
     def timeOk = datNow < datTimeDimTo //check that the scheduled end of the user-defined temporary brightness window hasn't passed yet
     if (!timeOk) {
-    	debug "the scheduled end of the user-defined temporary brightness window has passed", "info"
-        debug "schedDimStart() complete", "trace", -1
+    	debug "the scheduled end of the user-defined temporary brightness window has passed; doing nothing", "debug"
         return
     }
-        
     if (!timeDimFrom) {
         debug "dim start time not specified; applying temporary brightness setting now", "info"
         timeDimGo()
@@ -531,118 +597,176 @@ def schedTimeDim() {
     	debug "scheduling temporary brightness setting to occur at ${datTimeDimFrom}", "info"
         runOnce(datTimeDimFrom, timeDimGo)
     }
-    
     if (timeDimTo) {
         debug "scheduling temporary brightness setting to end at ${datTimeDimTo}", "info"
         runOnce(datTimeDimTo, dimDefault)
     }
-    
     debug "schedDimStart() complete", "trace", -1
 }
 
 def timeDimGo() {
-    debug "executing timeDimGo()", "trace", 1
+    def enable = state.lightsOn
+    if (!enable) {
+    	debug "state is not active; skipping timeDimGo()", "debug"
+        return
+    }
+	debug "executing timeDimGo()", "trace", 1
     theDimmers.each { theDimmer ->
 	    if (theDimmer.currentSwitch != "off") {
-        	debug "temporarily setting ${theDimmer.label} to ${timeDimTimeLvl}%", "info"
-            theDimmer.setLevel(timeDimTimeLvl)
+        	debug "temporarily setting ${theDimmer.label} to ${timeDimLvl}%", "info"
+            theDimmer.setLevel(timeDimLvl)
         }
     }
+    state.timeDimActive = true
     debug "timeDimGo() complete", "trace", -1
 }
 
 def dimDefault() {
+    def enable = state.lightsOn
+    if (!enable) {
+    	debug "state is not active; skipping dimDefault()", "debug"
+        return
+    }
     debug "executing dimDefault()", "trace", 1
     theDimmers.each { theDimmer ->
 	    if (theDimmer.currentSwitch != "off") {
-        	debug "end of temporary brightness adjustment;re-setting ${theDimmer.label} to ${onDim}%", "info"
-            theDimmer.setLevel(onDim)
+        	debug "end of timed brightness adjustment;re-setting ${theDimmer.label} to ${onDimLvl}%", "info"
+            theDimmer.setLevel(onDimLvl)
+        } else {
+        	debug "the ${theDimmer.label} is off; doing nothing", "debug"
         }
     }
+    state.timeDimActive = false
     debug "dimDefault() complete", "trace", -1
+}
+
+def dimReset() {
+    def enable = state.lightsOn
+    if (!enable) {
+    	debug "state is not active; skipping dimDefault()", "debug"
+        return
+    }
+    debug "executing dimReset()", "trace", 1
+    def timeDimActive = state.timeDimActive
+    if (timeDimActive) {
+    	debug "the triggered brightness period has ended; calling to restore the timed brightness adjustment", "info"
+        timeDimGo()
+    } else {
+    	debug "the triggered brightness period has ended; calling to restore the default brightness adjustment", "info"
+    	dimDefault()
+    }
+    debug "dimReset() complete", "trace", -1
 }
 
 def motionActive() {
     //called from motionHandler when motion is active
     //to apply temporary brightness setting
-    debug "executing motionActive()", "trace", 1
-
+    def enable = state.lightsOn
+    if (!enable) {
+    	debug "state is not active; skipping motionActive()", "debug"
+        return
+    }
+    debug "executing motionActive()", "trace", 1 //TODO: specify which sensor detected the motion
+    state.dimTime = now() //store current time to use later in ensuring MIN_DIM_DURATION()
     theDimmers.each { theDimmer ->
 	    if (theDimmer.currentSwitch != "off") {
-        	debug "temporarily setting ${theDimmer.label} to ${motionDimLvl}% because motion was detected", "info" //TODO: specify which sensor detected the motion
+        	debug "temporarily setting ${theDimmer.label} to ${motionDimLvl}% because motion was detected", "info"
             theDimmer.setLevel(motionDimLvl)
+        } else {
+        	debug "the ${theDimmer.label} is off; doing nothing", "debug"
         }
     }
-	
     if (motionDimDelayFixed) {
-    	debug "calling to reset brightness to default setting in ${motionDimDelayFixed} seconds", "info"
-        runIn(motionDimDelayFixed, dimDefault)
+    	debug "calling to reset brightness in ${motionDimDelayFixed} seconds", "info"
+        def minDimDuration = C_MIN_DIM_DURATION()
+        def dimResetDelay = (motionDimDelayFixed < minDimDuration) ? minDimDuration : motionDimDelayFixed
+       	runIn(dimResetDelay, dimReset)
     }
-    
     debug "motionActive() complete", "trace", -1
 }
 
 def motionInactive() {
     //called from motionHandler when motion stops
     //to reset brightness to default setting after 'motionDimDelayAfterClose'
+    def enable = state.lightsOn
+    if (!enable) {
+    	debug "state is not active; skipping motionInactive()", "debug"
+        return
+    }
     debug "executing motionInactive()", "trace", 1
-    
     def allInactive = true
     for (sensor in motionDimSensors) {
     	if (sensor.motion == "active") {
         	allInactive = false
-            debug "the ${sensor.label} is still active; check again when motion stops", "info"
+            debug "the ${sensor.label} is still active; check again when motion stops", "debug"
             break
         }
     }
-    
     if (allInactive) {
-    	debug "calling to reset brightness to default setting in ${motionDimDelayAfterClose} seconds", "info"
-        runIn(motionDimDelayAfterClose, dimDefault)
+        def minDimDuration = C_MIN_DIM_DURATION()
+        def dimTimeOn = state.dimTime
+        def nowTime = now()
+        def dimDuration = (nowTime - dimTimeOn)/1000
+        def dimResetDelay = (motionDimDelayAfterStop + dimDuration) < minDimDuration ? minDimDuration : motionDimDelayAfterStop
+    	debug "calling to reset brightness in ${dimResetDelay} seconds", "info"
+        runIn(dimResetDelay, dimReset)
     }
-    
     debug "motionInactive() complete", "trace", -1
 }
 
 def doorOpen() {
     //called from doorHandler when a contact is open
     //to apply temporary brightness setting
-    debug "executing doorOpen()", "trace", 1
-    
+    def enable = state.lightsOn
+    if (!enable) {
+    	debug "state is not active; skipping doorOpen()", "debug"
+        return
+    }
+    debug "executing doorOpen()", "trace", 1 //TODO:replace "a door" with the actual contact name
+    state.dimTime = now() //store current time to use later in ensuring MIN_DIM_DURATION()
     theDimmers.each { theDimmer ->
 	    if (theDimmer.currentSwitch != "off") {
-        	debug "temporarily setting ${theDimmer.label} to ${doorDimLvl}% because a door was open", "info" //TODO:replace "a door" with the actual contact name
+        	debug "temporarily setting ${theDimmer.label} to ${doorDimLvl}% because a door was open", "info"
             theDimmer.setLevel(doorDimLvl)
+        } else {
+        	debug "the ${theDimmer.label} is off; doing nothing", "debug"
         }
     }
-    
     if (doorDimDelayFixed) {
-    	debug "calling to reset brightness to default setting in ${doorDimDelayFixed} seconds", "info"
-        runIn(doorDimDelayFixed, dimDefault)
+        def minDimDuration = C_MIN_DIM_DURATION()
+        def dimResetDelay = (doorDimDelayFixed < minDimDuration) ? minDimDuration : motionDimDelayFixed
+    	debug "calling to reset brightness to default setting in ${dimResetDelay} seconds", "info"
+        runIn(dimResetDelay, dimReset)
     }
-    
     debug "doorOpen() complete", "trace", -1
 }
 
 def doorClosed() {
     //called from doorHandler when a contact is closed
     //to reset brightness to default setting after 'doorDimDelayAfterClose'
+    def enable = state.lightsOn
+    if (!enable) {
+    	debug "state is not active; skipping doorClosed()", "debug"
+        return
+    }
     debug "executing doorClosed()", "trace", 1
-    
     def allClosed = true
     for (door in doorDimSensors) {
     	if (door.contact == "open") {
         	allClosed = false
-            debug "the ${door.label} is still open; check again next time a door closes", "info"
+            debug "the ${door.label} is still open; check again next time a door closes", "debug"
             break
         }
     }
-    
     if (allClosed) {
-    	debug "calling to reset brightness to default setting in ${doorDimDelayAfterClose} seconds", "info"
-        runIn(doorDimDelayAfterClose, dimDefault)
+        def minDimDuration = C_MIN_DIM_DURATION()
+        def dimTimeOn = state.dimTime
+        def nowTime = now()
+        def dimDuration = (nowTime - dimTimeOn)/1000
+        def dimResetDelay = (doorDimDelayAfterClose + dimDuration) < minDimDuration ? minDimDuration : doorDimDelayAfterClose
+    	debug "calling to reset brightness to default setting in ${dimResetDelay} seconds", "info"
+        runIn(dimResetDelay, dimReset)
     }
-    
     debug "doorClosed() complete", "trace", -1
 }
 
