@@ -8,7 +8,7 @@ This SmartApp turn on/off selected lights and adjusts their brightness based on 
 
 ## Software Development
 ### Change Log
-* Coming soon...
+* [Link](https://raw.githubusercontent.com/astrowings/SmartThings/master/smartapps/astrowings/yard-lights.src/changelog.txt)
 
 ### Upcoming changes, requests, todo list
 * Use illuminance-capable device instead of sunrise/sunset to detect darkness
