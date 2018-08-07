@@ -7,19 +7,13 @@
  *  in compliance with the License. You may obtain a copy of the License at:
  *
  *      http://www.apache.org/licenses/LICENSE-2.0												*/
- 	       private urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }			/*
+ 	       def urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }			/*
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
  *
- *	VERSION HISTORY										*/
- 	 private versionNum() {	return "version 0.10" }
-     private versionDate() { return "30-Jul-2018" }     /*
- *
- *    v1.00 (TBD)         - initial release
- *    v0.10 (30-Jul-2018) - developing
 */
 definition(
     name: "Yard Lights",
@@ -30,6 +24,31 @@ definition(
     iconUrl: "http://cdn.device-icons.smartthings.com/Lighting/light9-icn.png",
     iconX2Url: "http://cdn.device-icons.smartthings.com/Lighting/light9-icn@2x.png",
     iconX3Url: "http://cdn.device-icons.smartthings.com/Lighting/light9-icn@3x.png")
+
+
+//   --------------------------------
+//   ***   APP DATA  ***
+
+def		versionNum()			{ return "version 0.10" }
+def		versionDate()			{ return "30-Jul-2018" }     
+def		gitUser()				{ return "astrowings" }
+def		gitRepo()				{ return "SmartThings/master" }
+def		gitAppName()			{ return "yard-lights" }
+def		gitAppFolder()			{ return "smartapps/${gitUser()}/${gitAppName()}.src" }
+def		appImgPath()			{ return "https://raw.githubusercontent.com/${gitUser()}/${gitRepo()}/images/" }
+def		readmeLink()			{ return "https://github.com/${gitUser()}/SmartThings/blob/master/${gitAppFolder()}/readme.md" }
+def		appVerInfo()			{ return getWebData([uri: "https://raw.githubusercontent.com/${gitUser()}/${gitRepo()}/${gitAppFolder()}/changelog.txt", contentType: "text/plain; charset=UTF-8"], "changelog") }
+
+
+//   --------------------------------
+//   ***   CONSTANTS DEFINITIONS  ***
+
+	 	//name					value					description
+def	    C_ON_DELAY_S()          { return 5 }            //random window used to calculate delay between each light's turn-on (minutes) | TODO: convert to user preference
+def	    C_OFF_DELAY_S()         { return 5 }            //random window used to calculate delay between each light's turn-off (minutes) | TODO: convert to user preference
+def		C_SUNRISE_OFFSET()		{ return -30 }			//offset used for sunrise time calculation (minutes)
+def		C_MIN_TIME_ON()			{ return 15 }			//value to use when scheduling turnOn to make sure lights will remain on for at least this long (minutes) before the scheduled turn-off time
+def		C_MIN_DIM_DURATION()	{ return 5 }			//minimum duration for temporary dim event (seconds)
 
 
 //   ---------------------------
@@ -43,21 +62,10 @@ preferences {
     page(name: "pageSettings")
     page(name: "pageLogOptions")
     page(name: "pageAbout")
+    page(name: "changeLogPage")
     page(name: "pageUninstall")
 }
 
-
-//   --------------------------------
-//   ***   CONSTANTS DEFINITIONS  ***
-
-		 //	  name (C_XXX)			value					description
-private     C_ON_DELAY_S()          { return 5 }            //random window used to calculate delay between each light's turn-on (minutes) | TODO: convert to user preference
-private     C_OFF_DELAY_S()         { return 5 }            //random window used to calculate delay between each light's turn-off (minutes) | TODO: convert to user preference
-private		C_SUNRISE_OFFSET()		{ return -30 }			//offset used for sunrise time calculation (minutes)
-private		C_MIN_TIME_ON()			{ return 15 }			//value to use when scheduling turnOn to make sure lights will remain on for at least this long (minutes) before the scheduled turn-off time
-private		C_MIN_DIM_DURATION()	{ return 5 }			//minimum duration for temporary dim event (seconds)
-private		appImgPath()			{ return "https://raw.githubusercontent.com/astrowings/SmartThings/master/images/" }
-private		readmeLink()			{ return "https://github.com/astrowings/SmartThings/blob/master/smartapps/astrowings/yard-lights.src/readme.md" }
 
 //   -----------------------------
 //   ***   PAGES DEFINITIONS   ***
@@ -206,9 +214,19 @@ def pageAbout() {
 	dynamicPage(name: "pageAbout", title: "About this SmartApp", install: false, uninstall: false) { //with 'install: false', clicking 'Done' goes back to previous page
 		section() {
             href url: readmeLink(), title: app.name, description: "Copyright ©2016 Phil Maynard\n${versionNum()}", image: getAppImg("readme-icn.png")
+			href "changeLogPage", title: "View Change Log", description: "Tap to view", image: getAppImg("change_log_icon.png")
             href url: urlApache(), title: "License", description: "View Apache license", image: getAppImg("license-icn.png")
 		}
     }
+}
+
+def changeLogPage() {
+	dynamicPage(name: "changeLogPage", title: "Change Log", install: false, uninstall: false) {
+		section() {
+			paragraph title: "What's New in this Release...", "", state: "complete", image: getAppImg("whats_new_icon.png")
+			paragraph appVerInfo()
+		}
+	}
 }
 
 def pageLogOptions() {
@@ -898,6 +916,27 @@ def convertToHMS(ms) {
 def getAppImg(imgName, forceIcon = null) {
 	def imgPath = appImgPath()
     return (!noAppIcons || forceIcon) ? "$imgPath/$imgName" : ""
+}
+
+def getWebData(params, desc, text=true) {
+	try {
+		debug "getWebData: ${desc} data"
+		httpGet(params) { resp ->
+			if(resp.data) {
+				if(text) {
+					return resp?.data?.text.toString()
+				} else { return resp?.data }
+			}
+		}
+	}
+	catch (ex) {
+		if(ex instanceof groovyx.net.http.HttpResponseException) {
+			debug "${desc} file not found", "warn"
+		} else {
+			debug "getWebData(params: $params, desc: $desc, text: $text) Exception:", "error"
+		}
+		return "${label} info not found"
+	}
 }
 
 def debug(message, lvl = null, shift = null, err = null) {
