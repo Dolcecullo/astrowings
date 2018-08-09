@@ -8,7 +8,7 @@ This SmartApp sends a push notification when a lock gets unlocked (can specify d
 
 ## Software Development
 ### Change Log
-* Coming soon...
+* See "Version History" commented section of the .groovy file
 
 ### Upcoming changes, requests, todo list
 * 
