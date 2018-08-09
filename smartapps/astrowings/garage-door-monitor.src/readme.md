@@ -8,7 +8,7 @@ This SmartApp sends a notification (SMS optional) to notify that a door is left 
 
 ## Software Development
 ### Change Log
-* Coming soon...
+* See "Version History" commented section of the .groovy file
 
 ### Upcoming changes, requests, todo list
 * 
