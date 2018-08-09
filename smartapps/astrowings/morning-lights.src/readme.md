@@ -8,7 +8,7 @@ This SmartApp turns on selected lights at a specified time and turns them off at
 
 ## Software Development
 ### Change Log
-* Coming soon...
+* See "Version History" commented section of the .groovy file
 
 ### Upcoming changes, requests, todo list
 * Use illuminance-capable device instead of sunrise/sunset to detect darkness
