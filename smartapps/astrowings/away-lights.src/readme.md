@@ -11,7 +11,7 @@ The 'Away Light' SmartApp turns a light on/off simulate presence while away. It 
 
 ## Software Development
 ### Change Log
-* Coming soon...
+* See "Version History" commented section of the .groovy file
 
 ### Upcoming changes, requests, todo list
 * Use illuminance-capable device instead of sunrise/sunset to detect darkness
