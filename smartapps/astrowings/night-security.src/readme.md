@@ -8,7 +8,7 @@ This SmartApp sends an alert when any of the selected sensors are triggered. It 
 
 ## Software Development
 ### Change Log
-* Coming soon...
+* See "Version History" commented section of the .groovy file
 
 ### Upcoming changes, requests, todo list
 * 
