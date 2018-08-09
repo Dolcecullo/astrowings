@@ -8,7 +8,7 @@ This SmartApp logs events from selected sensors to the GroveStreams data analyti
 
 ## Software Development
 ### Change Log
-* Coming soon...
+* See "Version History" commented section of the .groovy file
 
 ### Upcoming changes, requests, todo list
 * 
