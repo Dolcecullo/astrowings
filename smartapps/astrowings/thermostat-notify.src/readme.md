@@ -8,7 +8,7 @@ This SmartApp sends notifications based on selected Nest thermostat events.
 
 ## Software Development
 ### Change Log
-* Coming soon...
+* See "Version History" commented section of the .groovy file
 
 ### Upcoming changes, requests, todo list
 * 
