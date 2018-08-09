@@ -7,17 +7,18 @@
  *  in compliance with the License. You may obtain a copy of the License at:
  *
  *      http://www.apache.org/licenses/LICENSE-2.0												*/
- 	       private urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }			/*
+ 	       def urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }			/*
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
  *
- *	VERSION HISTORY										*/
- 	 private versionNum() {	return "version 2.00" }
-     private versionDate() { return "15-Nov-2016" }     /*
+ *   --------------------------------
+ *   ***   VERSION HISTORY  ***
  *
+ *	  v2.03 (09-Aug-2018) - standardize debug log types and make 'debug' logs disabled by default
+ *						  - standardize layout of app data and constant definitions
  *    v2.02 (03-Aug-2018) - use sunrise offset constant in calculation of turn-off time
  *                        - move random time calculation from weekdayTurnOffTime/defaultTurnOffTime to scheduleTurnOff
  *    v2.01 (30-Jul-2018) - display app info as section label instead of para
@@ -56,6 +57,29 @@ definition(
     iconX3Url: "http://cdn.device-icons.smartthings.com/Lighting/light25-icn@3x.png")
 
 
+//   --------------------------------
+//   ***   APP DATA  ***
+
+def		versionNum()			{ return "version 1.11" }
+def		versionDate()			{ return "08-Aug-2018" }     
+def		gitAppName()			{ return "sunset-lights" }
+def		gitOwner()				{ return "astrowings" }
+def		gitRepo()				{ return "SmartThings" }
+def		gitBranch()				{ return "master" }
+def		gitAppFolder()			{ return "smartapps/${gitOwner()}/${gitAppName()}.src" }
+def		appImgPath()			{ return "https://raw.githubusercontent.com/${gitOwner()}/${gitRepo()}/${gitBranch()}/images/" }
+def		readmeLink()			{ return "https://github.com/${gitOwner()}/SmartThings/blob/master/${gitAppFolder()}/readme.md" } //TODO: convert to httpGet?
+def		changeLog()				{ return getWebData([uri: "https://raw.githubusercontent.com/${gitOwner()}/${gitRepo()}/${gitBranch()}/${gitAppFolder()}/changelog.txt", contentType: "text/plain; charset=UTF-8"], "changelog") }
+
+
+//   --------------------------------
+//   ***   CONSTANTS DEFINITIONS  ***
+
+	 	//name					value					description
+def		C_SUNRISE_OFFSET()		{ return -30 }			//offset used for sunrise time calculation (minutes)
+def		C_MIN_TIME_ON()			{ return 15 }			//value to use when scheduling turnOn to make sure lights will remain on for at least this long (minutes) before the scheduled turn-off time
+
+
 //   ---------------------------
 //   ***   APP PREFERENCES   ***
 
@@ -68,16 +92,6 @@ preferences {
     page(name: "pageAbout")
     page(name: "pageUninstall")
 }
-
-
-//   --------------------------------
-//   ***   CONSTANTS DEFINITIONS  ***
-
-		 //	  name (C_XXX)			value					description
-private		C_SUNRISE_OFFSET()		{ return -30 }			//offset used for sunrise time calculation (minutes)
-private		C_MIN_TIME_ON()			{ return 15 }			//value to use when scheduling turnOn to make sure lights will remain on for at least this long (minutes) before the scheduled turn-off time
-private		appImgPath()			{ return "https://raw.githubusercontent.com/astrowings/SmartThings/master/images/" }
-private		readmeLink()			{ return "https://github.com/astrowings/SmartThings/blob/master/smartapps/astrowings/sunset-lights.src/readme.md" }
 
 
 //   -----------------------------
@@ -187,15 +201,15 @@ def pageAbout() {
 def pageLogOptions() {
 	dynamicPage(name: "pageLogOptions", title: "IDE Logging Options", install: false, uninstall: false) {
         section() {
-	        input "debugging", "bool", title: "Enable debugging", description: "Display the logs in the IDE", defaultValue: false, required: false, submitOnChange: true 
+	        input "debugging", "bool", title: "Enable debugging", description: "Display the logs in the IDE", defaultValue: true, required: false, submitOnChange: true
         }
         if (debugging) {
             section("Select log types to display") {
-                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false 
-                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false 
-                input "log#debug", "bool", title: "Log debug messages", defaultValue: true, required: false 
-                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false 
-                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false 
+                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false
+                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false
+                input "log#debug", "bool", title: "Log debug messages", defaultValue: false, required: false
+                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false
+                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false
 			}
             section() {
                 input "setMultiLevelLog", "bool", title: "Enable Multi-level Logging", defaultValue: true, required: false,
@@ -352,13 +366,13 @@ def scheduleTurnOff(sunriseString) {
 
     //select which turn-off time to use (1st priority: weekday-specific, 2nd: default, 3rd: sunrise)
     if (datOffDOW) {
-    	debug "using the weekday turn-off time", "info"
+    	debug "using the weekday turn-off time"
         datOff = datOffDOW
     } else if (datOffDefault) {
-    	debug "using the default turn-off time", "info"
+    	debug "using the default turn-off time"
     	datOff = datOffDefault
     } else {
-    	debug "user didn't specify turn-off time; using sunrise time", "info"
+    	debug "user didn't specify turn-off time; using sunrise time"
         def datSunrise = Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", sunriseString)
         //calculate the offset
         def sunriseOffset = C_SUNRISE_OFFSET()
@@ -368,7 +382,7 @@ def scheduleTurnOff(sunriseString) {
     
     //apply random factor
     if (offRand) {
-        debug "Applying random factor to the turn-off time", "info"
+        debug "Applying random factor to the turn-off time"
         def random = new Random()
         def randOffset = random.nextInt(offRand)
         datOff = new Date(datOff.time - (offRand * 30000) + (randOffset * 60000)) //subtract half the random window (converted to ms) then add the random factor (converted to ms)
@@ -391,9 +405,9 @@ def turnOn() {
     def nowTime = now() + (minTimeOn * 60 * 1000) //making sure lights will stay on for at least 'minTimeOn'
     def offTime = state.schedOffTime //retrieving the turn-off time from State
     if (offTime < nowTime) {
-		debug "scheduled turn-off time has already passed; turn-on cancelled", "info"
+		debug "scheduled turn-off time has already passed; turn-on cancelled"
 	} else {
-        debug "turning lights on", "info"
+        debug "turning lights on"
         def newDelay = 0L
         def delayMS = (onDelay && delaySeconds) ? delaySeconds * 1000 : 5 //ensure delayMS != 0
         def random = new Random()
@@ -403,7 +417,7 @@ def turnOn() {
                 theLight.on(delay: newDelay)
                 newDelay += random.nextInt(delayMS) //calculate random delay before turning on next light
             } else {
-            	debug "the ${theLight.label} is already on; doing nothing", "info"
+            	debug "the ${theLight.label} is already on; doing nothing"
             }
         }
     }
@@ -421,7 +435,7 @@ def turnOff() {
             theLight.off(delay: newDelay)
             newDelay += random.nextInt(delayMS) //calculate random delay before turning off next light
         } else {
-            debug "the ${theLight.label} is already off; doing nothing", "info"
+            debug "the ${theLight.label} is already off; doing nothing"
         }
     }
     debug "turnOff() complete", "trace", -1

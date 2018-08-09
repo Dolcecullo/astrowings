@@ -7,17 +7,20 @@
  *  in compliance with the License. You may obtain a copy of the License at:
  *
  *      http://www.apache.org/licenses/LICENSE-2.0												*/
- 	       private urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }			/*
+ 	       def urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }			/*
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
  *
- *	VERSION HISTORY										*/
- 	 private versionNum() { return "version 2.30" }
-     private versionDate() { return "18-Oct-2017" }		/*
+ *   --------------------------------
+ *   ***   VERSION HISTORY  ***
  *
+ *	  v2.31 (09-Aug-2018) - standardize debug log types
+ *						  - change category to 'convenience'
+ *						  - standardize layout of app data and constant definitions
+ *						  - convert hard-coded value for 'onNowRandom' into constant
  *    v2.30 (18-Oct-2017) - add call to terminate() method to turn light off when mode changes to one that isn't enabled
  *    v2.21 (09-Jan-2017) - add schedule to run schedTurnOn() daily
  *    v2.20 (29-Dec-2016) - add user-configurable activation delay after mode changes
@@ -55,10 +58,32 @@ definition(
     namespace: "astrowings",
     author: "Phil Maynard",
     description: "Turn a light on/off to simulate presence while away",
-    category: "Safety & Security",
+    category: "Convenience",
     iconUrl: "http://cdn.device-icons.smartthings.com/Lighting/light17-icn.png",
     iconX2Url: "http://cdn.device-icons.smartthings.com/Lighting/light17-icn@2x.png",
     iconX3Url: "http://cdn.device-icons.smartthings.com/Lighting/light17-icn@3x.png")
+
+
+//   --------------------------------
+//   ***   APP DATA  ***
+
+def		versionNum()			{ return "version 2.31" }
+def		versionDate()			{ return "07-Aug-2018" }     
+def		gitAppName()			{ return "away-light" }
+def		gitOwner()				{ return "astrowings" }
+def		gitRepo()				{ return "SmartThings" }
+def		gitBranch()				{ return "master" }
+def		gitAppFolder()			{ return "smartapps/${gitOwner()}/${gitAppName()}.src" }
+def		appImgPath()			{ return "https://raw.githubusercontent.com/${gitOwner()}/${gitRepo()}/${gitBranch()}/images/" }
+def		readmeLink()			{ return "https://github.com/${gitOwner()}/SmartThings/blob/master/${gitAppFolder()}/readme.md" } //TODO: convert to httpGet?
+def		changeLog()				{ return getWebData([uri: "https://raw.githubusercontent.com/${gitOwner()}/${gitRepo()}/${gitBranch()}/${gitAppFolder()}/changelog.txt", contentType: "text/plain; charset=UTF-8"], "changelog") }
+
+
+//   --------------------------------
+//   ***   CONSTANTS DEFINITIONS  ***
+
+	 	//name					value					description
+def		C_ON_NOW_RANDOM()		{ return 2 } 			//set the max value for the random delay to be applied when requesting to turn on now (minutes)
 
 
 //   ---------------------------
@@ -68,12 +93,6 @@ preferences {
 	page(name: "pageMain")
 	page(name: "pageSchedule")
 }
-
-
-//   --------------------------------
-//   ***   CONSTANTS DEFINITIONS  ***
-
-private		appImgPath()			{ return "https://raw.githubusercontent.com/astrowings/SmartThings/master/images/" }
 
 
 //   -----------------------------
@@ -216,10 +235,10 @@ def modeChangeHandler(evt) {
     debug "modeChangeHandler event: ${evt.descriptionText}", "trace"
     if(modeOk) {
         int delay = activationDelay ? activationDelay * 60 : 5
-        debug "mode changed to ${location.currentMode}; calling schedTurnOn() in ${delay} seconds"
+        debug "mode changed to ${location.currentMode}; calling schedTurnOn() in ${delay} seconds", "info"
         runIn(delay,schedTurnOn)
     } else {
-        debug "mode changed to ${location.currentMode}; cancelling scheduled tasks"
+        debug "mode changed to ${location.currentMode}; cancelling scheduled tasks", "info"
         unschedule()
         terminate()
     }
@@ -237,7 +256,7 @@ def locationPositionChange(evt) {
 
 def schedTurnOn(offForDelay) {
     //determine turn-on time and schedule the turnOn() that will verify the remaining conditions before turning the light on
-	debug "executing schedTurnOn(offForDelay: ${offForDelay})", "trace", 1
+    debug "executing schedTurnOn(offForDelay: ${offForDelay})", "trace", 1
 	
     def random = new Random()
     
@@ -251,26 +270,27 @@ def schedTurnOn(offForDelay) {
             offForDelay = (int)(offForDelay - range/2 + rdmOffset)
 		}
         def onDate = new Date(now() + offForDelay)
-        debug "calculated ON time for turning the light back on after the 'off for' delay of ${convertToHMS(offForDelay)} : ${onDate}"
+        debug "calculated ON time for turning the light back on after the 'off for' delay of ${convertToHMS(offForDelay)} : ${onDate}", "info"
         runOnce(onDate, turnOn)
 	} else {   
         def onDate = schedOnDate()
         def nowDate = new Date()
         
-        //set a delay of up to 2 min to be applied if requesting to turn on now | TODO: move to constant
-        def maxDelay = 2 * 60 * 1000
-        def delayOnNow = random.nextInt(maxDelay)
+        //set a random delay of up to 'C_ON_NOW_RANDOM()' min to be applied if requesting to turn on now
+        def onNowRandom = C_ON_NOW_RANDOM()
+        def onNowRandomMS = onNowRandom * 60 * 1000
+        def onNowDelay = random.nextInt(onNowRandomMS)
         
         if (!onDate) {
             //no turn-on time set, call method to turn light on now; whether or not it actually turns on will depend on dow/mode
-            debug "no turn-on time specified; calling to turn the light on in ${convertToHMS(delayOnNow)}"
-            turnOn(delayOnNow)
+            debug "no turn-on time specified; calling to turn the light on in ${convertToHMS(onNowDelay)}", "info"
+            turnOn(onNowDelay)
         } else {
             if (onDate < nowDate) {
-                debug "scheduled turn-on time of ${onDate} has already passed; calling to turn the light on in ${convertToHMS(delayOnNow)}"
-                turnOn(delayOnNow)
+                debug "scheduled turn-on time of ${onDate} has already passed; calling to turn the light on in ${convertToHMS(onNowDelay)}", "info"
+                turnOn(onNowDelay)
             } else {
-                debug "scheduling the light to turn on at ${onDate}"
+                debug "scheduling the light to turn on at ${onDate}", "info"
                 runOnce(onDate, turnOn)
             }
         }
@@ -294,7 +314,7 @@ def turnOn(delay) {
         def timeOk = offDate > nowDate
         if (timeOk) {    	
             delay = delay ?: 0
-            debug "we're good to go; turning the light on in ${convertToHMS(delay)}"
+            debug "we're good to go; turning the light on in ${convertToHMS(delay)}", "info"
             state.appOn = true
             theLight.on(delay: delay)
             schedTurnOff(delay, offDate)
@@ -342,18 +362,18 @@ def schedTurnOff(onDelay, offDate) {
             lightOnFor = lightOnFor - range/2 + rdmOffset
 		}
         def endOnFor = new Date(now() + lightOnFor + onDelay)
-        debug "calculated OFF time for turning the light off after the 'on for' delay of ${convertToHMS(lightOnFor)} : ${endOnFor}"
+        debug "calculated OFF time for turning the light off after the 'on for' delay of ${convertToHMS(lightOnFor)} : ${endOnFor}", "info"
         offDate = offDate && (offDate < endOnFor) ? offDate : endOnFor
     }
     
     if (offDate) {
         if (offDate > nowDate) {
-            debug "scheduling turn-off of the light to occur at ${offDate}"
+            debug "scheduling turn-off of the light to occur at ${offDate}", "info"
             runOnce(offDate, turnOff)
         } else {
         	def maxDelay = 2 * 60 * 1000 //set a delay of up to 2 min to be applied when requested to turn off now
             def delayOffNow = random.nextInt(maxDelay)
-            debug "the calculated turn-off time has already passed; calling for the light to turn off in ${convertToHMS(delayOffNow)}"
+            debug "the calculated turn-off time has already passed; calling for the light to turn off in ${convertToHMS(delayOffNow)}", "info"
             turnOff(delayOffNow)
         }
     } else {
@@ -366,7 +386,7 @@ def turnOff(delay) {
 	debug "executing turnOff(delay: ${delay})", "trace", 1
     if (state.appOn == true) {
         delay = delay ?: 0
-        debug "turning off the light in ${convertToHMS(delay)}"
+        debug "turning off the light in ${convertToHMS(delay)}", "info"
         theLight.off(delay: delay)
         state.appOn = false
         if (offFor) {
@@ -400,7 +420,7 @@ def terminate() {
     def maxDelay = 2 * 60 * 1000
    	if (state.appOn) {
         def delay = random.nextInt(maxDelay)
-        debug "turning off the light in ${convertToHMS(delay)}"
+        debug "turning off the light in ${convertToHMS(delay)}", "info"
         theLight.off(delay: delay)
         state.appOn = false
     }
@@ -523,6 +543,27 @@ def convertToHMS(ms) {
 def getAppImg(imgName, forceIcon = null) {
 	def imgPath = appImgPath()
     return (!parent.noAppIcons || forceIcon) ? "$imgPath/$imgName" : ""
+}
+
+def getWebData(params, desc, text=true) {
+	try {
+		debug "trying getWebData for ${desc}"
+		httpGet(params) { resp ->
+			if(resp.data) {
+				if(text) {
+					return resp?.data?.text.toString()
+				} else { return resp?.data }
+			}
+		}
+	}
+	catch (ex) {
+		if(ex instanceof groovyx.net.http.HttpResponseException) {
+			debug "${desc} file not found", "warn"
+		} else {
+			debug "getWebData(params: $params, desc: $desc, text: $text) Exception:", "error"
+		}
+		return "an error occured while trying to retrieve ${desc} data"
+	}
 }
 
 def debug(message, lvl = null, shift = null, err = null) {

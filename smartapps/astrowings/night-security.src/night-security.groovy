@@ -7,17 +7,18 @@
  *  in compliance with the License. You may obtain a copy of the License at:
  *
  *      http://www.apache.org/licenses/LICENSE-2.0												*/
- 	       private urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }			/*
+ 	       def urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }			/*
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
  *
- *	VERSION HISTORY										*/
- 	 private versionNum() {	return "version 2.00" }
-     private versionDate() { return "15-Nov-2016" }     /*
+ *   --------------------------------
+ *   ***   VERSION HISTORY  ***
  *
+ *	  v2.02 (09-Aug-2018) - standardize debug log types and make 'debug' logs disabled by default
+ *						  - standardize layout of app data and constant definitions
  *    v2.01 (13-Jan-2017) - unschedule any future deactivateLights() at mode change
  *    v2.00 (15-Nov-2016) - code improvement: store images on GitHub, use getAppImg() to display app images
  *                        - added option to disable icons
@@ -48,6 +49,27 @@ definition(
     iconX3Url: "http://cdn.device-icons.smartthings.com/Weather/weather4-icn@3x.png")
 
 
+//   --------------------------------
+//   ***   APP DATA  ***
+
+def		versionNum()			{ return "version 1.11" }
+def		versionDate()			{ return "08-Aug-2018" }     
+def		gitAppName()			{ return "night-security" }
+def		gitOwner()				{ return "astrowings" }
+def		gitRepo()				{ return "SmartThings" }
+def		gitBranch()				{ return "master" }
+def		gitAppFolder()			{ return "smartapps/${gitOwner()}/${gitAppName()}.src" }
+def		appImgPath()			{ return "https://raw.githubusercontent.com/${gitOwner()}/${gitRepo()}/${gitBranch()}/images/" }
+def		readmeLink()			{ return "https://github.com/${gitOwner()}/SmartThings/blob/master/${gitAppFolder()}/readme.md" } //TODO: convert to httpGet?
+def		changeLog()				{ return getWebData([uri: "https://raw.githubusercontent.com/${gitOwner()}/${gitRepo()}/${gitBranch()}/${gitAppFolder()}/changelog.txt", contentType: "text/plain; charset=UTF-8"], "changelog") }
+
+
+//   --------------------------------
+//   ***   CONSTANTS DEFINITIONS  ***
+
+	 	//name					value					description
+
+
 //   ---------------------------
 //   ***   APP PREFERENCES   ***
 
@@ -63,13 +85,6 @@ preferences {
     page(name: "pageAbout")
     page(name: "pageUninstall")
 }
-
-
-//   --------------------------------
-//   ***   CONSTANTS DEFINITIONS  ***
-
-private		appImgPath()			{ return "https://raw.githubusercontent.com/astrowings/SmartThings/master/images/" }
-private		readmeLink()			{ return "https://github.com/astrowings/SmartThings/blob/master/smartapps/astrowings/night-security.src/readme.md" }
 
 
 //   -----------------------------
@@ -264,15 +279,15 @@ def pageAbout() {
 def pageLogOptions() {
 	dynamicPage(name: "pageLogOptions", title: "IDE Logging Options", install: false, uninstall: false) {
         section() {
-	        input "debugging", "bool", title: "Enable debugging", description: "Display the logs in the IDE", defaultValue: false, required: false, submitOnChange: true 
+	        input "debugging", "bool", title: "Enable debugging", description: "Display the logs in the IDE", defaultValue: true, required: false, submitOnChange: true
         }
         if (debugging) {
             section("Select log types to display") {
-                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false 
-                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false 
-                input "log#debug", "bool", title: "Log debug messages", defaultValue: true, required: false 
-                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false 
-                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false 
+                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false
+                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false
+                input "log#debug", "bool", title: "Log debug messages", defaultValue: false, required: false
+                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false
+                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false
 			}
             section() {
                 input "setMultiLevelLog", "bool", title: "Enable Multi-level Logging", defaultValue: true, required: false,
@@ -421,7 +436,7 @@ def intrusionHandler(evt) {
     	debug "an intrusion was detected ($triggerDevice at $triggerTime); triggering the alarm", "warn"
         alarmHandler(triggerDevice, triggerTime)
     } else {
-    	debug "an intrusion was detected but the monitoring conditions are not met; doing nothing", "info" //TODO: why are the conditions not met? return monitorOn as map of conditions
+    	debug "an intrusion was detected but the monitoring conditions are not met; doing nothing" //TODO: why are the conditions not met? return monitorOn as map of conditions
     }
     debug "intrusionHandler complete", "trace", -1
 }

@@ -7,17 +7,19 @@
  *  in compliance with the License. You may obtain a copy of the License at:
  *
  *      http://www.apache.org/licenses/LICENSE-2.0												*/
- 	       private urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }			/*
+ 	       def urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }			/*
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
  *
- *	VERSION HISTORY										*/
- 	 private versionNum() {	return "version 2.00" }
-     private versionDate() { return "15-Nov-2016" }		/*
+ *   --------------------------------
+ *   ***   VERSION HISTORY  ***
  *
+ *	  v2.01 (09-Aug-2018) - standardize debug log types and make 'debug' logs disabled by default
+ *						  - change category to 'convenience'
+ *						  - standardize layout of app data and constant definitions
  *    v2.00 (15-Nov-2016) - code improvement: store images on GitHub, use getAppImg() to display app images
  *                        - added option to disable icons
  *                        - added option to disable multi-level logging
@@ -42,10 +44,31 @@ definition(
     namespace: "astrowings",
     author: "Phil Maynard",
     description: "Notify if garage door is left open when leaving the house, left open for too long, or if it opens while away.",
-    category: "Safety & Security",
+    category: "Convenience",
     iconUrl: "http://cdn.device-icons.smartthings.com/Transportation/transportation12-icn.png",
     iconX2Url: "http://cdn.device-icons.smartthings.com/Transportation/transportation12-icn@2x.png",
     iconX3Url: "http://cdn.device-icons.smartthings.com/Transportation/transportation12-icn@3x.png")
+
+
+//   --------------------------------
+//   ***   APP DATA  ***
+
+def		versionNum()			{ return "version 2.01" }
+def		versionDate()			{ return "08-Aug-2018" }     
+def		gitAppName()			{ return "garage-door-monitor" }
+def		gitOwner()				{ return "astrowings" }
+def		gitRepo()				{ return "SmartThings" }
+def		gitBranch()				{ return "master" }
+def		gitAppFolder()			{ return "smartapps/${gitOwner()}/${gitAppName()}.src" }
+def		appImgPath()			{ return "https://raw.githubusercontent.com/${gitOwner()}/${gitRepo()}/${gitBranch()}/images/" }
+def		readmeLink()			{ return "https://github.com/${gitOwner()}/SmartThings/blob/master/${gitAppFolder()}/readme.md" } //TODO: convert to httpGet?
+def		changeLog()				{ return getWebData([uri: "https://raw.githubusercontent.com/${gitOwner()}/${gitRepo()}/${gitBranch()}/${gitAppFolder()}/changelog.txt", contentType: "text/plain; charset=UTF-8"], "changelog") }
+
+
+//   --------------------------------
+//   ***   CONSTANTS DEFINITIONS  ***
+
+	 	//name					value					description
 
 
 //   ---------------------------
@@ -58,13 +81,6 @@ preferences {
     page(name: "pageAbout")
     page(name: "pageUninstall")
 }
-
-
-//   --------------------------------
-//   ***   CONSTANTS DEFINITIONS  ***
-
-private		appImgPath()			{ return "https://raw.githubusercontent.com/astrowings/SmartThings/master/images/" }
-private		readmeLink()			{ return "https://github.com/astrowings/SmartThings/blob/master/smartapps/astrowings/garage-door-monitor.src/readme.md" }
 
 
 //   -----------------------------
@@ -129,15 +145,15 @@ def pageAbout() {
 def pageLogOptions() {
 	dynamicPage(name: "pageLogOptions", title: "IDE Logging Options", install: false, uninstall: false) {
         section() {
-	        input "debugging", "bool", title: "Enable debugging", description: "Display the logs in the IDE", defaultValue: false, required: false, submitOnChange: true 
+	        input "debugging", "bool", title: "Enable debugging", description: "Display the logs in the IDE", defaultValue: true, required: false, submitOnChange: true
         }
         if (debugging) {
             section("Select log types to display") {
-                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false 
-                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false 
-                input "log#debug", "bool", title: "Log debug messages", defaultValue: true, required: false 
-                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false 
-                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false 
+                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false
+                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false
+                input "log#debug", "bool", title: "Log debug messages", defaultValue: false, required: false
+                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false
+                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false
 			}
             section() {
                 input "setMultiLevelLog", "bool", title: "Enable Multi-level Logging", defaultValue: true, required: false,
@@ -221,7 +237,7 @@ def allLeaveHandler(evt) {
             sendPush(message)
             sendText(message)
 		} else {
-            debug "The ${thedoor.device} is ${thedoor.currentContact} but not everyone is away; doing nothing", "info"
+            debug "The ${thedoor.device} is ${thedoor.currentContact} but not everyone is away; doing nothing"
         }
     }
     debug "allLeaveHandler complete", "trace", -1
@@ -260,7 +276,7 @@ def checkOpen() {
         debug "updated_numWarning : ${updated_numWarning}"
         sendNotification()
     } else {
-    	debug "The ${thedoor.device} is no longer open.", "info"
+    	debug "The ${thedoor.device} is no longer open."
     }
     state.numWarning = updated_numWarning
     debug "checkOpen() complete", "trace", -1
@@ -286,7 +302,7 @@ def sendText(msg) {
 		debug "sending SMS", "info"
 		sendSms(phone, msg)
 	} else {
-    	debug "SMS number not configured", "info"
+    	debug "SMS number not configured"
     }
     debug "sendText() complete", "trace", -1
 }
@@ -298,7 +314,7 @@ def setReminder() {
         debug "scheduling a reminder check in ${remindMinutes} minutes", "info"
         runIn(remindSeconds, checkOpen)
     } else {
-    	debug "reminder option not set", "info"
+    	debug "reminder option not set"
     }
     debug "sendReminder() complete", "trace", -1
 }
@@ -351,6 +367,27 @@ def convertToHM(ms) {
 def getAppImg(imgName, forceIcon = null) {
 	def imgPath = appImgPath()
     return (!noAppIcons || forceIcon) ? "$imgPath/$imgName" : ""
+}
+
+def getWebData(params, desc, text=true) {
+	try {
+		debug "trying getWebData for ${desc}"
+		httpGet(params) { resp ->
+			if(resp.data) {
+				if(text) {
+					return resp?.data?.text.toString()
+				} else { return resp?.data }
+			}
+		}
+	}
+	catch (ex) {
+		if(ex instanceof groovyx.net.http.HttpResponseException) {
+			debug "${desc} file not found", "warn"
+		} else {
+			debug "getWebData(params: $params, desc: $desc, text: $text) Exception:", "error"
+		}
+		return "an error occured while trying to retrieve ${desc} data"
+	}
 }
 
 def debug(message, lvl = null, shift = null, err = null) {

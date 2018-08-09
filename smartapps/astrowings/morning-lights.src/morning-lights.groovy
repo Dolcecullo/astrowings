@@ -7,17 +7,18 @@
  *  in compliance with the License. You may obtain a copy of the License at:
  *
  *      http://www.apache.org/licenses/LICENSE-2.0												*/
- 	       private urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }			/*
+ 	       def urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }			/*
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
  *
- *	VERSION HISTORY										*/
- 	 private versionNum() {	return "version 2.10" }
-     private versionDate() { return "24-Nov-2016" }		/*
+ *   --------------------------------
+ *   ***   VERSION HISTORY  ***
  *
+ *	  v2.11 (09-Aug-2018) - standardize debug log types and make 'debug' logs disabled by default
+ *						  - standardize layout of app data and constant definitions
  *    v2.10 (24-Nov-2016) - add option to specify sunrise time offset
  *						  - add option to turn lights off when leaving
  *						  - removed option to specify default turn-on time
@@ -51,6 +52,28 @@ definition(
     iconX3Url: "http://cdn.device-icons.smartthings.com/Lighting/light25-icn@3x.png")
 
 
+//   --------------------------------
+//   ***   APP DATA  ***
+
+def		versionNum()			{ return "version 1.11" }
+def		versionDate()			{ return "08-Aug-2018" }     
+def		gitAppName()			{ return "morning-lights" }
+def		gitOwner()				{ return "astrowings" }
+def		gitRepo()				{ return "SmartThings" }
+def		gitBranch()				{ return "master" }
+def		gitAppFolder()			{ return "smartapps/${gitOwner()}/${gitAppName()}.src" }
+def		appImgPath()			{ return "https://raw.githubusercontent.com/${gitOwner()}/${gitRepo()}/${gitBranch()}/images/" }
+def		readmeLink()			{ return "https://github.com/${gitOwner()}/SmartThings/blob/master/${gitAppFolder()}/readme.md" } //TODO: convert to httpGet?
+def		changeLog()				{ return getWebData([uri: "https://raw.githubusercontent.com/${gitOwner()}/${gitRepo()}/${gitBranch()}/${gitAppFolder()}/changelog.txt", contentType: "text/plain; charset=UTF-8"], "changelog") }
+
+
+//   --------------------------------
+//   ***   CONSTANTS DEFINITIONS  ***
+
+	 	//name					value					description
+def		C_MIN_TIME_ON()			{ return 10 }			//value to use when scheduling turnOn to make sure lights will remain on for at least this long (minutes) before the scheduled turn-off time
+
+
 //   ---------------------------
 //   ***   APP PREFERENCES   ***
 
@@ -63,15 +86,6 @@ preferences {
     page(name: "pageAbout")
     page(name: "pageUninstall")
 }
-
-
-//   --------------------------------
-//   ***   CONSTANTS DEFINITIONS  ***
-
-		 //	  name (C_XXX)			value					description
-private		C_MIN_TIME_ON()			{ return 10 }			//value to use when scheduling turnOn to make sure lights will remain on for at least this long (minutes) before the scheduled turn-off time
-private		appImgPath()			{ return "https://raw.githubusercontent.com/astrowings/SmartThings/master/images/" }
-private		readmeLink()			{ return "https://github.com/astrowings/SmartThings/blob/master/smartapps/astrowings/morning-lights.src/readme.md" }
 
 
 //   -----------------------------
@@ -182,15 +196,15 @@ def pageAbout() {
 def pageLogOptions() {
 	dynamicPage(name: "pageLogOptions", title: "IDE Logging Options", install: false, uninstall: false) {
         section() {
-	        input "debugging", "bool", title: "Enable debugging", description: "Display the logs in the IDE", defaultValue: false, required: false, submitOnChange: true 
+	        input "debugging", "bool", title: "Enable debugging", description: "Display the logs in the IDE", defaultValue: true, required: false, submitOnChange: true
         }
         if (debugging) {
             section("Select log types to display") {
-                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false 
-                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false 
-                input "log#debug", "bool", title: "Log debug messages", defaultValue: true, required: false 
-                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false 
-                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false 
+                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false
+                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false
+                input "log#debug", "bool", title: "Log debug messages", defaultValue: false, required: false
+                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false
+                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false
 			}
             section() {
                 input "setMultiLevelLog", "bool", title: "Enable Multi-level Logging", defaultValue: true, required: false,
@@ -303,7 +317,7 @@ def locationPositionChange(evt) {
 def modeChangeHandler(evt) {
 	//debug "modeChangeHandler event: ${evt.descriptionText}", "trace"
     if(awayOff && evt.value == "Away") {
-        debug "mode changed to ${evt.value}; calling turnOff()"
+        debug "mode changed to ${evt.value}; calling turnOff()", "info"
         turnOff()
     }
     //debug "modeChangeHandler complete", "trace"
@@ -363,7 +377,7 @@ def schedTurnOn(datTurnOff) {
         } else {
         	debug "scheduling cancelled because tomorrow's turn-on time (${datTurnOn}) " +
             	"would be later than (or less than ${minTimeOn} minutes before) " +
-                "the scheduled turn-off time (${datTurnOff}).", "info"
+                "the scheduled turn-off time (${datTurnOff})."
         }
     } else {
     	debug "user didn't specify turn-on time; scheduling cancelled", "warn"
@@ -382,7 +396,7 @@ def turnOn() {
             theLight.on(delay: newDelay)
             newDelay += random.nextInt(delayMS) //calculate random delay before turning on next light
         } else {
-            debug "the ${theLight.label} is already on; doing nothing", "info"
+            debug "the ${theLight.label} is already on; doing nothing"
         }
     }
     debug "turnOn() complete", "trace", -1
@@ -399,7 +413,7 @@ def turnOff() {
             theLight.off(delay: newDelay)
             newDelay += random.nextInt(delayMS) //calculate random delay before turning off next light
         } else {
-            debug "the ${theLight.label} is already off; doing nothing", "info"
+            debug "the ${theLight.label} is already off; doing nothing"
         }
     }
     debug "turnOff() complete", "trace", -1

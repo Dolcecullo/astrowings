@@ -7,17 +7,18 @@
  *  in compliance with the License. You may obtain a copy of the License at:
  *
  *      http://www.apache.org/licenses/LICENSE-2.0												*/
- 	       private urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }			/*
+ 	       def urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }			/*
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
  *
- *	VERSION HISTORY										*/
- 	 private versionNum() {	return "version 2.10" }
-     private versionDate() { return "17-Nov-2016" }		/*
+ *   --------------------------------
+ *   ***   VERSION HISTORY  ***
  *
+ *	  v2.11 (09-Aug-2018) - standardize debug log types and make 'debug' logs disabled by default
+ *						  - standardize layout of app data and constant definitions
  *    v2.10 (17-Nov-2016) - execute unlockHandler only when door is unlocked from outside (using keypad)
  *						  - enable multiple locks
  *    v2.00 (15-Nov-2016) - bug fix: fix 'Notification Options' page not appearing due to incorrect paragraph definition format
@@ -50,6 +51,27 @@ definition(
     iconX3Url: "http://cdn.device-icons.smartthings.com/Home/home3-icn@3x.png")
 
 
+//   --------------------------------
+//   ***   APP DATA  ***
+
+def		versionNum()			{ return "version 1.11" }
+def		versionDate()			{ return "08-Aug-2018" }     
+def		gitAppName()			{ return "door-lock-monitor" }
+def		gitOwner()				{ return "astrowings" }
+def		gitRepo()				{ return "SmartThings" }
+def		gitBranch()				{ return "master" }
+def		gitAppFolder()			{ return "smartapps/${gitOwner()}/${gitAppName()}.src" }
+def		appImgPath()			{ return "https://raw.githubusercontent.com/${gitOwner()}/${gitRepo()}/${gitBranch()}/images/" }
+def		readmeLink()			{ return "https://github.com/${gitOwner()}/SmartThings/blob/master/${gitAppFolder()}/readme.md" } //TODO: convert to httpGet?
+def		changeLog()				{ return getWebData([uri: "https://raw.githubusercontent.com/${gitOwner()}/${gitRepo()}/${gitBranch()}/${gitAppFolder()}/changelog.txt", contentType: "text/plain; charset=UTF-8"], "changelog") }
+
+
+//   --------------------------------
+//   ***   CONSTANTS DEFINITIONS  ***
+
+	 	//name					value					description
+
+
 //   ---------------------------
 //   ***   APP PREFERENCES   ***
 
@@ -61,13 +83,6 @@ preferences {
     page(name: "pageAbout")
     page(name: "pageUninstall")
 }
-
-
-//   --------------------------------
-//   ***   CONSTANTS DEFINITIONS  ***
-
-private		appImgPath()			{ return "https://raw.githubusercontent.com/astrowings/SmartThings/master/images/" }
-private		readmeLink()			{ return "https://github.com/astrowings/SmartThings/blob/master/smartapps/astrowings/door-lock-monitor.src/readme.md" }
 
 
 //   -----------------------------
@@ -129,15 +144,15 @@ def pageAbout() {
 def pageLogOptions() {
 	dynamicPage(name: "pageLogOptions", title: "IDE Logging Options", install: false, uninstall: false) {
         section() {
-	        input "debugging", "bool", title: "Enable debugging", description: "Display the logs in the IDE", defaultValue: false, required: false, submitOnChange: true 
+	        input "debugging", "bool", title: "Enable debugging", description: "Display the logs in the IDE", defaultValue: true, required: false, submitOnChange: true
         }
         if (debugging) {
             section("Select log types to display") {
-                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false 
-                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false 
-                input "log#debug", "bool", title: "Log debug messages", defaultValue: true, required: false 
-                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false 
-                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false 
+                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false
+                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false
+                input "log#debug", "bool", title: "Log debug messages", defaultValue: false, required: false
+                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false
+                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false
 			}
             section() {
                 input "setMultiLevelLog", "bool", title: "Enable Multi-level Logging", defaultValue: true, required: false,
@@ -254,6 +269,27 @@ def locationPositionChange(evt) {
 def getAppImg(imgName, forceIcon = null) {
 	def imgPath = appImgPath()
     return (!noAppIcons || forceIcon) ? "$imgPath/$imgName" : ""
+}
+
+def getWebData(params, desc, text=true) {
+	try {
+		debug "trying getWebData for ${desc}"
+		httpGet(params) { resp ->
+			if(resp.data) {
+				if(text) {
+					return resp?.data?.text.toString()
+				} else { return resp?.data }
+			}
+		}
+	}
+	catch (ex) {
+		if(ex instanceof groovyx.net.http.HttpResponseException) {
+			debug "${desc} file not found", "warn"
+		} else {
+			debug "getWebData(params: $params, desc: $desc, text: $text) Exception:", "error"
+		}
+		return "an error occured while trying to retrieve ${desc} data"
+	}
 }
 
 def debug(message, lvl = null, shift = null, err = null) {
