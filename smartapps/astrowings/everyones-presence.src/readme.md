@@ -9,7 +9,7 @@ Emulates a single presence sensor for all physical sensors (i.e. will set to 'no
 
 ## Software Development
 ### Change Log
-* Coming soon...
+* See "Version History" commented section of the .groovy file
 
 ### Upcoming changes, requests, todo list
 * 
