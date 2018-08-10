@@ -19,6 +19,7 @@
  *
  *	  v2.03 (09-Aug-2018) - standardize debug log types and make 'debug' logs disabled by default
  *						  - standardize layout of app data and constant definitions
+ *						  - use 'return result' at end of method instead 'return <variable>' thru method to avoid skipping the debug -1 level
  *    v2.02 (03-Aug-2018) - use sunrise offset constant in calculation of turn-off time
  *                        - move random time calculation from weekdayTurnOffTime/defaultTurnOffTime to scheduleTurnOff
  *    v2.01 (30-Jul-2018) - display app info as section label instead of para
@@ -446,15 +447,17 @@ def turnOff() {
 
 def getDefaultTurnOffTime() {
 	debug "start evaluating defaultTurnOffTime", "trace", 1
+    def result
     if (timeOff) {
         def offDate = timeTodayAfter(new Date(), timeOff, location.timeZone) //convert preset time to today's date
        	debug "default turn-off time: $offDate"
-        return offDate
+        result = offDate
     } else {
         debug "default turn-off time not specified"
-        return false
+        result = false
 	}
     debug "finished evaluating defaultTurnOffTime", "trace", -1
+    return result
 }
 
 def getWeekdayTurnOffTime() {
@@ -463,7 +466,7 @@ def getWeekdayTurnOffTime() {
     //so when the sun rises on Tuesday, it will
     //schedule the lights' turn-off time for Tuesday night
 	debug "start evaluating weekdayTurnOffTime", "trace", 1
-
+	def result
 	def nowDOW = new Date().format("E") //find out current day of week
 
     //find out the preset (if entered) turn-off time for the current weekday
@@ -487,12 +490,13 @@ def getWeekdayTurnOffTime() {
 	if (offDOWtime) {
     	def offDOWdate = timeTodayAfter(new Date(), offDOWtime, location.timeZone)
        	debug "DOW turn-off time: $offDOWdate"
-        return offDOWdate
+        result =  offDOWdate
     } else {
     	debug "DOW turn-off time not specified"
-        return false
+        result = false
     }
     debug "finished evaluating weekdayTurnOffTime", "trace", -1
+    return result
 }
 
 
