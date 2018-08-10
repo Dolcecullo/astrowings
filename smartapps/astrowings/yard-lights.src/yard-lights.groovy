@@ -14,6 +14,11 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *
+ *   --------------------------------
+ *   ***   VERSION HISTORY  ***
+ *
+ *    v0.10 (30 July 2018) - developing
+ *
 */
 definition(
     name: "Yard Lights",
@@ -31,13 +36,14 @@ definition(
 
 def		versionNum()			{ return "version 0.10" }
 def		versionDate()			{ return "30-Jul-2018" }     
-def		gitUser()				{ return "astrowings" }
-def		gitRepo()				{ return "SmartThings/master" }
 def		gitAppName()			{ return "yard-lights" }
-def		gitAppFolder()			{ return "smartapps/${gitUser()}/${gitAppName()}.src" }
-def		appImgPath()			{ return "https://raw.githubusercontent.com/${gitUser()}/${gitRepo()}/images/" }
-def		readmeLink()			{ return "https://github.com/${gitUser()}/SmartThings/blob/master/${gitAppFolder()}/readme.md" }
-def		appVerInfo()			{ return getWebData([uri: "https://raw.githubusercontent.com/${gitUser()}/${gitRepo()}/${gitAppFolder()}/changelog.txt", contentType: "text/plain; charset=UTF-8"], "changelog") }
+def		gitOwner()				{ return "astrowings" }
+def		gitRepo()				{ return "SmartThings" }
+def		gitBranch()				{ return "master" }
+def		gitAppFolder()			{ return "smartapps/${gitOwner()}/${gitAppName()}.src" }
+def		appImgPath()			{ return "https://raw.githubusercontent.com/${gitOwner()}/${gitRepo()}/${gitBranch()}/images/" }
+def		readmeLink()			{ return "https://github.com/${gitOwner()}/SmartThings/blob/master/${gitAppFolder()}/readme.md" } //TODO: convert to httpGet?
+//def	changeLog()				{ return getWebData([uri: "https://raw.githubusercontent.com/${gitOwner()}/${gitRepo()}/${gitBranch()}/${gitAppFolder()}/changelog.txt", contentType: "text/plain; charset=UTF-8"], "changelog") }
 
 
 //   --------------------------------
@@ -62,7 +68,6 @@ preferences {
     page(name: "pageSettings")
     page(name: "pageLogOptions")
     page(name: "pageAbout")
-    page(name: "changeLogPage")
     page(name: "pageUninstall")
 }
 
@@ -206,6 +211,7 @@ def pageSettings() {
         section("Debugging Options", hideable: true, hidden: true) {
             input "noAppIcons", "bool", title: "Disable App Icons", description: "Do not display icons in the configuration pages", image: getAppImg("disable_icon.png"), defaultValue: false, required: false, submitOnChange: true
             href "pageLogOptions", title: "IDE Logging Options", description: "Adjust how logs are displayed in the SmartThings IDE", image: getAppImg("office8-icn.png"), required: true, state: "complete"
+            paragraph title: "Application info", appInfo()
         }
     }
 }
@@ -214,33 +220,25 @@ def pageAbout() {
 	dynamicPage(name: "pageAbout", title: "About this SmartApp", install: false, uninstall: false) { //with 'install: false', clicking 'Done' goes back to previous page
 		section() {
             href url: readmeLink(), title: app.name, description: "Copyright ©2016 Phil Maynard\n${versionNum()}", image: getAppImg("readme-icn.png")
-			href "changeLogPage", title: "View Change Log", description: "Tap to view", image: getAppImg("change_log_icon.png")
+            //leave next line commented; embedded changelog not implemented
+            //paragraph title: "What's new...", image: getAppImg("whats_new_icon.png"), changeLog()
             href url: urlApache(), title: "License", description: "View Apache license", image: getAppImg("license-icn.png")
 		}
     }
 }
 
-def changeLogPage() {
-	dynamicPage(name: "changeLogPage", title: "Change Log", install: false, uninstall: false) {
-		section() {
-			paragraph title: "What's New in this Release...", "", state: "complete", image: getAppImg("whats_new_icon.png")
-			paragraph appVerInfo()
-		}
-	}
-}
-
 def pageLogOptions() {
 	dynamicPage(name: "pageLogOptions", title: "IDE Logging Options", install: false, uninstall: false) {
         section() {
-	        input "debugging", "bool", title: "Enable debugging", description: "Display the logs in the IDE", defaultValue: false, required: false, submitOnChange: true 
+	        input "debugging", "bool", title: "Enable debugging", description: "Display the logs in the IDE", defaultValue: true, required: false, submitOnChange: true
         }
         if (debugging) {
             section("Select log types to display") {
-                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false 
-                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false 
-                input "log#debug", "bool", title: "Log debug messages", defaultValue: true, required: false 
-                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false 
-                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false 
+                input "log#info", "bool", title: "Log info messages", defaultValue: true, required: false
+                input "log#trace", "bool", title: "Log trace messages", defaultValue: true, required: false
+                input "log#debug", "bool", title: "Log debug messages", defaultValue: false, required: false
+                input "log#warn", "bool", title: "Log warning messages", defaultValue: true, required: false
+                input "log#error", "bool", title: "Log error messages", defaultValue: true, required: false
 			}
             section() {
                 input "setMultiLevelLog", "bool", title: "Enable Multi-level Logging", defaultValue: true, required: false,
@@ -340,13 +338,54 @@ def getDimConfigDesc() {
     return strDesc
 }
 
+def appInfo() {
+	def tz = location.timeZone
+    def mapSun = getSunriseAndSunset()
+    def debugLevel = state.debugLevel
+    def lightsOn = state.lightsOn
+    def timeDimActive = state.timeDimActive
+    def datInstall = state.installTime ? new Date(state.installTime) : null
+    def datInitialize = state.initializeTime ? new Date(state.initializeTime) : null
+    def datSchedOn = state.schedOnTime ? new Date(state.schedOnTime) : null
+    def datSchedOff = state.schedOffTime ? new Date(state.schedOffTime) : null
+	def datTimeDimFrom = state.timeDimFrom ? new Date(state.timeDimFrom) : null
+	def datTimeDimTo = state.timeDimTo ? new Date(state.timeDimTo) : null
+    def lastInitiatedExecution = state.lastInitiatedExecution
+    def lastCompletedExecution = state.lastCompletedExecution
+	def strInfo = ""
+        strInfo += " • Application state:\n"
+        strInfo += datInstall ? "  └ last install date: ${datInstall.format('dd MMM YYYY HH:mm', tz)}\n" : ""
+        strInfo += datInitialize ? "  └ last initialize date: ${datInitialize.format('dd MMM YYYY HH:mm', tz)}\n" : ""
+        strInfo += "\n • Last scheduled jobs:\n"
+        strInfo += datSchedOn ? "  └ schedOnTime: ${datSchedOn.format('dd MMM YYYY HH:mm', tz)}\n" : ""
+        strInfo += datSchedOff ? "  └ schedOffTime: ${datSchedOff.format('dd MMM YYYY HH:mm', tz)}\n" : ""
+        strInfo += datTimeDimFrom ? "  └ timeDimFrom: ${datTimeDimFrom.format('dd MMM YYYY HH:mm', tz)}\n" : ""
+        strInfo += datTimeDimTo ? "  └ timeDimTo: ${datTimeDimTo.format('dd MMM YYYY HH:mm', tz)}\n" : ""
+        strInfo += "\n • Last initiated execution:\n"
+		strInfo += "  └ name: ${lastInitiatedExecution.name}\n"
+        strInfo += "  └ time: ${new Date(lastInitiatedExecution.time).format('dd MMM HH:mm:ss', tz)}\n"
+        strInfo += "\n • Last completed execution:\n"
+		strInfo += "  └ name: ${lastCompletedExecution.name}\n"
+        strInfo += "  └ time: ${new Date(lastCompletedExecution.time).format('dd MMM HH:mm:ss', tz)}\n"
+        strInfo += "  └ time to complete: ${lastCompletedExecution.duration}s\n"
+		strInfo += "\n • Environment:\n"
+        strInfo += "  └ sunrise: ${mapSun.sunrise.format('dd MMM HH:mm:ss', tz)}\n"
+        strInfo += "  └ sunset: ${mapSun.sunset.format('dd MMM HH:mm:ss', tz)}\n"
+        strInfo += "\n • State stored values:\n"
+        strInfo += "  └ debugLevel: ${debugLevel}\n"
+        strInfo += "  └ lightsOn: ${lightsOn}\n"
+        strInfo += "  └ timeDimActive: ${timeDimActive}\n"
+    return strInfo
+}
+
 
 //   ----------------------------
 //   ***   APP INSTALLATION   ***
 
 def installed() {
 	debug "installed with settings: ${settings}", "trace"
-	initialize()
+	state.installTime = now()
+    initialize()
 }
 
 def updated() {
@@ -362,7 +401,10 @@ def uninstalled() {
 }
 
 def initialize() {
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "initialize()"]
     debug "initializing", "trace", 1
+    state.initializeTime = now()
     state.debugLevel = 0
     state.lightsOn = false
     state.timeDimActive = false
@@ -372,9 +414,13 @@ def initialize() {
 	scheduleTurnOn(location.currentValue("sunsetTime"))
     scheduleTurnOff(location.currentValue("sunriseTime"))
     debug "initialization complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "initialize()", duration: elapsed]
 }
 
 def subscribeToEvents() {
+    def startTime = now()
+	state.lastInitiatedExecution = [time: startTime, name: "subscribeToEvents()"]
     debug "subscribing to events", "trace", 1
 	subscribe(app, appTouch)
 	if (doorDimSensors && doorDimLvl && (doorDimDelayAfterClose || doorDimDelayFixed)) {
@@ -387,6 +433,8 @@ def subscribeToEvents() {
     subscribe(location, "sunriseTime", sunriseTimeHandler)	//triggers at sunrise, evt.value is the sunrise String (time for next day's sunrise)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
     debug "subscriptions complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "subscribeToEvents()", duration: elapsed]
 }
 
 
@@ -394,28 +442,38 @@ def subscribeToEvents() {
 //   ***   EVENT HANDLERS   ***
 
 def appTouch(evt) {
+    def startTime = now()
+	state.lastInitiatedExecution = [time: startTime, name: "appTouch()"]
 	debug "appTouch event: ${evt.descriptionText}", "trace" //TODO: 'descriptionText' only displays '{{linkText}}'?
     initialize()
     debug "appTouch complete", "trace"
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "appTouch()", duration: elapsed]
 }
 
 def doorHandler(evt) {
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "doorHandler()"]
 	debug "doorHandler event: ${evt.descriptionText}", "trace" //TODO: 'descriptionText' only displays '{{linkText}}'?
-    debug "doorHandler event raw description: ${evt.description}", "debug"
-    debug "doorHandler event description text: ${evt.descriptionText}", "debug"
-    debug "doorHandler event display name: ${evt.displayName}", "debug"
-    debug "doorHandler event source: ${evt.source}", "debug"
-    debug "doorHandler event value: ${evt.value}", "debug"
-    debug "doorHandler event string value: ${evt.stringValue}", "debug"
+    debug "doorHandler event raw description: ${evt.description}"
+    debug "doorHandler event description text: ${evt.descriptionText}"
+    debug "doorHandler event display name: ${evt.displayName}"
+    debug "doorHandler event source: ${evt.source}"
+    debug "doorHandler event value: ${evt.value}"
+    debug "doorHandler event string value: ${evt.stringValue}"
     if (evt.value == "open") {
     	doorOpen()
     } else if ((evt.value == "closed") && doorDimDelayAfterClose) {
     	doorClosed()
     }
     debug "doorHandler complete", "trace"
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "doorHandler()", duration: elapsed]
 }
 
 def motionHandler(evt) {
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "motionHandler()"]
 	debug "motionHandler event: ${evt.descriptionText}", "trace" //TODO: 'descriptionText' only displays '{{linkText}}'?
     if (evt.value == "active") {
     	motionActive()
@@ -423,34 +481,48 @@ def motionHandler(evt) {
     	motionInactive()
     }
     debug "motionHandler complete", "trace"
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "motionHandler()", duration: elapsed]
 }
 
 def sunsetTimeHandler(evt) {
-    debug "sunsetTimeHandler event: ${evt.descriptionText}", "trace" //TODO: 'descriptionText' only displays '{{linkText}}'?
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "sunsetTimeHandler()"]
+    debug "sunsetTimeHandler event: ${evt.descriptionText}", "trace"
     debug "next sunset will be ${evt.value}"
 	scheduleTurnOn(evt.value)
     debug "sunsetTimeHandler complete", "trace"
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "sunsetTimeHandler()", duration: elapsed]
 }
 
 def sunriseTimeHandler(evt) {
-    debug "sunriseTimeHandler event: ${evt.descriptionText}", "trace" //TODO: 'descriptionText' only displays '{{linkText}}'?
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "sunriseTimeHandler()"]
+    debug "sunriseTimeHandler event: ${evt.descriptionText}", "trace"
     debug "next sunrise will be ${evt.value}"
     scheduleTurnOff(evt.value)
     debug "sunriseTimeHandler complete", "trace"
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "sunriseTimeHandler()", duration: elapsed]
 }    
 
 def locationPositionChange(evt) {
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "locationPositionChange()"]
     debug "locationPositionChange(${evt.descriptionText})", "warn" //TODO: 'descriptionText' only displays '{{linkText}}'?
 	initialize()
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "locationPositionChange()", duration: elapsed]
 }
 
 
 //   -------------------
 //   ***   METHODS   ***
 
-def scheduleTurnOn(sunsetString) {
-	//schedule next day's turn-on
-    
+def scheduleTurnOn(sunsetString) { //schedule next day's turn-on
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "scheduleTurnOn()"]
     debug "executing scheduleTurnOn(sunsetString: ${sunsetString})", "trace", 1
     def datOnDOW = weekdayTurnOnTime
     def datOnDefault = defaultTurnOnTime
@@ -458,13 +530,13 @@ def scheduleTurnOn(sunsetString) {
 
     //select which turn-on time to use (1st priority: weekday-specific, 2nd: default, 3rd: sunset)
     if (datOnDOW) {
-    	debug "using the weekday turn-on time: ${datOnDOW}", "debug"
+    	debug "using the weekday turn-on time: ${datOnDOW}"
         datOn = datOnDOW
     } else if (datOnDefault) {
-    	debug "using the default turn-on time: ${datOnDefault}", "debug"
+    	debug "using the default turn-on time: ${datOnDefault}"
     	datOn = datOnDefault
     } else {
-    	debug "user didn't specify turn-on time; using sunset time", "debug"
+    	debug "user didn't specify turn-on time; using sunset time"
         def datSunset = Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", sunsetString)
         //calculate the offset
         def offsetTurnOn = onSunsetOffset ? onSunsetOffset * 60 * 1000 : 0 //convert offset to ms
@@ -473,20 +545,23 @@ def scheduleTurnOn(sunsetString) {
     
     //apply random factor
     if (onRand) {
-        debug "Applying random factor to the turn-on time", "debug"
+        debug "Applying random factor to the turn-on time"
         def random = new Random()
         def randOffset = random.nextInt(onRand)
         datOn = new Date(datOn.time - (onRand * 30000) + (randOffset * 60000)) //subtract half the random window (converted to ms) then add the random factor (converted to ms)
 	}
 	
-	debug "scheduling lights ON for: ${datOn}", "info"
+	state.schedOnTime = datOn.time
+    debug "scheduling lights ON for: ${datOn}", "info"
     runOnce(datOn, turnOn, [overwrite: false]) //schedule this to run once (it will trigger again at next sunset)
     debug "scheduleTurnOn() complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "scheduleTurnOn()", duration: elapsed]
 }
 
-def scheduleTurnOff(sunriseString) {
-	//schedule next day's turn-off
-    
+def scheduleTurnOff(sunriseString) { //schedule next day's turn-off
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "scheduleTurnOff()"]
     debug "executing scheduleTurnOff(sunriseString: ${sunriseString})", "trace", 1
     def datOffDOW = weekdayTurnOffTime
     def datOffDefault = defaultTurnOffTime
@@ -494,13 +569,13 @@ def scheduleTurnOff(sunriseString) {
 
     //select which turn-off time to use (1st priority: weekday-specific, 2nd: default, 3rd: sunrise)
     if (datOffDOW) {
-    	debug "using the weekday turn-off time", "debug"
+    	debug "using the weekday turn-off time"
         datOff = datOffDOW
     } else if (datOffDefault) {
-    	debug "using the default turn-off time", "debug"
+    	debug "using the default turn-off time"
     	datOff = datOffDefault
     } else {
-    	debug "user didn't specify turn-off time; using sunrise time", "debug"
+    	debug "user didn't specify turn-off time; using sunrise time"
         def datSunrise = Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", sunriseString)
         //calculate the offset
         def sunriseOffset = C_SUNRISE_OFFSET()
@@ -510,7 +585,7 @@ def scheduleTurnOff(sunriseString) {
     
     //apply random factor
     if (offRand) {
-        debug "Applying random factor to the turn-off time", "debug"
+        debug "Applying random factor to the turn-off time"
         def random = new Random()
         def randOffset = random.nextInt(offRand)
         datOff = new Date(datOff.time - (offRand * 30000) + (randOffset * 60000)) //subtract half the random window (converted to ms) then add the random factor (converted to ms)
@@ -520,6 +595,8 @@ def scheduleTurnOff(sunriseString) {
 	debug "scheduling lights OFF for: ${datOff}", "info"
     runOnce(datOff, turnOff, [overwrite: false]) //schedule this to run once (it will trigger again at next sunrise)
     debug "scheduleTurnOff() complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "scheduleTurnOff()", duration: elapsed]
 }
 
 def turnOn() {
@@ -528,25 +605,27 @@ def turnOn() {
     //off at 20:00, the turn-off will fire before the lights are turned on. In that case, the
     //lights would still turn on at 20:23, but they wouldn't turn off until the next day at 20:00.
     
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "turnOn()"]
     debug "executing turnOn()", "trace", 1
     def onDelayS = C_ON_DELAY_S()
     def minTimeOn = C_MIN_TIME_ON()
     def onTime = now() + (minTimeOn * 60 * 1000) //making sure lights will stay on for at least 'minTimeOn'
     def offTime = state.schedOffTime //retrieving the turn-off time from State
     if (offTime < onTime) {
-		debug "scheduled turn-off time has already passed; turn-on cancelled", "debug"
+		debug "scheduled turn-off time has already passed; turn-on cancelled"
 	} else {
-        debug "turning lights on", "debug"
+        debug "turning lights on"
         def nextDelayMS = 0L //set-up the nextDelayMS variable that will be used to calculate a new time to turn on each light in the group
         def onDelayMS = onDelayS ? onDelayS * 1000 : 5 //ensure onDelayMS != 0
         def random = new Random()
         theDimmers.each { theDimmer ->
-            if (theDimmer.currentSwitch != "on") {
+            if (theDimmer.currentLevel == 0) {
 				debug "turning on the ${theDimmer.label} at ${onDimLvl}% brightness in ${convertToHMS(nextDelayMS)}", "info"
                 theDimmer.setLevel(onDimLvl, delay: nextDelayMS)
                 nextDelayMS += random.nextInt(onDelayMS) //calculate random delay before turning on next light
             } else {
-            	debug "the ${theDimmer.label} is already on; doing nothing", "debug"
+            	debug "the ${theDimmer.label} is already on; doing nothing"
             }
         }
        	if (timeDimLvl && (timeDimFrom || timeDimTo)) {
@@ -555,31 +634,39 @@ def turnOn() {
         state.lightsOn = true
     }
     debug "turnOn() complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "turnOn()", duration: elapsed]
 }
 
 def turnOff() {
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "turnOff()"]
     debug "executing turnOff()", "trace", 1
     def offDelayS = C_OFF_DELAY_S()
     def nextDelayMS = 0L //set-up the nextDelayMS variable that will be used to calculate a new time to turn off each light in the group
     def offDelayMS = offDelayS ? offDelayS * 1000 : 5 //ensure delayMS != 0
     def random = new Random()
     theDimmers.each { theDimmer ->
-        if (theDimmer.currentSwitch != "off") {
+        if (theDimmer.currentSwitch != "off") { //TODO: change to currentLevel?
             debug "turning off the ${theDimmer.label} in ${convertToHMS(nextDelayMS)}", "info"
             theDimmer.off(delay: nextDelayMS)
             nextDelayMS += random.nextInt(offDelayMS) //calculate random delay before turning off next light
         } else {
-            debug "the ${theDimmer.label} is already off; doing nothing", "debug"
+            debug "the ${theDimmer.label} is already off; doing nothing"
         }
     }
     state.lightsOn = false
     debug "turnOff() complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "turnOff()", duration: elapsed]
 }
 
 def schedTimeDim() {
 	//called from turnOn()
     //to schedule the user-defined temporary brightness setting
 
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "schedTimeDim()"]
     debug "executing schedDimStart()", "trace", 1
     def minDimDuration = C_MIN_DIM_DURATION()
     def nowTime = now() + (minDimDuration * 60 * 1000) //making sure lights will stay on for at least 'minDimDuration'
@@ -588,21 +675,26 @@ def schedTimeDim() {
     def datTimeDimTo = timeDimTo ? timeToday(timeDimTo, location.timeZone) : null
     if (datTimeDimFrom && timeDimRand) {
     	//apply random factor to 'timeDimFrom'
-        debug "Applying random factor to the 'dim from' time", "debug"
+        debug "Applying random factor to the 'dim from' time"
         def random = new Random()
         def randOffset = random.nextInt(timeDimRand)
         datTimeDimFrom = new Date(datTimeDimFrom.time - (timeDimRand * 30000) + (randOffset * 60000)) //subtract half the random window (converted to ms) then add the random factor (converted to ms)
+        state.timeDimFrom = datTimeDimFrom.time
     }
     if (datTimeDimTo && timeDimRand) {
     	//apply random factor to 'timeDimTo'
-        debug "Applying random factor to the 'dim to' time", "debug"
+        debug "Applying random factor to the 'dim to' time"
         def random = new Random()
         def randOffset = random.nextInt(timeDimRand)
         datTimeDimTo = new Date(datTimeDimTo.time - (timeDimRand * 30000) + (randOffset * 60000)) //subtract half the random window (converted to ms) then add the random factor (converted to ms)
+        state.timeDimTo = datTimeDimTo.time
     }
     def timeOk = datNow < datTimeDimTo //check that the scheduled end of the user-defined temporary brightness window hasn't passed yet
     if (!timeOk) {
-    	debug "the scheduled end of the user-defined temporary brightness window has passed; doing nothing", "debug"
+    	debug "the scheduled end of the user-defined temporary brightness window has passed; doing nothing"
+        debug "schedDimStart() complete", "trace", -1
+	    def elapsed = (now() - startTime)/1000
+    	state.lastCompletedExecution = [time: now(), name: "schedTimeDim()", duration: elapsed]
         return
     }
     if (!timeDimFrom) {
@@ -620,53 +712,70 @@ def schedTimeDim() {
         runOnce(datTimeDimTo, dimDefault)
     }
     debug "schedDimStart() complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "schedTimeDim()", duration: elapsed]
 }
 
 def timeDimGo() {
-    def enable = state.lightsOn
-    if (!enable) {
-    	debug "state is not active; skipping timeDimGo()", "debug"
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "timeDimGo()"]
+	debug "executing timeDimGo()", "trace", 1
+    if (!state.lightsOn) {
+    	debug "state is not active; skipping timeDimGo()"
+	    debug "timeDimGo() complete", "trace", -1
+        def elapsed = (now() - startTime)/1000
+        state.lastCompletedExecution = [time: now(), name: "timeDimGo()", duration: elapsed]
         return
     }
-	debug "executing timeDimGo()", "trace", 1
     theDimmers.each { theDimmer ->
-	    if (theDimmer.currentSwitch != "off") {
+	    if (theDimmer.currentSwitch != "off") { //TODO: change to currentLevel?
         	debug "temporarily setting ${theDimmer.label} to ${timeDimLvl}%", "info"
             theDimmer.setLevel(timeDimLvl)
         }
     }
     state.timeDimActive = true
     debug "timeDimGo() complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "timeDimGo()", duration: elapsed]
 }
 
 def dimDefault() {
-    def enable = state.lightsOn
-    if (!enable) {
-    	debug "state is not active; skipping dimDefault()", "debug"
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "dimDefault()"]
+    debug "executing dimDefault()", "trace", 1
+    if (!state.lightsOn) {
+    	debug "state is not active; skipping dimDefault()"
+	    debug "dimDefault() complete", "trace", -1
+        def elapsed = (now() - startTime)/1000
+        state.lastCompletedExecution = [time: now(), name: "dimDefault()", duration: elapsed]
         return
     }
-    debug "executing dimDefault()", "trace", 1
     theDimmers.each { theDimmer ->
-	    if (theDimmer.currentSwitch != "off") {
+	    if (theDimmer.currentSwitch != "off") { //TODO: change to currentLevel?
         	debug "end of timed brightness adjustment;re-setting ${theDimmer.label} to ${onDimLvl}%", "info"
             theDimmer.setLevel(onDimLvl)
         } else {
-        	debug "the ${theDimmer.label} is off; doing nothing", "debug"
+        	debug "the ${theDimmer.label} is off; doing nothing"
         }
     }
     state.timeDimActive = false
     debug "dimDefault() complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "dimDefault()", duration: elapsed]
 }
 
 def dimReset() {
-    def enable = state.lightsOn
-    if (!enable) {
-    	debug "state is not active; skipping dimDefault()", "debug"
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "dimReset()"]
+    debug "executing dimReset()", "trace", 1
+    if (!state.lightsOn) {
+    	debug "state is not active; skipping dimDefault()"
+	    debug "dimReset() complete", "trace", -1
+        def elapsed = (now() - startTime)/1000
+        state.lastCompletedExecution = [time: now(), name: "dimReset()", duration: elapsed]
         return
     }
-    debug "executing dimReset()", "trace", 1
-    def timeDimActive = state.timeDimActive
-    if (timeDimActive) {
+    if (state.timeDimActive) {
     	debug "the triggered brightness period has ended; calling to restore the timed brightness adjustment", "info"
         timeDimGo()
     } else {
@@ -674,24 +783,30 @@ def dimReset() {
     	dimDefault()
     }
     debug "dimReset() complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "dimReset()", duration: elapsed]
 }
 
 def motionActive() {
     //called from motionHandler when motion is active
     //to apply temporary brightness setting
-    def enable = state.lightsOn
-    if (!enable) {
-    	debug "state is not active; skipping motionActive()", "debug"
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "motionActive()"]
+    debug "executing motionActive()", "trace", 1 //TODO: specify which sensor detected the motion
+    if (!state.lightsOn) {
+    	debug "state is not active; skipping motionActive()"
+	    debug "motionActive() complete", "trace", -1
+        def elapsed = (now() - startTime)/1000
+        state.lastCompletedExecution = [time: now(), name: "motionActive()", duration: elapsed]
         return
     }
-    debug "executing motionActive()", "trace", 1 //TODO: specify which sensor detected the motion
     state.dimTime = now() //store current time to use later in ensuring MIN_DIM_DURATION()
     theDimmers.each { theDimmer ->
-	    if (theDimmer.currentSwitch != "off") {
+	    if (theDimmer.currentSwitch != "off") { //TODO: change to currentLevel?
         	debug "temporarily setting ${theDimmer.label} to ${motionDimLvl}% because motion was detected", "info"
             theDimmer.setLevel(motionDimLvl)
         } else {
-        	debug "the ${theDimmer.label} is off; doing nothing", "debug"
+        	debug "the ${theDimmer.label} is off; doing nothing"
         }
     }
     if (motionDimDelayFixed) {
@@ -701,22 +816,28 @@ def motionActive() {
        	runIn(dimResetDelay, dimReset)
     }
     debug "motionActive() complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "motionActive()", duration: elapsed]
 }
 
 def motionInactive() {
     //called from motionHandler when motion stops
     //to reset brightness to default setting after 'motionDimDelayAfterClose'
-    def enable = state.lightsOn
-    if (!enable) {
-    	debug "state is not active; skipping motionInactive()", "debug"
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "motionInactive()"]
+    debug "executing motionInactive()", "trace", 1
+    if (!state.lightsOn) {
+    	debug "state is not active; skipping motionInactive()"
+	    debug "motionInactive() complete", "trace", -1
+        def elapsed = (now() - startTime)/1000
+        state.lastCompletedExecution = [time: now(), name: "motionInactive()", duration: elapsed]
         return
     }
-    debug "executing motionInactive()", "trace", 1
     def allInactive = true
     for (sensor in motionDimSensors) {
     	if (sensor.motion == "active") {
         	allInactive = false
-            debug "the ${sensor.label} is still active; check again when motion stops", "debug"
+            debug "the ${sensor.label} is still active; check again when motion stops"
             break
         }
     }
@@ -730,24 +851,30 @@ def motionInactive() {
         runIn(dimResetDelay, dimReset)
     }
     debug "motionInactive() complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "motionInactive()", duration: elapsed]
 }
 
 def doorOpen() {
     //called from doorHandler when a contact is open
     //to apply temporary brightness setting
-    def enable = state.lightsOn
-    if (!enable) {
-    	debug "state is not active; skipping doorOpen()", "debug"
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "doorOpen()"]
+    debug "executing doorOpen()", "trace", 1 //TODO:replace "a door" with the actual contact name
+    if (!state.lightsOn) {
+    	debug "state is not active; skipping doorOpen()"
+	    debug "doorOpen() complete", "trace", -1
+        def elapsed = (now() - startTime)/1000
+        state.lastCompletedExecution = [time: now(), name: "doorOpen()", duration: elapsed]
         return
     }
-    debug "executing doorOpen()", "trace", 1 //TODO:replace "a door" with the actual contact name
-    state.dimTime = now() //store current time to use later in ensuring MIN_DIM_DURATION()
+    state.dimTime = now() //store current time to use in doorClosed() for ensuring MIN_DIM_DURATION()
     theDimmers.each { theDimmer ->
-	    if (theDimmer.currentSwitch != "off") {
+	    if (theDimmer.currentSwitch != "off") { //TODO: change to currentLevel?
         	debug "temporarily setting ${theDimmer.label} to ${doorDimLvl}% because a door was open", "info"
             theDimmer.setLevel(doorDimLvl)
         } else {
-        	debug "the ${theDimmer.label} is off; doing nothing", "debug"
+        	debug "the ${theDimmer.label} is off; doing nothing"
         }
     }
     if (doorDimDelayFixed) {
@@ -757,22 +884,28 @@ def doorOpen() {
         runIn(dimResetDelay, dimReset)
     }
     debug "doorOpen() complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "doorOpen()", duration: elapsed]
 }
 
 def doorClosed() {
     //called from doorHandler when a contact is closed
     //to reset brightness to default setting after 'doorDimDelayAfterClose'
-    def enable = state.lightsOn
-    if (!enable) {
-    	debug "state is not active; skipping doorClosed()", "debug"
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "doorClosed()"]
+    debug "executing doorClosed()", "trace", 1
+    if (!state.lightsOn) {
+    	debug "state is not active; skipping doorClosed()"
+	    debug "doorClosed() complete", "trace", -1
+        def elapsed = (now() - startTime)/1000
+        state.lastCompletedExecution = [time: now(), name: "doorClosed()", duration: elapsed]
         return
     }
-    debug "executing doorClosed()", "trace", 1
     def allClosed = true
     for (door in doorDimSensors) {
     	if (door.contact == "open") {
         	allClosed = false
-            debug "the ${door.label} is still open; check again next time a door closes", "debug"
+            debug "the ${door.label} is still open; check again next time a door closes"
             break
         }
     }
@@ -786,6 +919,8 @@ def doorClosed() {
         runIn(dimResetDelay, dimReset)
     }
     debug "doorClosed() complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "doorClosed()", duration: elapsed]
 }
 
 
@@ -793,29 +928,41 @@ def doorClosed() {
 //   ***   APP FUNCTIONS   ***
 
 def getDefaultTurnOnTime() {
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "getDefaultTurnOnTime()"]
 	debug "start evaluating defaultTurnOnTime", "trace", 1
+    def result
     if (onDefaultTime) {
         def onDate = timeTodayAfter("23:59", onDefaultTime, location.timeZone) //convert preset time to tomorrow's date
        	debug "default turn-on time: $onDate"
-        return onDate
+        result = onDate
     } else {
         debug "default turn-on time not specified"
-        return false
+        result = false
 	}
-    debug "finished evaluating defaultTurnOnTime", "trace", -1
+   	debug "finished evaluating defaultTurnOnTime", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "getDefaultTurnOnTime()", duration: elapsed]
+    return result
 }
 
 def getDefaultTurnOffTime() {
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "getDefaultTurnOffTime()"]
 	debug "start evaluating defaultTurnOffTime", "trace", 1
+    def result
     if (offDefaultTime) {
         def offDate = timeTodayAfter(new Date(), offDefaultTime, location.timeZone) //convert preset time to today's date
         debug "default turn-off time: $offDate"
-        return offDate
+        result = offDate
     } else {
         debug "default turn-off time not specified"
-        return false
+        result = false
 	}
     debug "finished evaluating defaultTurnOffTime", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "getDefaultTurnOffTime()", duration: elapsed]
+    return result
 }
 
 def getWeekdayTurnOnTime() {
@@ -823,9 +970,11 @@ def getWeekdayTurnOnTime() {
     //this executes at sunset (called from scheduleTurnOn),
     //so when the sun sets on Tuesday, it will
     //schedule the lights' turn-on time for Wednesday
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "getWeekdayTurnOnTime()"]
 	debug "start evaluating weekdayTurnOnTime", "trace", 1
-
-	def nowDOW = new Date().format("E") //find out current day of week
+	def result
+    def nowDOW = new Date().format("E") //find out current day of week
 
     //find out the preset (if entered) turn-on time for next day
     def onDOWtime
@@ -848,12 +997,15 @@ def getWeekdayTurnOnTime() {
 	if (onDOWtime) {
     	def onDOWdate = timeTodayAfter("23:59", onDOWtime, location.timeZone) //set for tomorrow
       	debug "DOW turn-on time: $onDOWdate"
-        return onDOWdate
+        result = onDOWdate
     } else {
     	debug "DOW turn-on time not specified"
-        return false
+        result = false
     }
     debug "finished evaluating weekdayTurnOnTime", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "getWeekdayTurnOnTime()", duration: elapsed]
+    return result
 }
 
 def getWeekdayTurnOffTime() {
@@ -861,8 +1013,10 @@ def getWeekdayTurnOffTime() {
     //this executes at sunrise (called from scheduleTurnOff),
     //so when the sun rises on Tuesday, it will
     //schedule the lights' turn-off time for Tuesday night
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "getWeekdayTurnOffTime()"]
 	debug "start evaluating weekdayTurnOffTime", "trace", 1
-
+	def result
 	def nowDOW = new Date().format("E") //find out current day of week
 
     //find out the preset (if entered) turn-off time for the current weekday
@@ -886,12 +1040,15 @@ def getWeekdayTurnOffTime() {
 	if (offDOWtime) {
     	def offDOWdate = timeTodayAfter(new Date(), offDOWtime, location.timeZone)
        	debug "DOW turn-off time: $offDOWdate"
-        return offDOWdate
+        result = offDOWdate
     } else {
     	debug "DOW turn-off time not specified"
-        return false
+        result = false
     }
     debug "finished evaluating weekdayTurnOffTime", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "getWeekdayTurnOffTime()", duration: elapsed]
+    return result
 }
 
 
@@ -920,7 +1077,7 @@ def getAppImg(imgName, forceIcon = null) {
 
 def getWebData(params, desc, text=true) {
 	try {
-		debug "getWebData: ${desc} data"
+		debug "trying getWebData for ${desc}"
 		httpGet(params) { resp ->
 			if(resp.data) {
 				if(text) {
@@ -935,7 +1092,7 @@ def getWebData(params, desc, text=true) {
 		} else {
 			debug "getWebData(params: $params, desc: $desc, text: $text) Exception:", "error"
 		}
-		return "${label} info not found"
+		return "an error occured while trying to retrieve ${desc} data"
 	}
 }
 
