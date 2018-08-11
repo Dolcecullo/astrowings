@@ -17,7 +17,8 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
- *    v0.10 (30 July 2018) - developing
+ *    v1.00 (10 Aug 2018) - functional release
+ *    v0.10 (30 Jul 2018) - developing
  *
 */
 definition(
@@ -444,8 +445,9 @@ def subscribeToEvents() {
 def appTouch(evt) {
     def startTime = now()
 	state.lastInitiatedExecution = [time: startTime, name: "appTouch()"]
-	debug "appTouch event: ${evt.descriptionText}", "trace" //TODO: 'descriptionText' only displays '{{linkText}}'?
+	debug "appTouch event: ${evt.descriptionText}", "trace"
     initialize()
+    turnOn()
     debug "appTouch complete", "trace"
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "appTouch()", duration: elapsed]
@@ -510,7 +512,7 @@ def sunriseTimeHandler(evt) {
 def locationPositionChange(evt) {
     def startTime = now()
     state.lastInitiatedExecution = [time: startTime, name: "locationPositionChange()"]
-    debug "locationPositionChange(${evt.descriptionText})", "warn" //TODO: 'descriptionText' only displays '{{linkText}}'?
+    debug "locationPositionChange(${evt.descriptionText})", "warn"
 	initialize()
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "locationPositionChange()", duration: elapsed]
@@ -620,9 +622,9 @@ def turnOn() {
         def onDelayMS = onDelayS ? onDelayS * 1000 : 5 //ensure onDelayMS != 0
         def random = new Random()
         theDimmers.each { theDimmer ->
-            if (theDimmer.currentLevel == 0) {
+            if (theDimmer.currentSwitch != "on") {
 				debug "turning on the ${theDimmer.label} at ${onDimLvl}% brightness in ${convertToHMS(nextDelayMS)}", "info"
-                theDimmer.setLevel(onDimLvl, delay: nextDelayMS)
+                theDimmer.setLevel(onDimLvl, [delay: nextDelayMS])
                 nextDelayMS += random.nextInt(onDelayMS) //calculate random delay before turning on next light
             } else {
             	debug "the ${theDimmer.label} is already on; doing nothing"
@@ -647,7 +649,7 @@ def turnOff() {
     def offDelayMS = offDelayS ? offDelayS * 1000 : 5 //ensure delayMS != 0
     def random = new Random()
     theDimmers.each { theDimmer ->
-        if (theDimmer.currentSwitch != "off") { //TODO: change to currentLevel?
+        if (theDimmer.currentSwitch != "off") {
             debug "turning off the ${theDimmer.label} in ${convertToHMS(nextDelayMS)}", "info"
             theDimmer.off(delay: nextDelayMS)
             nextDelayMS += random.nextInt(offDelayMS) //calculate random delay before turning off next light
@@ -728,7 +730,7 @@ def timeDimGo() {
         return
     }
     theDimmers.each { theDimmer ->
-	    if (theDimmer.currentSwitch != "off") { //TODO: change to currentLevel?
+	    if (theDimmer.currentSwitch != "off") {
         	debug "temporarily setting ${theDimmer.label} to ${timeDimLvl}%", "info"
             theDimmer.setLevel(timeDimLvl)
         }
@@ -751,7 +753,7 @@ def dimDefault() {
         return
     }
     theDimmers.each { theDimmer ->
-	    if (theDimmer.currentSwitch != "off") { //TODO: change to currentLevel?
+	    if (theDimmer.currentSwitch != "off") {
         	debug "end of timed brightness adjustment;re-setting ${theDimmer.label} to ${onDimLvl}%", "info"
             theDimmer.setLevel(onDimLvl)
         } else {
@@ -802,7 +804,7 @@ def motionActive() {
     }
     state.dimTime = now() //store current time to use later in ensuring MIN_DIM_DURATION()
     theDimmers.each { theDimmer ->
-	    if (theDimmer.currentSwitch != "off") { //TODO: change to currentLevel?
+	    if (theDimmer.currentSwitch != "off") {
         	debug "temporarily setting ${theDimmer.label} to ${motionDimLvl}% because motion was detected", "info"
             theDimmer.setLevel(motionDimLvl)
         } else {
@@ -860,7 +862,7 @@ def doorOpen() {
     //to apply temporary brightness setting
     def startTime = now()
     state.lastInitiatedExecution = [time: startTime, name: "doorOpen()"]
-    debug "executing doorOpen()", "trace", 1 //TODO:replace "a door" with the actual contact name
+    debug "executing doorOpen()", "trace", 1 //TODO: specify which contact called this
     if (!state.lightsOn) {
     	debug "state is not active; skipping doorOpen()"
 	    debug "doorOpen() complete", "trace", -1
@@ -870,7 +872,7 @@ def doorOpen() {
     }
     state.dimTime = now() //store current time to use in doorClosed() for ensuring MIN_DIM_DURATION()
     theDimmers.each { theDimmer ->
-	    if (theDimmer.currentSwitch != "off") { //TODO: change to currentLevel?
+	    if (theDimmer.currentSwitch != "off") {
         	debug "temporarily setting ${theDimmer.label} to ${doorDimLvl}% because a door was open", "info"
             theDimmer.setLevel(doorDimLvl)
         } else {
