@@ -344,6 +344,7 @@ def appInfo() {
     def mapSun = getSunriseAndSunset()
     def debugLevel = state.debugLevel
     def lightsOn = state.lightsOn
+    def lightsOnTime = state.lightsOnTime
     def timeDimActive = state.timeDimActive
     def datInstall = state.installTime ? new Date(state.installTime) : null
     def datInitialize = state.initializeTime ? new Date(state.initializeTime) : null
@@ -374,7 +375,8 @@ def appInfo() {
         strInfo += "  └ sunset: ${mapSun.sunset.format('dd MMM HH:mm:ss', tz)}\n"
         strInfo += "\n • State stored values:\n"
         strInfo += "  └ debugLevel: ${debugLevel}\n"
-        strInfo += "  └ lightsOn: ${lightsOn}\n"
+        strInfo += "  └ lightsOn: ${lightsOn}"
+        strInfo += (lightsOn && lightsOnTime) ? " (since ${new Date(lightsOnTime).format('HH:mm', tz)})\n" : "\n"
         strInfo += "  └ timeDimActive: ${timeDimActive}\n"
     return strInfo
 }
@@ -634,6 +636,7 @@ def turnOn() {
         	schedTimeDim() //schedule temporary brightness adjustment if configured
         }
         state.lightsOn = true
+        state.lightsOnTime = now()
     }
     debug "turnOn() complete", "trace", -1
     def elapsed = (now() - startTime)/1000
