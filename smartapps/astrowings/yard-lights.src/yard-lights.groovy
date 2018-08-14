@@ -425,7 +425,7 @@ def subscribeToEvents() {
     def startTime = now()
 	state.lastInitiatedExecution = [time: startTime, name: "subscribeToEvents()"]
     debug "subscribing to events", "trace", 1
-	subscribe(app, appTouch)
+	//subscribe(app, appTouch)
 	if (doorDimSensors && doorDimLvl && (doorDimDelayAfterClose || doorDimDelayFixed)) {
 		subscribe(doorDimSensors, "contact", doorHandler)   //adjust brightness when door opens
     }
