@@ -17,6 +17,7 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
+ *    v1.01 (09 Oct 2018) - fix application of 'doorDimDelayFixed'
  *    v1.00 (10 Aug 2018) - functional release
  *    v0.10 (30 Jul 2018) - developing
  *
@@ -632,11 +633,11 @@ def turnOn() {
             	debug "the ${theDimmer.label} is already on; doing nothing"
             }
         }
+        state.lightsOn = true
+        state.lightsOnTime = now()
        	if (timeDimLvl && (timeDimFrom || timeDimTo)) {
         	schedTimeDim() //schedule temporary brightness adjustment if configured
         }
-        state.lightsOn = true
-        state.lightsOnTime = now()
     }
     debug "turnOn() complete", "trace", -1
     def elapsed = (now() - startTime)/1000
@@ -884,7 +885,7 @@ def doorOpen() {
     }
     if (doorDimDelayFixed) {
         def minDimDuration = C_MIN_DIM_DURATION()
-        def dimResetDelay = (doorDimDelayFixed < minDimDuration) ? minDimDuration : motionDimDelayFixed
+        def dimResetDelay = (doorDimDelayFixed < minDimDuration) ? minDimDuration : doorDimDelayFixed
     	debug "calling to reset brightness to default setting in ${dimResetDelay} seconds", "info"
         runIn(dimResetDelay, dimReset)
     }
