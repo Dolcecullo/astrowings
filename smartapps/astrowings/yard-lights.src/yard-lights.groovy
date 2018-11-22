@@ -17,6 +17,10 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
+ *	  v1.02 (22 Nov 2018) - in timeDimGo(), removed the check to see if the switch was already on
+ *						    because it would sometimes cause the temporary dim setting to not be 
+ *							applied when called immediately upon turn on where datTimeDimFrom < datNow
+ *                        - process handlers only if state.lightsOn
  *    v1.01 (09 Oct 2018) - fix application of 'doorDimDelayFixed'
  *    v1.00 (10 Aug 2018) - functional release
  *    v0.10 (30 Jul 2018) - developing
@@ -36,8 +40,8 @@ definition(
 //   --------------------------------
 //   ***   APP DATA  ***
 
-def		versionNum()			{ return "version 0.10" }
-def		versionDate()			{ return "30-Jul-2018" }     
+def		versionNum()			{ return "version 1.02" }
+def		versionDate()			{ return "22-Nov-2018" }     
 def		gitAppName()			{ return "yard-lights" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -457,6 +461,10 @@ def appTouch(evt) {
 }
 
 def doorHandler(evt) {
+    if (!state.lightsOn) {
+    	return
+    }
+    
     def startTime = now()
     state.lastInitiatedExecution = [time: startTime, name: "doorHandler()"]
 	debug "doorHandler event: ${evt.descriptionText}", "trace" //TODO: 'descriptionText' only displays '{{linkText}}'?
@@ -477,6 +485,10 @@ def doorHandler(evt) {
 }
 
 def motionHandler(evt) {
+    if (!state.lightsOn) {
+    	return
+    }
+    
     def startTime = now()
     state.lastInitiatedExecution = [time: startTime, name: "motionHandler()"]
 	debug "motionHandler event: ${evt.descriptionText}", "trace" //TODO: 'descriptionText' only displays '{{linkText}}'?
@@ -695,6 +707,8 @@ def schedTimeDim() {
         datTimeDimTo = new Date(datTimeDimTo.time - (timeDimRand * 30000) + (randOffset * 60000)) //subtract half the random window (converted to ms) then add the random factor (converted to ms)
         state.timeDimTo = datTimeDimTo.time
     }
+    debug "schedTimeDim() :: datTimeDimFrom: ${datTimeDimFrom}"
+    debug "schedTimeDim() :: datTimeDimTo: ${datTimeDimTo}"
     def timeOk = datNow < datTimeDimTo //check that the scheduled end of the user-defined temporary brightness window hasn't passed yet
     if (!timeOk) {
     	debug "the scheduled end of the user-defined temporary brightness window has passed; doing nothing"
@@ -734,10 +748,10 @@ def timeDimGo() {
         return
     }
     theDimmers.each { theDimmer ->
-	    if (theDimmer.currentSwitch != "off") {
+	    //if (theDimmer.currentSwitch != "off") { this might cause the temporary dim setting to not be applied when called immediately upon turn on where datTimeDimFrom < datNow
         	debug "temporarily setting ${theDimmer.label} to ${timeDimLvl}%", "info"
             theDimmer.setLevel(timeDimLvl)
-        }
+        //}
     }
     state.timeDimActive = true
     debug "timeDimGo() complete", "trace", -1
@@ -1165,7 +1179,7 @@ def debug(message, lvl = null, shift = null, err = null) {
         log.trace "$leftPad$prefix$message", err
 	} else if (lvl == "warn") {
     	def leftPad = (multiEnable ? "::" : "")
-		log.warn "$leftPad$prefix$message", err
+		//log.warn "$leftPad$prefix$message", err
 	} else if (lvl == "error") {
     	def leftPad = (multiEnable ? "::" : "")
 		log.error "$leftPad$prefix$message", err
