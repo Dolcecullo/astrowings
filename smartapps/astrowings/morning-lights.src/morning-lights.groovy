@@ -17,6 +17,9 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
+ *    v2.12 (22-Nov-2018) - wrap procedures to identify last execution and elapsed time
+ *                        - check that lights were turned on by this app before turning off on mode change
+ *                        - add appInfo section in app settings
  *	  v2.11 (09-Aug-2018) - standardize debug log types and make 'debug' logs disabled by default
  *						  - standardize layout of app data and constant definitions
  *    v2.10 (24-Nov-2016) - add option to specify sunrise time offset
@@ -176,9 +179,10 @@ def pageSettings() {
                 input "sunriseOffset", "number", title: "Sunrise offset time", description: "How many minutes (+/- 60)?", range: "-60..60", required: false
             }
    		}
-        section("Debugging Options", hideable: true, hidden: true) {
+        section("Debugging Tools", hideable: true, hidden: true) {
             input "noAppIcons", "bool", title: "Disable App Icons", description: "Do not display icons in the configuration pages", image: getAppImg("disable_icon.png"), defaultValue: false, required: false, submitOnChange: true
             href "pageLogOptions", title: "IDE Logging Options", description: "Adjust how logs are displayed in the SmartThings IDE", image: getAppImg("office8-icn.png"), required: true, state: "complete"
+            paragraph title: "Application info", appInfo()
         }
     }
 }
@@ -259,12 +263,48 @@ def getRandomOptionsDesc() {
     return (randOn || randOff || delaySeconds) ? strDesc : "Tap to configure random settings..."
 }
 
+def appInfo() {
+	def tz = location.timeZone
+    def mapSun = getSunriseAndSunset()
+    def debugLevel = state.debugLevel
+    def lightsOn = state.lightsOn
+    def lightsOnTime = state.lightsOnTime
+    def datInstall = state.installTime ? new Date(state.installTime) : null
+    def datInitialize = state.initializeTime ? new Date(state.initializeTime) : null
+    def datSchedOn = state.schedOnTime ? new Date(state.schedOnTime) : null
+    def datSchedOff = state.schedOffTime ? new Date(state.schedOffTime) : null
+    def lastInitiatedExecution = state.lastInitiatedExecution
+    def lastCompletedExecution = state.lastCompletedExecution
+    def strInfo = ""
+        strInfo += " • Application state:\n"
+        strInfo += datInstall ? "  └ last install date: ${datInstall.format('dd MMM YYYY HH:mm', tz)}\n" : ""
+        strInfo += datInitialize ? "  └ last initialize date: ${datInitialize.format('dd MMM YYYY HH:mm', tz)}\n" : ""
+        strInfo += "\n • Last scheduled jobs:\n"
+        strInfo += datSchedOn ? "  └ turnOn: ${datSchedOn.format('dd MMM YYYY HH:mm', tz)}\n" : ""
+        strInfo += datSchedOff ? "  └ turnOff: ${datSchedOff.format('dd MMM YYYY HH:mm', tz)}\n" : ""
+        strInfo += "\n • Last initiated execution:\n"
+		strInfo += "  └ name: ${lastInitiatedExecution.name}\n"
+        strInfo += "  └ time: ${new Date(lastInitiatedExecution.time).format('dd MMM HH:mm:ss', tz)}\n"
+        strInfo += "\n • Last completed execution:\n"
+		strInfo += "  └ name: ${lastCompletedExecution.name}\n"
+        strInfo += "  └ time: ${new Date(lastCompletedExecution.time).format('dd MMM HH:mm:ss', tz)}\n"
+        strInfo += "  └ time to complete: ${lastCompletedExecution.duration}s\n"
+		strInfo += "\n • Environment:\n"
+        strInfo += "  └ sunrise: ${mapSun.sunrise.format('dd MMM HH:mm:ss', tz)}\n"
+        strInfo += "  └ sunset: ${mapSun.sunset.format('dd MMM HH:mm:ss', tz)}\n"
+        strInfo += "\n • State stored values:\n"
+        strInfo += "  └ debugLevel: ${debugLevel}\n"
+        strInfo += "  └ lightsOn: ${lightsOn}"
+        strInfo += (lightsOn && lightsOnTime) ? " (since ${new Date(lightsOnTime).format('HH:mm', tz)})\n" : "\n"
+    return strInfo
+}
 
 //   ----------------------------
 //   ***   APP INSTALLATION   ***
 
 def installed() {
 	debug "installed with settings: ${settings}", "trace"
+	state.installTime = now()
 	initialize()
 }
 
@@ -281,19 +321,29 @@ def uninstalled() {
 }
 
 def initialize() {
-    state.debugLevel = 0
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "initialize()"]
     debug "initializing", "trace", 1
+    state.initializeTime = now()
+    state.debugLevel = 0
+    state.lightsOn = false
     subscribeToEvents()
 	schedTurnOff(location.currentValue("sunriseTime"))
     debug "initialization complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "initialize()", duration: elapsed]
 }
 
 def subscribeToEvents() {
+    def startTime = now()
+	state.lastInitiatedExecution = [time: startTime, name: "subscribeToEvents()"]
     debug "subscribing to events", "trace", 1
     subscribe(location, "sunriseTime", sunriseTimeHandler)	//triggers at sunrise, evt.value is the sunrise String (time for next day's sunrise)
     subscribe(location, "mode", modeChangeHandler)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
     debug "subscriptions complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "subscribeToEvents()", duration: elapsed]
 }
 
 
@@ -301,31 +351,45 @@ def subscribeToEvents() {
 //   ***   EVENT HANDLERS   ***
 
 def sunriseTimeHandler(evt) {
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "sunriseTimeHandler()"]
     debug "sunriseTimeHandler event: ${evt.descriptionText}", "trace"
     def sunriseTimeHandlerMsg = "triggered sunriseTimeHandler; next sunrise will be ${evt.value}"
     debug "sunriseTimeHandlerMsg : $sunriseTimeHandlerMsg"
     schedTurnOff(evt.value)
     debug "sunriseTimeHandler complete", "trace"
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "sunriseTimeHandler()", duration: elapsed]
 }    
 
 def locationPositionChange(evt) {
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "locationPositionChange()"]
     debug "locationPositionChange(${evt.descriptionText})", "warn"
 	initialize()
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "locationPositionChange()", duration: elapsed]
 }
 
 def modeChangeHandler(evt) {
-	//debug "modeChangeHandler event: ${evt.descriptionText}", "trace"
-    if(awayOff && evt.value == "Away") {
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "modeChangeHandler()"]
+	debug "modeChangeHandler event: ${evt.descriptionText}", "trace"
+    if(state.lightsOn && awayOff && evt.value == "Away") {
         debug "mode changed to ${evt.value}; calling turnOff()", "info"
         turnOff()
     }
-    //debug "modeChangeHandler complete", "trace"
+    debug "modeChangeHandler complete", "trace"
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "modeChangeHandler()", duration: elapsed]
 }
 
 //   -------------------
 //   ***   METHODS   ***
 
 def schedTurnOff(sunriseString) {
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "schedTurnOff()"]
     debug "executing schedTurnOff(sunriseString: ${sunriseString})", "trace", 1
 	
     //convert sunriseString into date
@@ -350,6 +414,7 @@ def schedTurnOff(sunriseString) {
         def randOffset = random.nextInt(randOff)
         datTurnOff = new Date(datTurnOff.time - (randOff * 30000) + (randOffset * 60000))
 	}
+    state.schedOffTime = datTurnOff.time
     
     // This method gets called at sunrise to schedule next day's turn-off. However it's possible that
     // today's turn-off could be scheduled after sunrise (therefore after this method gets called),
@@ -358,10 +423,14 @@ def schedTurnOff(sunriseString) {
     runOnce(datTurnOff, turnOff, [overwrite: false])
     schedTurnOn(datTurnOff)
     debug "schedTurnOff() complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "schedTurnOff()", duration: elapsed]
 }
 
 def schedTurnOn(datTurnOff) {
 	//fires at sunrise to schedule next day's turn-on
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "schedTurnOn()"]
     debug "executing schedTurnOn(datTurnOff: ${datTurnOff})", "trace", 1
     
     def datTurnOn = DOWTurnOnTime
@@ -372,6 +441,7 @@ def schedTurnOn(datTurnOff) {
         def safeOff = datTurnOff.time - (minTimeOn * 60 * 1000) //subtract 'minTimeOn' from scheduled turn-off time to ensure lights will stay on for at least 'minTimeOn' minutes
         if (datTurnOn.time < safeOff) {
             debug "scheduling lights ON for: ${datTurnOn} (${useTime})", "info"
+            state.schedOnTime = datTurnOn.time
             runOnce(datTurnOn, turnOn)
         } else {
         	debug "scheduling cancelled because tomorrow's turn-on time (${datTurnOn}) " +
@@ -382,9 +452,13 @@ def schedTurnOn(datTurnOff) {
     	debug "user didn't specify turn-on time; scheduling cancelled", "warn"
     }
     debug "schedTurnOn() complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "schedTurnOn()", duration: elapsed]
 }
 
 def turnOn() {
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "turnOn()"]
     debug "executing turnOn()", "trace", 1
     def newDelay = 0L
     def delayMS = (onDelay && delaySeconds) ? delaySeconds * 1000 : 5 //ensure delayMS != 0
@@ -398,10 +472,16 @@ def turnOn() {
             debug "the ${theLight.label} is already on; doing nothing"
         }
     }
+	state.lightsOn = true
+    state.lightsOnTime = now()
     debug "turnOn() complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "turnOn()", duration: elapsed]
 }
 
 def turnOff() {
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "turnOff()"]
     debug "executing turnOff()", "trace", 1
     def newDelay = 0L
     def delayMS = (offDelay && delaySeconds) ? delaySeconds * 1000 : 5 //ensure delayMS != 0
@@ -415,7 +495,10 @@ def turnOff() {
             debug "the ${theLight.label} is already off; doing nothing"
         }
     }
+    state.lightsOn = false
     debug "turnOff() complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "turnOff()", duration: elapsed]
 }
 
 
@@ -426,6 +509,8 @@ def getDOWTurnOnTime() {
     //calculate weekday-specific turn-on time
     //this gets called at sunrise, so when the sun rises on Tuesday, it will
     //schedule the lights' turn-on time for Wednesday morning
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "getDOWTurnOnTime()"]
 	debug "start evaluating DOWTurnOnTime", "trace", 1
 
     def tmrDOW = (new Date() + 1).format("E") //find out tomorrow's day of week
@@ -462,11 +547,15 @@ def getDOWTurnOnTime() {
         	debug "DOW turn-on time: $tmrOn"
         }
         debug "finished evaluating DOWTurnOnTime", "trace", -1
-        return tmrOn
+        def elapsed = (now() - startTime)/1000
+    	state.lastCompletedExecution = [time: now(), name: "getDOWTurnOnTime()", duration: elapsed]
+		return tmrOn
     } else {
     	debug "DOW turn-on time not specified for ${tmrDOW}"
         debug "finished evaluating DOWTurnOnTime", "trace", -1
-        return false
+        def elapsed = (now() - startTime)/1000
+    	state.lastCompletedExecution = [time: now(), name: "getDOWTurnOnTime()", duration: elapsed]
+		return false
     }
 }
 
