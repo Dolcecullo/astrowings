@@ -11,7 +11,7 @@ This SmartApp sends a notification (SMS optional) to notify when power draw from
 * See "Version History" commented section of the .groovy file
 
 ### Upcoming changes, requests, todo list
-* Coming...
+* 
 
 ### Known Issues
 * None so far
