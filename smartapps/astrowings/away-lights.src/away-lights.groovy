@@ -17,6 +17,8 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
+ *    v1.13 (26-Sep-2019) - use atomicState instead of state in an effort to fix a bug in the child app where the light doesn't turn off because state.appOn wasn't set to true
+ *    v1.12 (27-May-2019) - add debug option to skip appOn check before turning off the light
  *	  v1.11 (09-Aug-2018) - standardize debug log types and make 'debug' logs disabled by default
  *						  - change category to 'convenience'
  *						  - standardize layout of app data and constant definitions
@@ -38,8 +40,8 @@ definition(
 //   --------------------------------
 //   ***   APP DATA  ***
 
-def		versionNum()			{ return "version 1.11" }
-def		versionDate()			{ return "07-Aug-2018" }     
+def		versionNum()			{ return "version 1.12" }
+def		versionDate()			{ return "27-May-2019" }     
 def		gitAppName()			{ return "away-lights" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -101,6 +103,7 @@ def pageSettings() {
    		}
         section("Debugging Options", hideable: true, hidden: true) {
             input "noAppIcons", "bool", title: "Disable App Icons", description: "Do not display icons in the configuration pages", image: getAppImg("disable_icon.png"), defaultValue: false, required: false, submitOnChange: true
+            input "debugAppOn", "bool", title: "Skip AppOn Check", description: "skip appOn check before turning off the lights (i.e. with this enabled, lights will turn off even if they weren't initially turned on by this app)", defaultValue: false, required: false
             href "pageLogOptions", title: "IDE Logging Options", description: "Adjust how logs are displayed in the SmartThings IDE", image: getAppImg("office8-icn.png"), required: false
             href "pageInitChild", title: "Re-Initialize All Automations", description: "Tap to call a refresh on each automation.\nTap to Begin...", image: getAppImg("refresh-icn.png")
         }
@@ -182,12 +185,12 @@ def updated() {
 }
 
 def uninstalled() {
-    state.debugLevel = 0
+    atomicState.debugLevel = 0
     debug "application uninstalled", "trace"
 }
 
 def initialize() {
-    state.debugLevel = 0
+    atomicState.debugLevel = 0
     debug "initializing", "trace", 1
     debug "there are ${childApps.size()} child smartapps"
     childApps.each {child ->
@@ -240,7 +243,7 @@ def debug(message, lvl = null, shift = null, err = null) {
 	
     def multiEnable = (settings.setMultiLevelLog == false ? false : true) //set to true by default
     def maxLevel = 4
-	def level = state.debugLevel ?: 0
+	def level = atomicState.debugLevel ?: 0
 	def levelDelta = 0
 	def prefix = "║"
 	def pad = "░"
@@ -273,7 +276,7 @@ def debug(message, lvl = null, shift = null, err = null) {
 	}
 
 	level += levelDelta
-	state.debugLevel = level
+	atomicState.debugLevel = level
 
 	if (multiEnable) {
 		prefix += " "
