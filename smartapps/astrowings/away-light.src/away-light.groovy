@@ -17,6 +17,8 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
+ *	  v2.33 (26-Sep-2019) - use atomicState instead of state in an effort to fix a bug where the light doesn't turn off because state.appOn wasn't set to true
+ *    v2.32 (27-May-2019) - integrate debug option to skip appOn check before turning off the light
  *	  v2.31 (09-Aug-2018) - standardize debug log types
  *						  - change category to 'convenience'
  *						  - standardize layout of app data and constant definitions
@@ -67,8 +69,8 @@ definition(
 //   --------------------------------
 //   ***   APP DATA  ***
 
-def		versionNum()			{ return "version 2.31" }
-def		versionDate()			{ return "07-Aug-2018" }     
+def		versionNum()			{ return "version 2.32" }
+def		versionDate()			{ return "27-May-2019" }     
 def		gitAppName()			{ return "away-light" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -194,18 +196,18 @@ def updated() {
 }
 
 def uninstalled() {
-	if (state.appOn) {
+	if (atomicState.appOn) {
     	theLight.off()
-        state.appOn = false
+        atomicState.appOn = false
         }
-    state.debugLevel = 0
+    atomicState.debugLevel = 0
     debug "application uninstalled", "trace"
 }
 
 def initialize() {
     debug "initializing", "trace", 1
-    state.debugLevel = 0
-    state.appOn = false
+    atomicState.debugLevel = 0
+    atomicState.appOn = false
     theLight.off()
     subscribeToEvents()
     debug "initialization complete", "trace", -1
@@ -215,7 +217,7 @@ def initialize() {
 
 def reinit() {
     debug "refreshed with settings ${settings}", "trace"
-    state.debugLevel = 0
+    atomicState.debugLevel = 0
     initialize()
 }
 
@@ -314,7 +316,8 @@ def turnOn(delay) {
         if (timeOk) {    	
             delay = delay ?: 0
             debug "we're good to go; turning the light on in ${convertToHMS(delay)}", "info"
-            state.appOn = true
+            atomicState.appOn = true
+            debug "atomicState.appOn: ${atomicState.appOn}"
             theLight.on(delay: delay)
             schedTurnOff(delay, offDate)
         } else {
@@ -383,11 +386,11 @@ def schedTurnOff(onDelay, offDate) {
 
 def turnOff(delay) {
 	debug "executing turnOff(delay: ${delay})", "trace", 1
-    if (state.appOn == true) {
+    if (atomicState.appOn == true || parent.debugAppOn == true) {
         delay = delay ?: 0
         debug "turning off the light in ${convertToHMS(delay)}", "info"
         theLight.off(delay: delay)
-        state.appOn = false
+        atomicState.appOn = false
         if (offFor) {
             int offForDelay = offFor * 60 * 1000
             if (randomMinutes) {
@@ -417,11 +420,12 @@ def terminate() {
 	debug "executing terminate()", "trace", 1
     def random = new Random()
     def maxDelay = 2 * 60 * 1000
-   	if (state.appOn) {
+    debug "atomicState.appOn: ${atomicState.appOn}"
+   	if (atomicState.appOn == true || parent.debugAppOn == true) {
         def delay = random.nextInt(maxDelay)
         debug "turning off the light in ${convertToHMS(delay)}", "info"
         theLight.off(delay: delay)
-        state.appOn = false
+        atomicState.appOn = false
     }
     debug "terminate() complete", "trace", -1
 }
@@ -579,7 +583,7 @@ def debug(message, lvl = null, shift = null, err = null) {
 	
     def multiEnable = (parent.setMultiLevelLog == false ? false : true) //set to true by default
     def maxLevel = 4
-	def level = state.debugLevel ?: 0
+	def level = atomicState.debugLevel ?: 0
 	def levelDelta = 0
 	def prefix = "║"
 	def pad = "░"
@@ -612,7 +616,7 @@ def debug(message, lvl = null, shift = null, err = null) {
 	}
 
 	level += levelDelta
-	state.debugLevel = level
+	atomicState.debugLevel = level
 
 	if (multiEnable) {
 		prefix += " "
