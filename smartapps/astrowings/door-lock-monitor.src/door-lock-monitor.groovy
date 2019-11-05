@@ -7,7 +7,7 @@
  *  in compliance with the License. You may obtain a copy of the License at:
  *
  *      http://www.apache.org/licenses/LICENSE-2.0												*/
- 	       def urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }			/*
+ 	       def urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }				/*
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
@@ -17,6 +17,8 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
+ *    v2.12 (23-Nov-2018) - wrap procedures to identify last execution and elapsed time
+ *                        - add appInfo section in app settings
  *	  v2.11 (09-Aug-2018) - standardize debug log types and make 'debug' logs disabled by default
  *						  - standardize layout of app data and constant definitions
  *    v2.10 (17-Nov-2016) - execute unlockHandler only when door is unlocked from outside (using keypad)
@@ -54,8 +56,8 @@ definition(
 //   --------------------------------
 //   ***   APP DATA  ***
 
-def		versionNum()			{ return "version 1.11" }
-def		versionDate()			{ return "08-Aug-2018" }     
+def		versionNum()			{ return "version 2.12" }
+def		versionDate()			{ return "23-Nov-2018" }     
 def		gitAppName()			{ return "door-lock-monitor" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -124,9 +126,10 @@ def pageSettings() {
 			label title: "Assign a name", defaultValue: "${app.name}", required: false
             href "pageUninstall", title: "", description: "Uninstall this SmartApp", image: getAppImg("trash-circle-red-512.png"), state: null, required: true
 		}
-        section("Debugging Options", hideable: true, hidden: true) {
+        section("Debugging Tools", hideable: true, hidden: true) {
             input "noAppIcons", "bool", title: "Disable App Icons", description: "Do not display icons in the configuration pages", image: getAppImg("disable_icon.png"), defaultValue: false, required: false, submitOnChange: true
             href "pageLogOptions", title: "IDE Logging Options", description: "Adjust how logs are displayed in the SmartThings IDE", image: getAppImg("office8-icn.png"), required: true, state: "complete"
+            paragraph title: "Application info", appInfo()
         }
     }
 }
@@ -183,13 +186,38 @@ def getNotifyOptionsDesc() {
     return strDesc
 }
 
+def appInfo() {
+	def tz = location.timeZone
+    def debugLevel = state.debugLevel
+    def datInstall = state.installTime ? new Date(state.installTime) : null
+    def datInitialize = state.initializeTime ? new Date(state.initializeTime) : null
+    def lastInitiatedExecution = state.lastInitiatedExecution
+    def lastCompletedExecution = state.lastCompletedExecution
+    def strInfo = ""
+        strInfo += " • Application state:\n"
+        strInfo += datInstall ? "  └ last install date: ${datInstall.format('dd MMM YYYY HH:mm', tz)}\n" : ""
+        strInfo += datInitialize ? "  └ last initialize date: ${datInitialize.format('dd MMM YYYY HH:mm', tz)}\n" : ""
+        strInfo += "  └ current mode: ${location.currentMode}\n"
+        strInfo += "\n • Last initiated execution:\n"
+		strInfo += "  └ name: ${lastInitiatedExecution.name}\n"
+        strInfo += "  └ time: ${new Date(lastInitiatedExecution.time).format('dd MMM HH:mm:ss', tz)}\n"
+        strInfo += "\n • Last completed execution:\n"
+		strInfo += "  └ name: ${lastCompletedExecution.name}\n"
+        strInfo += "  └ time: ${new Date(lastCompletedExecution.time).format('dd MMM HH:mm:ss', tz)}\n"
+        strInfo += "  └ time to complete: ${lastCompletedExecution.duration}s\n"
+        strInfo += "\n • State stored values:\n"
+        strInfo += "  └ debugLevel: ${debugLevel}\n"
+    return strInfo
+}
+
 
 //   ----------------------------
 //   ***   APP INSTALLATION   ***
 
 def installed() {
 	debug "installed with settings: ${settings}", "trace"
-    initialize()
+	state.installTime = now()
+	initialize()
 }
 
 def updated() {
@@ -204,18 +232,27 @@ def uninstalled() {
 }
 
 def initialize() {
-    state.debugLevel = 0
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "initialize()"]
     debug "initializing", "trace", 1
+    state.initializeTime = now()
+    state.debugLevel = 0
     subscribeToEvents()
     debug "initialization complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "initialize()", duration: elapsed]
 }
 
 def subscribeToEvents() {
+    def startTime = now()
+	state.lastInitiatedExecution = [time: startTime, name: "subscribeToEvents()"]
     debug "subscribing to events", "trace", 1
     subscribe(theLocks, "lock.unlocked", unlockHandler)
     subscribe(location, modeChangeHandler)
     subscribe(location, "position", locationPositionChange) //update settings if the hub location changes
     debug "subscriptions complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "subscribeToEvents()", duration: elapsed]
 }
 
 
@@ -223,6 +260,8 @@ def subscribeToEvents() {
 //   ***   EVENT HANDLERS   ***
 
 def unlockHandler(evt) {
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "unlockHandler()"]
     debug "unlockHandler event: ${evt.descriptionText}", "trace", 1
     def unlockText = evt.descriptionText
 	debug "unlockText : $unlockText", "warn"
@@ -230,25 +269,35 @@ def unlockHandler(evt) {
     	sendPush(unlockText)
     }
     debug "unlockHandler complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "unlockHandler()", duration: elapsed]
 }
 
 def modeChangeHandler(evt) {
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "modeChangeHandler()"]
     debug "modeChangeHandler event: ${evt.descriptionText}", "trace", 1
     theLocks.each { theLock ->
         if (theLock.currentLock == "unlocked") {
             def warnMode = "The mode changed to $location.currentMode and the $theLock.label is $theLock.currentLock"
-            debug "warnMode : $warnMode", "warn"
+            debug "$warnMode", "warn"
             if (pushMode) {
                 sendPush(warnMode)
             }
         }
     }
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "modeChangeHandler()", duration: elapsed]
     debug "modeChangeHandler complete", "trace", -1
 }
 
 def locationPositionChange(evt) {
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "locationPositionChange()"]
     debug "locationPositionChange(${evt.descriptionText})", "warn"
 	initialize()
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "locationPositionChange()", duration: elapsed]
 }
 
 
