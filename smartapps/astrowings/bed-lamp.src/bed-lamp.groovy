@@ -7,7 +7,7 @@
  *  in compliance with the License. You may obtain a copy of the License at:
  *
  *      http://www.apache.org/licenses/LICENSE-2.0												*/
- 	       def urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }			/*
+ 	       def urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }				/*
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
@@ -17,6 +17,12 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
+ *    v1.20 (27-May-2019) - add event handler based on presence to activate the scheduling
+ *                          when someone in thePeople arrives after the mode was set to Home
+ *                          by someone not in thePeople, in which case the scheduling would
+ *                          not activate
+ *    v1.12 (23-Nov-2018) - wrap procedures to identify last execution and elapsed time
+ *                        - add appInfo section in app settings
  *	  v1.11 (09-Aug-2018) - standardize debug log types and make 'debug' logs disabled by default
  *						  - standardize layout of app data and constant definitions
  *    v1.10 (24-Feb-2018) - added option to turn lights on in the morning
@@ -42,8 +48,8 @@ definition(
 //   --------------------------------
 //   ***   APP DATA  ***
 
-def		versionNum()			{ return "version 1.11" }
-def		versionDate()			{ return "08-Aug-2018" }     
+def		versionNum()			{ return "version 1.20" }
+def		versionDate()			{ return "27-May-2019" }     
 def		gitAppName()			{ return "bed-lamp" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -115,9 +121,10 @@ def pageSettings() {
         section("Optionally, you can choose to enable this SmartApp only when selected persons are home; if none selected, it will run whenever the mode is set to Home.") {
             input "thePeople", "capability.presenceSensor", title: "Who?", description: "Only when these persons are home", multiple: true, required: false
         }
-		section("Debugging Options", hideable: true, hidden: true) {
+        section("Debugging Tools", hideable: true, hidden: true) {
             input "noAppIcons", "bool", title: "Disable App Icons", description: "Do not display icons in the configuration pages", image: getAppImg("disable_icon.png"), defaultValue: false, required: false, submitOnChange: true
             href "pageLogOptions", title: "IDE Logging Options", description: "Adjust how logs are displayed in the SmartThings IDE", image: getAppImg("office8-icn.png"), required: true, state: "complete"
+            paragraph title: "Application info", appInfo()
         }
     }
 }
@@ -173,6 +180,7 @@ def pageUninstall() {
 
 def installed() {
 	debug "installed with settings: ${settings}", "trace"
+	state.installTime = now()
 	initialize()
 }
 
@@ -189,25 +197,70 @@ def uninstalled() {
 }
 
 def initialize() {
-    state.debugLevel = 0
-    state.lastMode = location.mode
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "initialize()"]
     debug "initializing", "trace", 1
+    state.initializeTime = now()
+    state.debugLevel = 0
+    state.lightsOn = false
+    state.lastMode = location.mode
     subscribeToEvents()
     if (presetOnTime) { //if the user set an ON time, schedule the switch
     	schedule(presetOnTime, turnOn)
     }
     timeCheck()
     debug "initialization complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "initialize()", duration: elapsed]
 }
 
 def subscribeToEvents() {
+    def startTime = now()
+	state.lastInitiatedExecution = [time: startTime, name: "subscribeToEvents()"]
     debug "subscribing to events", "trace", 1
     if (!presetOnTime) { //if the user set an ON time, the sunset is not required
     	subscribe(location, "sunsetTime", sunsetTimeHandler)	//triggers at sunset, evt.value is the sunset String (time for next day's sunset)
     }
     subscribe(location, "mode", modeChangeHandler)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
+    subscribe(thePeople, "presence", presenceHandler) //introduced at v1.20
     debug "subscriptions complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "subscribeToEvents()", duration: elapsed]
+}
+
+def appInfo() {
+	def tz = location.timeZone
+    def mapSun = getSunriseAndSunset()
+    def debugLevel = state.debugLevel
+    def lightsOn = state.lightsOn
+    def lightsOnTime = state.lightsOnTime
+    def datInstall = state.installTime ? new Date(state.installTime) : null
+    def datInitialize = state.initializeTime ? new Date(state.initializeTime) : null
+    def datSchedOn = state.schedOnTime ? new Date(state.schedOnTime) : null
+	def lastInitiatedExecution = state.lastInitiatedExecution
+    def lastCompletedExecution = state.lastCompletedExecution
+    def strInfo = ""
+        strInfo += " • Application state:\n"
+        strInfo += datInstall ? "  └ last install date: ${datInstall.format('dd MMM YYYY HH:mm', tz)}\n" : ""
+        strInfo += datInitialize ? "  └ last initialize date: ${datInitialize.format('dd MMM YYYY HH:mm', tz)}\n" : ""
+        strInfo += "\n • Last scheduled jobs:\n"
+        strInfo += datSchedOn ? "  └ turnOn: ${datSchedOn.format('dd MMM YYYY HH:mm', tz)}\n" : ""
+        strInfo += "\n • Last initiated execution:\n"
+		strInfo += "  └ name: ${lastInitiatedExecution.name}\n"
+        strInfo += "  └ time: ${new Date(lastInitiatedExecution.time).format('dd MMM HH:mm:ss', tz)}\n"
+        strInfo += "\n • Last completed execution:\n"
+		strInfo += "  └ name: ${lastCompletedExecution.name}\n"
+        strInfo += "  └ time: ${new Date(lastCompletedExecution.time).format('dd MMM HH:mm:ss', tz)}\n"
+        strInfo += "  └ time to complete: ${lastCompletedExecution.duration}s\n"
+		strInfo += "\n • Environment:\n"
+        strInfo += "  └ sunrise: ${mapSun.sunrise.format('dd MMM HH:mm:ss', tz)}\n"
+        strInfo += "  └ sunset: ${mapSun.sunset.format('dd MMM HH:mm:ss', tz)}\n"
+        strInfo += "\n • State stored values:\n"
+        strInfo += "  └ debugLevel: ${debugLevel}\n"
+        strInfo += "  └ lightsOn: ${lightsOn}"
+        strInfo += (lightsOn && lightsOnTime) ? " (since ${new Date(lightsOnTime).format('HH:mm', tz)})\n" : "\n"
+    return strInfo
 }
 
 
@@ -215,39 +268,70 @@ def subscribeToEvents() {
 //   ***   EVENT HANDLERS   ***
 
 def sunsetTimeHandler(evt) {
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "sunsetTimeHandler()"]
     debug "sunsetTimeHandler event: ${evt.descriptionText}", "trace"
     timeCheck()
     debug "sunsetTimeHandler complete", "trace"
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "sunsetTimeHandler()", duration: elapsed]
 }    
 
 def locationPositionChange(evt) {
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "locationPositionChange()"]
     debug "locationPositionChange(${evt.descriptionText})", "warn"
 	initialize()
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "locationPositionChange()", duration: elapsed]
 }
 
 def modeChangeHandler(evt) {
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "modeChangeHandler()"]
 	debug "modeChangeHandler event: from ${state.lastMode} to ${evt.value}", "trace"
     if (isMorning && morningOn) {
-		runIn(morningDuration*60, turnOff)
         turnOn()
+		runIn(morningDuration*60, turnOff)
 	}
     if (modeOk) {
     	timeCheck()
     } else {
     	turnOff()
     }
-	debug "modeChangeHandler complete, setting lastMode to ${state.lastMode}", "trace"
     state.lastMode = evt.value
+	debug "modeChangeHandler complete, setting lastMode to ${state.lastMode}", "trace"
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "modeChangeHandler()", duration: elapsed]
 }
+
+def presenceHandler(evt) {
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "presenceHandler()"]
+	debug "presenceHandler event: ${evt.descriptionText}", "trace"
+    for (person in thePeople) {
+	    if (person.currentPresence == "present") {
+        	timeCheck()
+            break
+        }
+    }
+	debug "presenceHandler complete", "trace"
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "presenceHandler()", duration: elapsed]
+}
+
 
 //   -------------------
 //   ***   METHODS   ***
 
 def timeCheck() {
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "timeCheck()"]
     debug "executing timeCheck()", "trace", 1
 	def nowDate = new Date()
     debug "nowDate: ${nowDate}"
     def onTime = getTurnOnTime()
+    state.schedOnTime = onTime.time
     debug "onTime: ${onTime}"
     if (onTime > nowDate) {
     	debug "onTime > nowDate; scheduling turnOn for ${onTime}", "info"
@@ -257,23 +341,36 @@ def timeCheck() {
         turnOn()
     }
     debug "timeCheck() complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "timeCheck()", duration: elapsed]
 }
 
 def turnOn() {
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "turnOn()"]
     debug "executing turnOn()", "trace", 1
     if (modeOk && presenceOk) {
     	debug "conditions met; turning lights on", "info"
         theLights.on()
+        state.lightsOn = true
+	    state.lightsOnTime = now()
     } else {
     	debug "conditions not met; wait for next call"
     }
     debug "turnOn() complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "turnOn()", duration: elapsed]
 }
 
 def turnOff() {
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: "turnOff()"]
     debug "executing turnOff()", "trace", 1
     theLights.off()
+    state.lightsOn = false
     debug "turnOff() complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: "turnOff()", duration: elapsed]
 }
 
 
