@@ -337,7 +337,7 @@ def schedTurnOn(offForDelay) {
 		}
         def onDate = new Date(now() + offForDelay)
         debug "calculated ON time for turning the light back on after the 'off for' delay of ${convertToHMS(offForDelay)} : ${onDate}", "info"
-        state.turnOnTime = time.onDate
+        state.turnOnTime = onDate.time
         runOnce(onDate, turnOn)
 	} else {   
         def onDate = schedOnDate()
@@ -358,7 +358,7 @@ def schedTurnOn(offForDelay) {
                 turnOn(onNowDelay)
             } else {
                 debug "scheduling the light to turn on at ${onDate}", "info"
-                state.turnOnTime = time.onDate
+                state.turnOnTime = onDate.time
                 runOnce(onDate, turnOn)
             }
         }
@@ -394,7 +394,7 @@ def turnOn(delay) {
             schedTurnOff(delay, offDate)
         } else {
             debug "the light's turn-off time has already passed; check again tomorrow (${tomorrowTime})"
-            state.schedTurnOnTime = time.tomorrowTime
+            state.schedTurnOnTime = tomorrowTime.time
             runOnce(tomorrowTime, schedTurnOn)
         }
     } else {
@@ -402,7 +402,7 @@ def turnOn(delay) {
     		debug "light activation is not enabled in current mode; check again at mode change"
     	} else if (!DOWOk) {
             debug "light activation is not enabled on ${strDOW}; check again tomorrow (${tomorrowTime})"
-            state.schedTurnOnTime = time.tomorrowTime
+            state.schedTurnOnTime = tomorrowTime.time
             runOnce(tomorrowTime, schedTurnOn)
         } else if (!darkOk) {
         	def sunTime = getSunriseAndSunset(sunsetOffset: parent.sunsetOffset)
@@ -414,7 +414,7 @@ def turnOn(delay) {
                 sunsetDate = new Date(sunsetDate.time - (randomMinutes * 30000) + (rdmOffset * 60000))
             }
             debug "light activation is not enabled during daytime; check again at sunset (${sunsetDate})" //TODO: if using illuminance, subscribe to the sensor and check again when dark
-            state.schedTurnOnTime = time.sunsetDate
+            state.schedTurnOnTime = sunsetDate.time
             runOnce(sunsetDate, schedTurnOn)
         }
 	}
@@ -450,7 +450,7 @@ def schedTurnOff(onDelay, offDate) {
     if (offDate) {
         if (offDate > nowDate) {
             debug "scheduling turn-off of the light to occur at ${offDate}", "info"
-            state.turnOffTime = time.offDate
+            state.turnOffTime = offDate.time
             runOnce(offDate, turnOff)
         } else {
         	def maxDelay = 2 * 60 * 1000 //set a delay of up to 2 min to be applied when requested to turn off now
@@ -491,7 +491,7 @@ def turnOff(delay) {
         	def tz = location.timeZone
             def tomorrowTime = timeTodayAfter("23:59", "04:00", tz)
             debug "the light isn't scheduled to turn back on today; check again tomorrow (${tomorrowTime})"
-            state.schedTurnOnTime = time.tomorrowTime
+            state.schedTurnOnTime = tomorrowTime.time
             runOnce(tomorrowTime, schedTurnOn)
         }
     } else {
