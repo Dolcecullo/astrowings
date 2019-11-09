@@ -189,8 +189,8 @@ def getSchedOptionsDesc() {
 def appInfo() { 
 	def tz = location.timeZone
     def mapSun = getSunriseAndSunset()
-    def debugLevel = state.debugLevel ?: null
-    def appOn = state.appOn ?: null
+    def debugLevel = state.debugLevel
+    def appOn = state.appOn
     def lightsOnTime = state.lightsOnTime
     def lightsOffTime = state.lightsOffTime
     def datInstall = state.installTime ? new Date(state.installTime) : 0
