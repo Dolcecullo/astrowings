@@ -17,6 +17,8 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
+ *    v1.14 (13-Nov-1019) - revert to using state instead of atomicState
+ *                        - add maxInfoLogs input to set the max number of info logs to be displayed in appInfo section 
  *    v1.13 (26-Sep-2019) - use atomicState instead of state in an effort to fix a bug in the child app where the light doesn't turn off because state.appOn wasn't set to true
  *    v1.12 (27-May-2019) - add debug option to skip appOn check before turning off the light
  *	  v1.11 (09-Aug-2018) - standardize debug log types and make 'debug' logs disabled by default
@@ -40,8 +42,8 @@ definition(
 //   --------------------------------
 //   ***   APP DATA  ***
 
-def		versionNum()			{ return "version 1.12" }
-def		versionDate()			{ return "27-May-2019" }     
+def		versionNum()			{ return "version 1.14" }
+def		versionDate()			{ return "13-Nov-2019" }     
 def		gitAppName()			{ return "away-lights" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -153,6 +155,11 @@ def pageLogOptions() {
                     description: "Multi-level logging prefixes log entries with special characters to visually " +
                         "represent the hierarchy of events and facilitate the interpretation of logs in the IDE"
             }
+            section() {
+                input "maxInfoLogs", "number", title: "Display Log Entries", defaultValue: 5, required: false, range: "0..50"
+                    description: "Select the maximum number of most recent log entries to display in the " +
+                        "application's 'Debugging Tools' section. Enter '0' to disable."
+            }
         }
     }
 }
@@ -185,12 +192,12 @@ def updated() {
 }
 
 def uninstalled() {
-    atomicState.debugLevel = 0
+    state.debugLevel = 0
     debug "application uninstalled", "trace"
 }
 
 def initialize() {
-    atomicState.debugLevel = 0
+    state.debugLevel = 0
     debug "initializing", "trace", 1
     debug "there are ${childApps.size()} child smartapps"
     childApps.each {child ->
@@ -243,7 +250,7 @@ def debug(message, lvl = null, shift = null, err = null) {
 	
     def multiEnable = (settings.setMultiLevelLog == false ? false : true) //set to true by default
     def maxLevel = 4
-	def level = atomicState.debugLevel ?: 0
+	def level = state.debugLevel ?: 0
 	def levelDelta = 0
 	def prefix = "║"
 	def pad = "░"
@@ -276,7 +283,7 @@ def debug(message, lvl = null, shift = null, err = null) {
 	}
 
 	level += levelDelta
-	atomicState.debugLevel = level
+	state.debugLevel = level
 
 	if (multiEnable) {
 		prefix += " "
