@@ -17,6 +17,7 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
+ *    v2.40 (13-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
  *    v2.34 (08-Nov-2019) - wrap procedures to identify last execution and elapsed time
  *                        - add appInfo section in app settings
  *                        - revert to using state instead of atomicState
@@ -72,8 +73,8 @@ definition(
 //   --------------------------------
 //   ***   APP DATA  ***
 
-def		versionNum()			{ return "version 2.34" }
-def		versionDate()			{ return "08-Nov-2019" }     
+def		versionNum()			{ return "version 2.40" }
+def		versionDate()			{ return "13-Nov-2019" }     
 def		gitAppName()			{ return "away-light" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -187,7 +188,7 @@ def getSchedOptionsDesc() {
 }
 
 def appInfo() { 
-	def tz = location.timeZone
+    def tz = location.timeZone
     def mapSun = getSunriseAndSunset()
     def debugLevel = state.debugLevel
     def appOn = state.appOn
@@ -220,9 +221,22 @@ def appInfo() {
         strInfo += "  └ sunset: ${mapSun.sunset.format('dd MMM HH:mm:ss', tz)}\n"
         strInfo += "\n • State stored values:\n"
         strInfo += "  └ debugLevel: ${debugLevel}\n"
+        strInfo += "  └ number of stored log entries: ${numLogs}\n"
         strInfo += "  └ appOn: ${appOn}\n"
         strInfo += lightsOnTime ? "  └ lightsOnTime: ${new Date(lightsOnTime).format('HH:mm', tz)}\n" : ""
         strInfo += lightsOffTime ? "  └ lightsOffTime: ${new Date(lightsOffTime).format('HH:mm', tz)}\n" : ""
+        
+        def numLogs = state.debugLogInfo.size()
+        def debugLog = state.debugLogInfo
+        if (numLogs > 0) {
+            strInfo += "\n • Last ${numLogs} log messages (most recent on top):\n"
+            for (int i = 0; i < numLogs; i++) {
+                def datLog = new Date(debugLog[i].time).format('dd MMM HH:mm:ss', tz)
+                def msgLog = "${datLog} (${debugLog[i].type}):\n${debugLog[i].msg}"
+                strInfo += " ::: ${msgLog}\n"
+            }
+        }
+    
     return strInfo
 }
 
@@ -245,9 +259,9 @@ def updated() {
 
 def uninstalled() {
 	if (state.appOn) {
-    	theLight.off()
         state.appOn = false
         state.lightsOffTime = now()
+    	theLight.off()
         }
     state.debugLevel = 0
     debug "application uninstalled", "trace"
@@ -259,9 +273,9 @@ def initialize() {
     debug "initializing", "trace", 1
     state.initializeTime = now()
     state.debugLevel = 0
-    theLight.off()
     state.appOn = false
     state.lightsOffTime = now()
+    theLight.off()
     subscribeToEvents()
     debug "initialization complete", "trace", -1
 	schedTurnOn()
@@ -387,10 +401,9 @@ def turnOn(delay) {
         if (timeOk) {    	
             delay = delay ?: 0
             debug "we're good to go; turning the light on in ${convertToHMS(delay)}", "info"
-            theLight.on(delay: delay)
             state.appOn = true
-            debug "state.appOn: ${state.appOn}"
             state.lightsOnTime = now()
+            theLight.on(delay: delay)
             schedTurnOff(delay, offDate)
         } else {
             debug "the light's turn-off time has already passed; check again tomorrow (${tomorrowTime})"
@@ -473,9 +486,9 @@ def turnOff(delay) {
     if (state.appOn == true || parent.debugAppOn == true) {
         delay = delay ?: 0
         debug "turning off the light in ${convertToHMS(delay)}", "info"
-        theLight.off(delay: delay)
         state.appOn = false
         state.lightsOffTime = now()
+        theLight.off(delay: delay)
         if (offFor) {
             int offForDelay = offFor * 60 * 1000
             if (randomMinutes) {
@@ -514,9 +527,9 @@ def terminate() {
    	if (state.appOn == true || parent.debugAppOn == true) {
         def delay = random.nextInt(maxDelay)
         debug "turning off the light in ${convertToHMS(delay)}", "info"
-        theLight.off(delay: delay)
         state.appOn = false
         state.lightsOffTime = now()
+        theLight.off(delay: delay)
     }
     debug "terminate() complete", "trace", -1
     def elapsed = (now() - startTime)/1000
@@ -717,19 +730,37 @@ def debug(message, lvl = null, shift = null, err = null) {
 		prefix = ""
 	}
 
+    def logMsg = "not set"
     if (lvl == "info") {
     	def leftPad = (multiEnable ? ": :" : "")
         log.info "$leftPad$prefix$message", err
+        logMsg = "${message}"
 	} else if (lvl == "trace") {
     	def leftPad = (multiEnable ? "::" : "")
         log.trace "$leftPad$prefix$message", err
+        //logMsg = "${message}"
 	} else if (lvl == "warn") {
     	def leftPad = (multiEnable ? "::" : "")
 		log.warn "$leftPad$prefix$message", err
+        logMsg = "${message}"
 	} else if (lvl == "error") {
     	def leftPad = (multiEnable ? "::" : "")
 		log.error "$leftPad$prefix$message", err
+        logMsg = "${message}"
 	} else {
 		log.debug "$prefix$message", err
+        logMsg = "${message}"
 	}
+    
+    if (logMsg != "not set") {
+    	def mapLogInfo = state.debugLogInfo
+    	mapLogInfo.add(0,[time: now(), msg: logMsg, type: lvl]) //insert log info into list slot 0, shifting other entries to the right
+        def maxLogs = parent.maxInfoLogs
+        def listSize = mapLogInfo.size()
+        while (listSize > maxLogs) { //delete old entries to prevent list from growing beyond set size
+            mapLogInfo.remove(maxLogs)
+            listSize = mapLogInfo.size()
+        }
+    	state.debugLogInfo = mapLogInfo
+    }
 }
