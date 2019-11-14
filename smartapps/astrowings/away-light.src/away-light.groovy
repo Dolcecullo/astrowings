@@ -17,7 +17,7 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
- *    v2.40 (13-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
+ *    v2.40 (14-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
  *    v2.34 (08-Nov-2019) - wrap procedures to identify last execution and elapsed time
  *                        - add appInfo section in app settings
  *                        - revert to using state instead of atomicState
@@ -74,7 +74,7 @@ definition(
 //   ***   APP DATA  ***
 
 def		versionNum()			{ return "version 2.40" }
-def		versionDate()			{ return "13-Nov-2019" }     
+def		versionDate()			{ return "14-Nov-2019" }     
 def		gitAppName()			{ return "away-light" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -201,6 +201,8 @@ def appInfo() {
     def datTurnOff = state.turnOffTime ? new Date(state.turnOffTime) : null
 	def lastInitiatedExecution = state.lastInitiatedExecution ?: [time: 0, name: null]
     def lastCompletedExecution = state.lastCompletedExecution ?: [time: 0, name: null, duration: 0]
+    def debugLog = state.debugLogInfo
+    def numLogs = debugLog?.size()
     def strInfo = ""
         strInfo += " • Application state:\n"
         strInfo += datInstall ? "  └ last install date: ${datInstall.format('dd MMM YYYY HH:mm', tz)}\n" : ""
@@ -225,9 +227,6 @@ def appInfo() {
         strInfo += "  └ appOn: ${appOn}\n"
         strInfo += lightsOnTime ? "  └ lightsOnTime: ${new Date(lightsOnTime).format('HH:mm', tz)}\n" : ""
         strInfo += lightsOffTime ? "  └ lightsOffTime: ${new Date(lightsOffTime).format('HH:mm', tz)}\n" : ""
-        
-        def numLogs = state.debugLogInfo.size()
-        def debugLog = state.debugLogInfo
         if (numLogs > 0) {
             strInfo += "\n • Last ${numLogs} log messages (most recent on top):\n"
             for (int i = 0; i < numLogs; i++) {
@@ -236,7 +235,6 @@ def appInfo() {
                 strInfo += " ::: ${msgLog}\n"
             }
         }
-    
     return strInfo
 }
 
@@ -730,7 +728,7 @@ def debug(message, lvl = null, shift = null, err = null) {
 		prefix = ""
 	}
 
-    def logMsg = "not set"
+    def logMsg = null
     if (lvl == "info") {
     	def leftPad = (multiEnable ? ": :" : "")
         log.info "$leftPad$prefix$message", err
@@ -738,7 +736,7 @@ def debug(message, lvl = null, shift = null, err = null) {
 	} else if (lvl == "trace") {
     	def leftPad = (multiEnable ? "::" : "")
         log.trace "$leftPad$prefix$message", err
-        //logMsg = "${message}"
+        logMsg = "${message}"
 	} else if (lvl == "warn") {
     	def leftPad = (multiEnable ? "::" : "")
 		log.warn "$leftPad$prefix$message", err
@@ -752,15 +750,15 @@ def debug(message, lvl = null, shift = null, err = null) {
         logMsg = "${message}"
 	}
     
-    if (logMsg != "not set") {
-    	def mapLogInfo = state.debugLogInfo
-    	mapLogInfo.add(0,[time: now(), msg: logMsg, type: lvl]) //insert log info into list slot 0, shifting other entries to the right
-        def maxLogs = parent.maxInfoLogs
-        def listSize = mapLogInfo.size()
+    if (logMsg) {
+    	def debugLog = state.debugLogInfo ?: [] //create list if it doesn't already exist
+        debugLog.add(0,[time: now(), msg: logMsg, type: lvl]) //insert log info into list slot 0, shifting other entries to the right
+        def maxLogs = settings.maxInfoLogs ?: 5
+        def listSize = debugLog.size()
         while (listSize > maxLogs) { //delete old entries to prevent list from growing beyond set size
-            mapLogInfo.remove(maxLogs)
-            listSize = mapLogInfo.size()
+            debugLog.remove(maxLogs)
+            listSize = debugLog.size()
         }
-    	state.debugLogInfo = mapLogInfo
+    	state.debugLogInfo = debugLog
     }
 }

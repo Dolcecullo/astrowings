@@ -17,6 +17,7 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
+ *    v2.20 (14-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
  *    v2.12 (22-Nov-2018) - wrap procedures to identify last execution and elapsed time
  *                        - check that lights were turned on by this app before turning off on mode change
  *                        - add appInfo section in app settings
@@ -58,8 +59,8 @@ definition(
 //   --------------------------------
 //   ***   APP DATA  ***
 
-def		versionNum()			{ return "version 2.12" }
-def		versionDate()			{ return "22-Nov-2018" }     
+def		versionNum()			{ return "version 2.20" }
+def		versionDate()			{ return "14-Nov-2019" }     
 def		gitAppName()			{ return "morning-lights" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -214,6 +215,11 @@ def pageLogOptions() {
                     description: "Multi-level logging prefixes log entries with special characters to visually " +
                         "represent the hierarchy of events and facilitate the interpretation of logs in the IDE"
             }
+            section() {
+                input "maxInfoLogs", "number", title: "Display Log Entries", defaultValue: 5, required: false, range: "0..50"
+                    description: "Select the maximum number of most recent log entries to display in the " +
+                        "application's 'Debugging Tools' section. Enter '0' to disable."
+            }
         }
     }
 }
@@ -275,6 +281,8 @@ def appInfo() {
     def datSchedOff = state.schedOffTime ? new Date(state.schedOffTime) : null
     def lastInitiatedExecution = state.lastInitiatedExecution
     def lastCompletedExecution = state.lastCompletedExecution
+    def debugLog = state.debugLogInfo
+    def numLogs = debugLog?.size()
     def strInfo = ""
         strInfo += " • Application state:\n"
         strInfo += datInstall ? "  └ last install date: ${datInstall.format('dd MMM YYYY HH:mm', tz)}\n" : ""
@@ -296,6 +304,15 @@ def appInfo() {
         strInfo += "  └ debugLevel: ${debugLevel}\n"
         strInfo += "  └ lightsOn: ${lightsOn}"
         strInfo += (lightsOn && lightsOnTime) ? " (since ${new Date(lightsOnTime).format('HH:mm', tz)})\n" : "\n"
+        strInfo += "  └ number of stored log entries: ${numLogs}\n"
+        if (numLogs > 0) {
+            strInfo += "\n • Last ${numLogs} log messages (most recent on top):\n"
+            for (int i = 0; i < numLogs; i++) {
+                def datLog = new Date(debugLog[i].time).format('dd MMM HH:mm:ss', tz)
+                def msgLog = "${datLog} (${debugLog[i].type}):\n${debugLog[i].msg}"
+                strInfo += " ::: ${msgLog}\n"
+            }
+        }
     return strInfo
 }
 
@@ -631,19 +648,37 @@ def debug(message, lvl = null, shift = null, err = null) {
 		prefix = ""
 	}
 
+    def logMsg = null
     if (lvl == "info") {
     	def leftPad = (multiEnable ? ": :" : "")
         log.info "$leftPad$prefix$message", err
+        logMsg = "${message}"
 	} else if (lvl == "trace") {
     	def leftPad = (multiEnable ? "::" : "")
         log.trace "$leftPad$prefix$message", err
+        logMsg = "${message}"
 	} else if (lvl == "warn") {
     	def leftPad = (multiEnable ? "::" : "")
 		log.warn "$leftPad$prefix$message", err
+        logMsg = "${message}"
 	} else if (lvl == "error") {
     	def leftPad = (multiEnable ? "::" : "")
 		log.error "$leftPad$prefix$message", err
+        logMsg = "${message}"
 	} else {
 		log.debug "$prefix$message", err
+        logMsg = "${message}"
 	}
+    
+    if (logMsg) {
+    	def debugLog = state.debugLogInfo ?: [] //create list if it doesn't already exist
+        debugLog.add(0,[time: now(), msg: logMsg, type: lvl]) //insert log info into list slot 0, shifting other entries to the right
+        def maxLogs = settings.maxInfoLogs ?: 5
+        def listSize = debugLog.size()
+        while (listSize > maxLogs) { //delete old entries to prevent list from growing beyond set size
+            debugLog.remove(maxLogs)
+            listSize = debugLog.size()
+        }
+    	state.debugLogInfo = debugLog
+    }
 }
