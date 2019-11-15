@@ -6,7 +6,7 @@
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
  *
- *      http://www.apache.org/licenses/LICENSE-2.0												*/
+ *      http://www.apache.org/licenses/LICENSE-2.0											*/
  	       def urlApache() { return "http://www.apache.org/licenses/LICENSE-2.0" }			/*
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
@@ -17,6 +17,9 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
+ *    v2.41 (15-Nov-2019) - explicitly define int and long variable types
+ *                        - cast division result to int to prevent error when converting Unix time to date
+ *                        - add method completion lines where another method gets called, exiting current method before the completion lines can be run
  *    v2.40 (14-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
  *    v2.34 (08-Nov-2019) - wrap procedures to identify last execution and elapsed time
  *                        - add appInfo section in app settings
@@ -73,8 +76,8 @@ definition(
 //   --------------------------------
 //   ***   APP DATA  ***
 
-def		versionNum()			{ return "version 2.40" }
-def		versionDate()			{ return "14-Nov-2019" }     
+def		versionNum()			{ return "version 2.41" }
+def		versionDate()			{ return "15-Nov-2019" }     
 def		gitAppName()			{ return "away-light" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -88,7 +91,7 @@ def		readmeLink()			{ return "https://github.com/${gitOwner()}/SmartThings/blob/
 //   ***   CONSTANTS DEFINITIONS  ***
 
 	 	//name					value					description
-def		C_ON_NOW_RANDOM()		{ return 2 } 			//set the max value for the random delay to be applied when requesting to turn on now (minutes)
+def		C_ON_NOW_RANDOM()		{ return 2 } 			//set the max value (integer) for the random delay to be applied when requesting to turn on now (minutes)
 
 
 //   ---------------------------
@@ -194,23 +197,23 @@ def appInfo() {
     def appOn = state.appOn
     def lightsOnTime = state.lightsOnTime
     def lightsOffTime = state.lightsOffTime
-    def datInstall = state.installTime ? new Date(state.installTime) : 0
-    def datInitialize = state.initializeTime ? new Date(state.initializeTime) : 0
-    def datTurnOn = state.turnOnTime ? new Date(state.turnOnTime) : null
-    def datSchedTurnOn = state.schedTurnOnTime ? new Date(state.schedTurnOnTime) : null
-    def datTurnOff = state.turnOffTime ? new Date(state.turnOffTime) : null
+    def installTime = state.installTime ?: null
+    def initializeTime = state.initializeTime ?: null
+    def turnOnTime = state.turnOnTime ?: null
+    def schedTurnOnTime = state.schedTurnOnTime ?: null
+    def turnOffTime = state.turnOffTime ?: null
 	def lastInitiatedExecution = state.lastInitiatedExecution ?: [time: 0, name: null]
     def lastCompletedExecution = state.lastCompletedExecution ?: [time: 0, name: null, duration: 0]
     def debugLog = state.debugLogInfo
     def numLogs = debugLog?.size()
     def strInfo = ""
         strInfo += " • Application state:\n"
-        strInfo += datInstall ? "  └ last install date: ${datInstall.format('dd MMM YYYY HH:mm', tz)}\n" : ""
-        strInfo += datInitialize ? "  └ last initialize date: ${datInitialize.format('dd MMM YYYY HH:mm', tz)}\n" : ""
+        strInfo += installTime ? "  └ last install date: ${new Date(installTime).format('dd MMM YYYY HH:mm', tz)}\n" : ""
+        strInfo += initializeTime ? "  └ last initialize date: ${new Date(initializeTime).format('dd MMM YYYY HH:mm', tz)}\n" : ""
         strInfo += "\n • Last scheduled jobs:\n"
-        strInfo += datTurnOn ? "  └ turnOn: ${datTurnOn.format('dd MMM YYYY HH:mm', tz)}\n" : ""
-        strInfo += datSchedTurnOn ? "  └ schedTurnOn: ${datSchedTurnOn.format('dd MMM YYYY HH:mm', tz)}\n" : ""
-        strInfo += datTurnOff ? "  └ turnOff: ${datTurnOff.format('dd MMM YYYY HH:mm', tz)}\n" : ""
+        strInfo += turnOnTime ? "  └ turnOn: ${new Date(turnOnTime).format('dd MMM YYYY HH:mm', tz)}\n" : ""
+        strInfo += schedTurnOnTime ? "  └ schedTurnOn: ${new Date(schedTurnOnTime).format('dd MMM YYYY HH:mm', tz)}\n" : ""
+        strInfo += turnOffTime ? "  └ turnOff: ${new Date(turnOffTime).format('dd MMM YYYY HH:mm', tz)}\n" : ""
         strInfo += "\n • Last initiated execution:\n"
 		strInfo += "  └ name: ${lastInitiatedExecution.name}\n"
         strInfo += "  └ time: ${new Date(lastInitiatedExecution.time).format('dd MMM HH:mm:ss', tz)}\n"
@@ -223,10 +226,10 @@ def appInfo() {
         strInfo += "  └ sunset: ${mapSun.sunset.format('dd MMM HH:mm:ss', tz)}\n"
         strInfo += "\n • State stored values:\n"
         strInfo += "  └ debugLevel: ${debugLevel}\n"
-        strInfo += "  └ number of stored log entries: ${numLogs}\n"
         strInfo += "  └ appOn: ${appOn}\n"
         strInfo += lightsOnTime ? "  └ lightsOnTime: ${new Date(lightsOnTime).format('HH:mm', tz)}\n" : ""
         strInfo += lightsOffTime ? "  └ lightsOffTime: ${new Date(lightsOffTime).format('HH:mm', tz)}\n" : ""
+        strInfo += "  └ number of stored log entries: ${numLogs}\n"
         if (numLogs > 0) {
             strInfo += "\n • Last ${numLogs} log messages (most recent on top):\n"
             for (int i = 0; i < numLogs; i++) {
@@ -261,7 +264,6 @@ def uninstalled() {
         state.lightsOffTime = now()
     	theLight.off()
         }
-    state.debugLevel = 0
     debug "application uninstalled", "trace"
 }
 
@@ -272,12 +274,11 @@ def initialize() {
     state.initializeTime = now()
     state.debugLevel = 0
     state.appOn = false
-    state.lightsOffTime = now()
     theLight.off()
     subscribeToEvents()
+    schedule("0 0 4 1/1 * ?", schedTurnOn) //run schedTurnOn at 04:00 daily
     debug "initialization complete", "trace", -1
 	schedTurnOn()
-    schedule("0 0 4 1/1 * ?", schedTurnOn) //run schedule at 04:00 daily
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "initialize()", duration: elapsed]
 }
@@ -356,17 +357,23 @@ def schedTurnOn(offForDelay) {
         def nowDate = new Date()
         
         //set a random delay of up to 'C_ON_NOW_RANDOM()' min to be applied if requesting to turn on now
-        def onNowRandom = C_ON_NOW_RANDOM()
-        def onNowRandomMS = onNowRandom * 60 * 1000
-        def onNowDelay = random.nextInt(onNowRandomMS)
+        int onNowRandom = C_ON_NOW_RANDOM()
+        int onNowRandomMS = onNowRandom * 60 * 1000
+        int onNowDelay = random.nextInt(onNowRandomMS)
         
         if (!onDate) {
             //no turn-on time set, call method to turn light on now; whether or not it actually turns on will depend on dow/mode
             debug "no turn-on time specified; calling to turn the light on in ${convertToHMS(onNowDelay)}", "info"
+            debug "schedTurnOn() complete", "trace", -1
+            def elapsed = (now() - startTime)/1000
+            state.lastCompletedExecution = [time: now(), name: "schedTurnOn()", duration: elapsed]
             turnOn(onNowDelay)
         } else {
             if (onDate < nowDate) {
                 debug "scheduled turn-on time of ${onDate} has already passed; calling to turn the light on in ${convertToHMS(onNowDelay)}", "info"
+                debug "schedTurnOn() complete", "trace", -1
+                def elapsed = (now() - startTime)/1000
+                state.lastCompletedExecution = [time: now(), name: "schedTurnOn()", duration: elapsed]
                 turnOn(onNowDelay)
             } else {
                 debug "scheduling the light to turn on at ${onDate}", "info"
@@ -402,6 +409,9 @@ def turnOn(delay) {
             state.appOn = true
             state.lightsOnTime = now()
             theLight.on(delay: delay)
+            debug "turnOn() complete", "trace", -1
+            def elapsed = (now() - startTime)/1000
+            state.lastCompletedExecution = [time: now(), name: "turnOn()", duration: elapsed]
             schedTurnOff(delay, offDate)
         } else {
             debug "the light's turn-off time has already passed; check again tomorrow (${tomorrowTime})"
@@ -451,7 +461,7 @@ def schedTurnOff(onDelay, offDate) {
             int rangeMax = 2 * lightOnFor //the maximum random window is 2 * lightOnFor
             int range = rangeUser < rangeMax ? rangeUser : rangeMax //limit the random window to 2 * lightOnFor
             int rdmOffset = random.nextInt(range)
-            lightOnFor = lightOnFor - range/2 + rdmOffset
+            lightOnFor = (int)(lightOnFor - range/2 + rdmOffset)
 		}
         def endOnFor = new Date(now() + lightOnFor + onDelay)
         debug "calculated OFF time for turning the light off after the 'on for' delay of ${convertToHMS(lightOnFor)} : ${endOnFor}", "info"
@@ -464,9 +474,12 @@ def schedTurnOff(onDelay, offDate) {
             state.turnOffTime = offDate.time
             runOnce(offDate, turnOff)
         } else {
-        	def maxDelay = 2 * 60 * 1000 //set a delay of up to 2 min to be applied when requested to turn off now
-            def delayOffNow = random.nextInt(maxDelay)
+        	int maxDelay = 2 * 60 * 1000 //set a delay of up to 2 min to be applied when requested to turn off now
+            int delayOffNow = random.nextInt(maxDelay)
             debug "the calculated turn-off time has already passed; calling for the light to turn off in ${convertToHMS(delayOffNow)}", "info"
+            debug "schedTurnOff() complete", "trace", -1
+            def elapsed = (now() - startTime)/1000
+            state.lastCompletedExecution = [time: now(), name: "schedTurnOff()", duration: elapsed]
             turnOff(delayOffNow)
         }
     } else {
@@ -495,8 +508,11 @@ def turnOff(delay) {
                 int rangeMax = 2 * offForDelay //the maximum random window is 2 * offForDelay
                 int range = rangeUser < rangeMax ? rangeUser : rangeMax //limit the random window to 2 * offForDelay
                 int rdmOffset = random.nextInt(range)
-                offForDelay = offForDelay - range/2 + rdmOffset
+                offForDelay = (int)(offForDelay - range/2 + rdmOffset)
             }
+            debug "turnOff() complete", "trace", -1
+            def elapsed = (now() - startTime)/1000
+            state.lastCompletedExecution = [time: now(), name: "turnOff()", duration: elapsed]
             schedTurnOn(offForDelay)
         } else {
         	def tz = location.timeZone
@@ -520,10 +536,10 @@ def terminate() {
     state.lastInitiatedExecution = [time: startTime, name: "terminate()"]
 	debug "executing terminate()", "trace", 1
     def random = new Random()
-    def maxDelay = 2 * 60 * 1000
+    int maxDelay = 2 * 60 * 1000
     debug "state.appOn: ${state.appOn}"
    	if (state.appOn == true || parent.debugAppOn == true) {
-        def delay = random.nextInt(maxDelay)
+        int delay = random.nextInt(maxDelay)
         debug "turning off the light in ${convertToHMS(delay)}", "info"
         state.appOn = false
         state.lightsOffTime = now()
@@ -573,7 +589,7 @@ def schedOnDate() {
     
     if (randomMinutes && onDate) {
         //apply random factor to onDate
-        def rdmOffset = random.nextInt(randomMinutes)
+        int rdmOffset = random.nextInt(randomMinutes)
         onDate = new Date(onDate.time - (randomMinutes * 30000) + (rdmOffset * 60000))
         debug "random-adjusted turn-on time : ${onDate}"
     } else {
@@ -605,7 +621,7 @@ def schedOffDate() {
     
     if (randomMinutes && offDate) {
         //apply random factor to offDate
-        def rdmOffset = random.nextInt(randomMinutes)
+        int rdmOffset = random.nextInt(randomMinutes)
         def offTime = offDate.time - (randomMinutes * 30000) + (rdmOffset * 60000)
         offDate = new Date(offTime)
         debug "random-adjusted turn-off time : ${offDate}"
@@ -642,7 +658,7 @@ def convertToHMS(ms) {
     int hours = Math.floor(ms/1000/60/60)
     int minutes = Math.floor((ms/1000/60) - (hours * 60))
     int seconds = Math.floor((ms/1000) - (hours * 60 * 60) - (minutes * 60))
-    double millisec = ms-(hours*60*60*1000)-(minutes*60*1000)-(seconds*1000)
+    long millisec = ms-(hours*60*60*1000)-(minutes*60*1000)-(seconds*1000)
     int tenths = (millisec/100).round(0)
     return "${hours}h${minutes}m${seconds}.${tenths}s"
 }
@@ -686,9 +702,9 @@ def debug(message, lvl = null, shift = null, err = null) {
 	}
 	
     def multiEnable = (parent.setMultiLevelLog == false ? false : true) //set to true by default
-    def maxLevel = 4
-	def level = state.debugLevel ?: 0
-	def levelDelta = 0
+    int maxLevel = 4
+	int level = state.debugLevel ?: 0
+	int levelDelta = 0
 	def prefix = "║"
 	def pad = "░"
 	
@@ -753,8 +769,8 @@ def debug(message, lvl = null, shift = null, err = null) {
     if (logMsg) {
     	def debugLog = state.debugLogInfo ?: [] //create list if it doesn't already exist
         debugLog.add(0,[time: now(), msg: logMsg, type: lvl]) //insert log info into list slot 0, shifting other entries to the right
-        def maxLogs = settings.maxInfoLogs ?: 5
-        def listSize = debugLog.size()
+        int maxLogs = settings.maxInfoLogs ?: 5
+        int listSize = debugLog.size()
         while (listSize > maxLogs) { //delete old entries to prevent list from growing beyond set size
             debugLog.remove(maxLogs)
             listSize = debugLog.size()
