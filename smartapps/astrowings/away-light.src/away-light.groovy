@@ -19,7 +19,6 @@
  *
  *    v2.41 (18-Nov-2019) - explicitly define int variable types
  *                        - cast division result to int to prevent error when converting Unix time to date
- *                        - add method completion lines where another method gets called, exiting current method before the completion lines can be run
  *                        - calculate method completion time before declaring complete so that time may be displayed in the completion debug line
  *    v2.40 (14-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
  *    v2.34 (08-Nov-2019) - wrap procedures to identify last execution and elapsed time
@@ -367,16 +366,10 @@ def schedTurnOn(offForDelay) {
         if (!onDate) {
             //no turn-on time set, call method to turn light on now; whether or not it actually turns on will depend on dow/mode
             debug "no turn-on time specified; calling to turn the light on in ${convertToHMS(onNowDelay)}", "info"
-            def elapsed = (now() - startTime)/1000
-            state.lastCompletedExecution = [time: now(), name: "schedTurnOn()", duration: elapsed]
-            debug "schedTurnOn() completed in ${elapsed} seconds", "trace", -1
             turnOn(onNowDelay)
         } else {
             if (onDate < nowDate) {
                 debug "scheduled turn-on time of ${onDate.format('dd MMM HH:mm:ss', tz)} has already passed; calling to turn the light on in ${convertToHMS(onNowDelay)}", "info"
-                def elapsed = (now() - startTime)/1000
-                state.lastCompletedExecution = [time: now(), name: "schedTurnOn()", duration: elapsed]
-                debug "schedTurnOn() completed in ${elapsed} seconds", "trace", -1
                 turnOn(onNowDelay)
             } else {
                 debug "scheduling the light to turn on at ${onDate.format('dd MMM HH:mm:ss', tz)}", "info"
@@ -474,9 +467,6 @@ def schedTurnOff(onDelay, offDate) {
         	int maxDelay = 2 * 60 * 1000 //set a delay of up to 2 min to be applied when requested to turn off now
             int delayOffNow = random.nextInt(maxDelay)
             debug "the calculated turn-off time has already passed; calling for the light to turn off in ${convertToHMS(delayOffNow)}", "info"
-            def elapsed = (now() - startTime)/1000
-            state.lastCompletedExecution = [time: now(), name: "schedTurnOff()", duration: elapsed]
-            debug "schedTurnOff() completed in ${elapsed} seconds", "trace", -1
             turnOff(delayOffNow)
         }
     } else {
