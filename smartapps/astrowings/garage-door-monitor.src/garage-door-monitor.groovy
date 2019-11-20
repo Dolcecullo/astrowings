@@ -17,7 +17,8 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
- *    v2.10 (14-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
+ *    v2.10 (18-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
+ *                        - calculate method completion time before declaring complete so that time may be displayed in the completion debug line
  *    v2.02 (23-Nov-2018) - wrap procedures to identify last execution and elapsed time
  *                        - add appInfo section in app settings
  *	  v2.01 (09-Aug-2018) - standardize debug log types and make 'debug' logs disabled by default
@@ -58,7 +59,7 @@ definition(
 //   ***   APP DATA  ***
 
 def		versionNum()			{ return "version 2.10" }
-def		versionDate()			{ return "14-Nov-2019" }     
+def		versionDate()			{ return "18-Nov-2019" }     
 def		gitAppName()			{ return "garage-door-monitor" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -255,9 +256,9 @@ def initialize() {
     state.debugLevel = 0
     state.numWarning = 0
     subscribeToEvents()
-    debug "initialization complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "initialize()", duration: elapsed]
+    debug "initialization completed in ${elapsed} seconds", "trace", -1
 }
 
 def subscribeToEvents() {
@@ -268,9 +269,9 @@ def subscribeToEvents() {
     subscribe(everyone, "presence.not present", allLeaveHandler)
     subscribe(thedoor, "contact", doorHandler)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
-    debug "subscriptions complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "subscribeToEvents()", duration: elapsed]
+    debug "subscriptions completed in ${elapsed} seconds", "trace", -1
 }
 
 
@@ -289,9 +290,9 @@ def iLeaveHandler(evt) {
     } else {
     	debug "the ${thedoor.device} is ${thedoor.currentContact}; doing nothing"
     }
-    debug "iLeaveHandler complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "iLeaveHandler()", duration: elapsed]
+    debug "iLeaveHandler completed in ${elapsed} seconds", "trace", -1
 }
 
 def allLeaveHandler(evt) {
@@ -308,9 +309,9 @@ def allLeaveHandler(evt) {
             debug "The ${thedoor.device} is ${thedoor.currentContact} but not everyone is away; doing nothing"
         }
     }
-    debug "allLeaveHandler complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "allLeaveHandler()", duration: elapsed]
+    debug "allLeaveHandler completed in ${elapsed} seconds", "trace", -1
 }
 
 def doorHandler(evt) {
@@ -328,9 +329,9 @@ def doorHandler(evt) {
     	state.timeOpen = now()
         runIn(60 * maxOpenMinutes, checkOpen)
     }
-    debug "doorHandler complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "doorHandler()", duration: elapsed]
+    debug "doorHandler completed in ${elapsed} seconds", "trace", -1
 }
 
 def locationPositionChange(evt) {
@@ -353,15 +354,15 @@ def checkOpen() {
     def updated_numWarning = state.numWarning
     if (thedoor.currentContact == "open") {
         updated_numWarning ++
-        debug "updated_numWarning : ${updated_numWarning}"
+        debug "updated_numWarning: ${updated_numWarning}"
         sendNotification()
     } else {
     	debug "The ${thedoor.device} is no longer open."
     }
     state.numWarning = updated_numWarning
-    debug "checkOpen() complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "checkOpen()", duration: elapsed]
+    debug "checkOpen() completed in ${elapsed} seconds", "trace", -1
 }
 
 def sendNotification() {
@@ -371,15 +372,14 @@ def sendNotification() {
     int elapsedOpen = now() - state.timeOpen
     debug "state.numWarning : ${state.numWarning}"
     debug "now() - state.timeOpen = ${now()} - ${state.timeOpen} = ${elapsedOpen}"
-    //def datOpen = new Date(state.timeOpen)
     def msg = "The ${thedoor.device} has been opened for ${convertToHM(elapsedOpen)}"
     debug "sendPush : ${msg}", "warn"
     sendPush(msg)
     sendText(msg)
     setReminder()
-    debug "sendNotification() complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "sendNotification()", duration: elapsed]
+    debug "sendNotification() completed in ${elapsed} seconds", "trace", -1
 }
 
 def sendText(msg) {
@@ -392,9 +392,9 @@ def sendText(msg) {
 	} else {
     	debug "SMS number not configured"
     }
-    debug "sendText() complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "sendText()", duration: elapsed]
+    debug "sendText() completed in ${elapsed} seconds", "trace", -1
 }
 
 def setReminder() {
@@ -408,9 +408,9 @@ def setReminder() {
     } else {
     	debug "reminder option not set"
     }
-    debug "sendReminder() complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "setReminder()", duration: elapsed]
+    debug "sendReminder() completed in ${elapsed} seconds", "trace", -1
 }
 
 //   -------------------------

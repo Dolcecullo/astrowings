@@ -17,7 +17,8 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
- *    v2.20 (14-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
+ *    v2.20 (18-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
+ *                        - calculate method completion time before declaring complete so that time may be displayed in the completion debug line
  *    v2.12 (22-Nov-2018) - wrap procedures to identify last execution and elapsed time
  *                        - check that lights were turned on by this app before turning off on mode change
  *                        - add appInfo section in app settings
@@ -60,7 +61,7 @@ definition(
 //   ***   APP DATA  ***
 
 def		versionNum()			{ return "version 2.20" }
-def		versionDate()			{ return "14-Nov-2019" }     
+def		versionDate()			{ return "18-Nov-2019" }     
 def		gitAppName()			{ return "morning-lights" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -346,9 +347,9 @@ def initialize() {
     state.lightsOn = false
     subscribeToEvents()
 	schedTurnOff(location.currentValue("sunriseTime"))
-    debug "initialization complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "initialize()", duration: elapsed]
+    debug "initialization completed in ${elapsed} seconds", "trace", -1
 }
 
 def subscribeToEvents() {
@@ -358,9 +359,9 @@ def subscribeToEvents() {
     subscribe(location, "sunriseTime", sunriseTimeHandler)	//triggers at sunrise, evt.value is the sunrise String (time for next day's sunrise)
     subscribe(location, "mode", modeChangeHandler)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
-    debug "subscriptions complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "subscribeToEvents()", duration: elapsed]
+    debug "subscriptions completed in ${elapsed} seconds", "trace", -1
 }
 
 
@@ -370,13 +371,13 @@ def subscribeToEvents() {
 def sunriseTimeHandler(evt) {
     def startTime = now()
     state.lastInitiatedExecution = [time: startTime, name: "sunriseTimeHandler()"]
-    debug "sunriseTimeHandler event: ${evt.descriptionText}", "trace"
+    debug "sunriseTimeHandler event: ${evt.descriptionText}", "trace", 1
     def sunriseTimeHandlerMsg = "triggered sunriseTimeHandler; next sunrise will be ${evt.value}"
     debug "sunriseTimeHandlerMsg : $sunriseTimeHandlerMsg"
     schedTurnOff(evt.value)
-    debug "sunriseTimeHandler complete", "trace"
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "sunriseTimeHandler()", duration: elapsed]
+    debug "sunriseTimeHandler completed in ${elapsed} seconds", "trace", -1
 }    
 
 def locationPositionChange(evt) {
@@ -391,14 +392,14 @@ def locationPositionChange(evt) {
 def modeChangeHandler(evt) {
     def startTime = now()
     state.lastInitiatedExecution = [time: startTime, name: "modeChangeHandler()"]
-	debug "modeChangeHandler event: ${evt.descriptionText}", "trace"
+	debug "modeChangeHandler event: ${evt.descriptionText}", "trace", 1
     if(state.lightsOn && awayOff && evt.value == "Away") {
         debug "mode changed to ${evt.value}; calling turnOff()", "info"
         turnOff()
     }
-    debug "modeChangeHandler complete", "trace"
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "modeChangeHandler()", duration: elapsed]
+    debug "modeChangeHandler completed in ${elapsed} seconds", "trace", -1
 }
 
 //   -------------------
@@ -439,9 +440,9 @@ def schedTurnOff(sunriseString) {
 	debug "scheduling lights OFF for: ${datTurnOff}", "info"
     runOnce(datTurnOff, turnOff, [overwrite: false])
     schedTurnOn(datTurnOff)
-    debug "schedTurnOff() complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "schedTurnOff()", duration: elapsed]
+    debug "schedTurnOff() completed in ${elapsed} seconds", "trace", -1
 }
 
 def schedTurnOn(datTurnOff) {
@@ -463,14 +464,14 @@ def schedTurnOn(datTurnOff) {
         } else {
         	debug "scheduling cancelled because tomorrow's turn-on time (${datTurnOn}) " +
             	"would be later than (or less than ${minTimeOn} minutes before) " +
-                "the scheduled turn-off time (${datTurnOff})."
+                "the scheduled turn-off time (${datTurnOff}).", "info"
         }
     } else {
-    	debug "user didn't specify turn-on time; scheduling cancelled", "warn"
+    	debug "user didn't specify turn-on time; scheduling cancelled", "info"
     }
-    debug "schedTurnOn() complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "schedTurnOn()", duration: elapsed]
+    debug "schedTurnOn() completed in ${elapsed} seconds", "trace", -1
 }
 
 def turnOn() {
@@ -491,9 +492,9 @@ def turnOn() {
     }
 	state.lightsOn = true
     state.lightsOnTime = now()
-    debug "turnOn() complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "turnOn()", duration: elapsed]
+    debug "turnOn() completed in ${elapsed} seconds", "trace", -1
 }
 
 def turnOff() {
@@ -513,9 +514,9 @@ def turnOff() {
         }
     }
     state.lightsOn = false
-    debug "turnOff() complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "turnOff()", duration: elapsed]
+    debug "turnOff() completed in ${elapsed} seconds", "trace", -1
 }
 
 

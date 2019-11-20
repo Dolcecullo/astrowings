@@ -17,7 +17,8 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
- *    v2.20 (14-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
+ *    v2.20 (18-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
+ *                        - calculate method completion time before declaring complete so that time may be displayed in the completion debug line
  *    v2.12 (23-Nov-2018) - wrap procedures to identify last execution and elapsed time
  *                        - add appInfo section in app settings
  *	  v2.11 (09-Aug-2018) - standardize debug log types and make 'debug' logs disabled by default
@@ -56,7 +57,7 @@ definition(
 //   ***   APP DATA  ***
 
 def		versionNum()			{ return "version 2.20" }
-def		versionDate()			{ return "14-Nov-2019" }     
+def		versionDate()			{ return "18-Nov-2019" }     
 def		gitAppName()			{ return "lights-when-door-unlocks" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -259,9 +260,9 @@ def initialize() {
     state.initializeTime = now()
     state.debugLevel = 0
     subscribeToEvents()
-    debug "initialization complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "initialize()", duration: elapsed]
+    debug "initialization completed in ${elapsed} seconds", "trace", -1
 }
 
 def subscribeToEvents() {
@@ -270,9 +271,9 @@ def subscribeToEvents() {
     debug "subscribing to events", "trace", 1
     subscribe(theLock, "lock.unlocked", unlockHandler)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
-    debug "subscriptions complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "subscribeToEvents()", duration: elapsed]
+    debug "subscriptions completed in ${elapsed} seconds", "trace", -1
 }
 
 
@@ -303,9 +304,9 @@ def unlockHandler(evt) {
     } else {
     	debug "${unlockText}, but it's daytime; doing nothing"
     }
-    debug "unlockHandler complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "unlockHandler()", duration: elapsed]
+    debug "unlockHandler completed in ${elapsed} seconds", "trace", -1
 }
 
 
@@ -327,9 +328,9 @@ def switchOn() {
         	debug "the ${it.displayName} is already on; doing nothing"
         }
     }
-    debug "switchOn() complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "switchOn()", duration: elapsed]
+    debug "switchOn() completed in ${elapsed} seconds", "trace", -1
 }
 
 

@@ -527,17 +527,17 @@ def activateFlash() {
 			delay += offFor
 		}
         if (flashLeaveOn) {
-        	debug "setting turn-on delay to leave flasher lights on after flash", "info"
+        	debug "setting turn-on delay to leave flasher lights on after flash"
         	flashLights.on(delay: sequenceTime)
             if (flashLeaveDuration) {
-            	debug "setting turn-off delay to turn flasher lights off after $flashLeaveDuration minutes", "info"
+            	debug "setting turn-off delay to turn flasher lights off after $flashLeaveDuration minutes"
             	def flashOffDelay = flashLeaveDuration * 60 * 1000
             	flashLights.off(delay: sequenceTime + flashOffDelay)
             }
             if (flashOffSun) {
 				def strSunriseTime = location.currentValue("sunriseTime")
         		def datSunriseTime = Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", strSunriseTime)
-                debug "scheduling flasher lights to turn off at sunrise ($datSunriseTime)", "info"
+                debug "scheduling flasher lights to turn off at sunrise ($datSunriseTime)"
                 runOnce(datSunriseTime, deactivateFlash)
             }
         } else {

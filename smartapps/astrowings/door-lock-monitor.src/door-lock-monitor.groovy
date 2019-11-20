@@ -17,7 +17,8 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
- *    v2.20 (14-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
+ *    v2.20 (18-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
+ *                        - calculate method completion time before declaring complete so that time may be displayed in the completion debug line
  *    v2.12 (23-Nov-2018) - wrap procedures to identify last execution and elapsed time
  *                        - add appInfo section in app settings
  *	  v2.11 (09-Aug-2018) - standardize debug log types and make 'debug' logs disabled by default
@@ -58,7 +59,7 @@ definition(
 //   ***   APP DATA  ***
 
 def		versionNum()			{ return "version 2.20" }
-def		versionDate()			{ return "14-Nov-2019" }     
+def		versionDate()			{ return "18-Nov-2019" }     
 def		gitAppName()			{ return "door-lock-monitor" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -255,9 +256,9 @@ def initialize() {
     state.initializeTime = now()
     state.debugLevel = 0
     subscribeToEvents()
-    debug "initialization complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "initialize()", duration: elapsed]
+    debug "initialization completed in ${elapsed} seconds", "trace", -1
 }
 
 def subscribeToEvents() {
@@ -267,9 +268,9 @@ def subscribeToEvents() {
     subscribe(theLocks, "lock.unlocked", unlockHandler)
     subscribe(location, modeChangeHandler)
     subscribe(location, "position", locationPositionChange) //update settings if the hub location changes
-    debug "subscriptions complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "subscribeToEvents()", duration: elapsed]
+    debug "subscriptions completed in ${elapsed} seconds", "trace", -1
 }
 
 
@@ -285,9 +286,9 @@ def unlockHandler(evt) {
     if (pushUnlock && unlockText.contains("was unlocked with code")) {
     	sendPush(unlockText)
     }
-    debug "unlockHandler complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "unlockHandler()", duration: elapsed]
+    debug "unlockHandler completed in ${elapsed} seconds", "trace", -1
 }
 
 def modeChangeHandler(evt) {
@@ -305,7 +306,7 @@ def modeChangeHandler(evt) {
     }
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "modeChangeHandler()", duration: elapsed]
-    debug "modeChangeHandler complete", "trace", -1
+    debug "modeChangeHandler completed in ${elapsed} seconds", "trace", -1
 }
 
 def locationPositionChange(evt) {

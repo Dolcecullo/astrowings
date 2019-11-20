@@ -17,7 +17,8 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
- *    v2.10 (14-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
+ *    v2.10 (18-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
+ *                        - calculate method completion time before declaring complete so that time may be displayed in the completion debug line
  *    v2.04 (23-Nov-2018) - wrap procedures to identify last execution and elapsed time
  *	  v2.03 (09-Aug-2018) - standardize debug log types and make 'debug' logs disabled by default
  *						  - standardize layout of app data and constant definitions
@@ -64,7 +65,7 @@ definition(
 //   ***   APP DATA  ***
 
 def		versionNum()			{ return "version 2.10" }
-def		versionDate()			{ return "14-Nov-2019" }     
+def		versionDate()			{ return "18-Nov-2019" }     
 def		gitAppName()			{ return "sunset-lights" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -357,9 +358,9 @@ def initialize() {
 	subscribeToEvents()
 	scheduleTurnOn(location.currentValue("sunsetTime"))
     scheduleTurnOff(location.currentValue("sunriseTime"))
-    debug "initialization complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "initialize()", duration: elapsed]
+    debug "initialization completed in ${elapsed} seconds", "trace", -1
 }
 
 def subscribeToEvents() {
@@ -369,9 +370,9 @@ def subscribeToEvents() {
     subscribe(location, "sunsetTime", sunsetTimeHandler)	//triggers at sunset, evt.value is the sunset String (time for next day's sunset)
     subscribe(location, "sunriseTime", sunriseTimeHandler)	//triggers at sunrise, evt.value is the sunrise String (time for next day's sunrise)
     subscribe(location, "position", locationPositionChange) //update settings if hub location changes
-    debug "subscriptions complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "subscribeToEvents()", duration: elapsed]
+    debug "subscriptions completed in ${elapsed} seconds", "trace", -1
 }
 
 
@@ -381,23 +382,23 @@ def subscribeToEvents() {
 def sunsetTimeHandler(evt) {
     def startTime = now()
     state.lastInitiatedExecution = [time: startTime, name: "sunsetTimeHandler()"]
-    debug "sunsetTimeHandler event: ${evt.descriptionText}", "trace"
+    debug "sunsetTimeHandler event: ${evt.descriptionText}", "trace", 1
     debug "next sunset will be ${evt.value}"
 	scheduleTurnOn(evt.value)
-    debug "sunsetTimeHandler complete", "trace"
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "sunsetTimeHandler()", duration: elapsed]
+    debug "sunsetTimeHandler completed in ${elapsed} seconds", "trace", -1
 }
 
 def sunriseTimeHandler(evt) {
     def startTime = now()
     state.lastInitiatedExecution = [time: startTime, name: "sunriseTimeHandler()"]
-    debug "sunriseTimeHandler event: ${evt.descriptionText}", "trace"
+    debug "sunriseTimeHandler event: ${evt.descriptionText}", "trace", 1
     debug "next sunrise will be ${evt.value}"
     scheduleTurnOff(evt.value)
-    debug "sunriseTimeHandler complete", "trace"
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "sunriseTimeHandler()", duration: elapsed]
+    debug "sunriseTimeHandler completed in ${elapsed} seconds", "trace", -1
 }    
 
 def locationPositionChange(evt) {
@@ -426,7 +427,7 @@ def scheduleTurnOn(sunsetString) {
 
     //apply random factor
     if (onRand) {
-        debug "Applying random factor to the turn-on time", "info"
+        debug "Applying random factor to the turn-on time"
         def random = new Random()
         def randOffset = random.nextInt(onRand)
         datTurnOn = new Date(datTurnOn.time - (onRand * 30000) + (randOffset * 60000)) //subtract half the random window (converted to ms) then add the random factor (converted to ms)
@@ -434,9 +435,9 @@ def scheduleTurnOn(sunsetString) {
     
 	debug "scheduling lights ON for: ${datTurnOn}", "info"
     runOnce(datTurnOn, turnOn, [overwrite: false]) //schedule this to run once (it will trigger again at next sunset)
-    debug "scheduleTurnOn() complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "scheduleTurnOn()", duration: elapsed]
+    debug "scheduleTurnOn() completed in ${elapsed} seconds", "trace", -1
 }
 
 def scheduleTurnOff(sunriseString) {
@@ -475,9 +476,9 @@ def scheduleTurnOff(sunriseString) {
     state.schedOffTime = datOff.time //store the scheduled OFF time in State so we can use it later to compare it to the ON time
 	debug "scheduling lights OFF for: ${datOff}", "info"
     runOnce(datOff, turnOff, [overwrite: false]) //schedule this to run once (it will trigger again at next sunrise)
-    debug "scheduleTurnOff() complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "scheduleTurnOff()", duration: elapsed]
+    debug "scheduleTurnOff() completed in ${elapsed} seconds", "trace", -1
 }
 
 def turnOn() {
@@ -511,9 +512,9 @@ def turnOn() {
         state.lightsOnTime = now()
         }
     }
-    debug "turnOn() complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "turnOn()", duration: elapsed]
+    debug "turnOn() completed in ${elapsed} seconds", "trace", -1
 }
 
 def turnOff() {
@@ -533,9 +534,9 @@ def turnOff() {
         }
     }
     state.lightsOn = false
-    debug "turnOff() complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "turnOff()", duration: elapsed]
+    debug "turnOff() completed in ${elapsed} seconds", "trace", -1
 }
 
 
@@ -555,10 +556,10 @@ def getDefaultTurnOffTime() {
         debug "default turn-off time not specified"
         result = false
 	}
-    debug "finished evaluating defaultTurnOffTime", "trace", -1
-    return result
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "getDefaultTurnOffTime()", duration: elapsed]
+    debug "finished evaluating defaultTurnOffTime in ${elapsed} seconds", "trace", -1
+    return result
 }
 
 def getWeekdayTurnOffTime() {
@@ -598,10 +599,10 @@ def getWeekdayTurnOffTime() {
     	debug "DOW turn-off time not specified"
         result = false
     }
-    debug "finished evaluating weekdayTurnOffTime", "trace", -1
-    return result
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "getWeekdayTurnOffTime()", duration: elapsed]
+    debug "finished evaluating weekdayTurnOffTime in ${elapsed} seconds", "trace", -1
+    return result
 }
 
 

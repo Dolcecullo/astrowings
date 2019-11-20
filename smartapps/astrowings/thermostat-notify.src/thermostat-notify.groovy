@@ -223,7 +223,7 @@ def handleThermostatChange(evt) {
     }
     
     debug "thermostat event handler complete", "trace", -1
-	}
+}
 
 def locationPositionChange(evt) {
     debug "locationPositionChange(${evt.descriptionText})", "warn"

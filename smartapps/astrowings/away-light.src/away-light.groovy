@@ -17,9 +17,10 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
- *    v2.41 (15-Nov-2019) - explicitly define int and long variable types
+ *    v2.41 (18-Nov-2019) - explicitly define int variable types
  *                        - cast division result to int to prevent error when converting Unix time to date
  *                        - add method completion lines where another method gets called, exiting current method before the completion lines can be run
+ *                        - calculate method completion time before declaring complete so that time may be displayed in the completion debug line
  *    v2.40 (14-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
  *    v2.34 (08-Nov-2019) - wrap procedures to identify last execution and elapsed time
  *                        - add appInfo section in app settings
@@ -77,7 +78,7 @@ definition(
 //   ***   APP DATA  ***
 
 def		versionNum()			{ return "version 2.41" }
-def		versionDate()			{ return "15-Nov-2019" }     
+def		versionDate()			{ return "18-Nov-2019" }     
 def		gitAppName()			{ return "away-light" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -276,11 +277,11 @@ def initialize() {
     state.appOn = false
     theLight.off()
     subscribeToEvents()
-    schedule("0 0 4 1/1 * ?", schedTurnOn) //run schedTurnOn at 04:00 daily
-    debug "initialization complete", "trace", -1
-	schedTurnOn()
+    schedule("55 44 3 1/1 * ?", schedTurnOn) //run schedTurnOn at 03:44:55 daily
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "initialize()", duration: elapsed]
+    debug "initialization completed in ${elapsed} seconds", "trace", -1
+	schedTurnOn()
 }
 
 def reinit() {
@@ -310,12 +311,13 @@ def modeChangeHandler(evt) {
         runIn(delay,schedTurnOn)
     } else {
         debug "mode changed to ${location.currentMode}; cancelling scheduled tasks", "info"
-        unschedule()
+        unschedule(turnOn)
+        unschedule(turnOff)
         terminate()
     }
-    debug "modeChangeHandler complete", "trace"
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "modeChangeHandler()", duration: elapsed]
+    debug "modeChangeHandler completed in ${elapsed} seconds", "trace"
 }
 
 def locationPositionChange(evt) {
@@ -337,6 +339,7 @@ def schedTurnOn(offForDelay) {
     state.lastInitiatedExecution = [time: startTime, name: "schedTurnOn()"]
     debug "executing schedTurnOn(offForDelay: ${offForDelay})", "trace", 1
 	
+    def tz = location.timeZone	
     def random = new Random()
     
     if (offForDelay) {
@@ -349,7 +352,7 @@ def schedTurnOn(offForDelay) {
             offForDelay = (int)(offForDelay - range/2 + rdmOffset)
 		}
         def onDate = new Date(now() + offForDelay)
-        debug "calculated ON time for turning the light back on after the 'off for' delay of ${convertToHMS(offForDelay)} : ${onDate}", "info"
+        debug "calculated ON time for turning the light back on after the 'off for' delay of ${convertToHMS(offForDelay)} : ${onDate.format('dd MMM HH:mm:ss', tz)}", "info"
         state.turnOnTime = onDate.time
         runOnce(onDate, turnOn)
 	} else {   
@@ -364,27 +367,27 @@ def schedTurnOn(offForDelay) {
         if (!onDate) {
             //no turn-on time set, call method to turn light on now; whether or not it actually turns on will depend on dow/mode
             debug "no turn-on time specified; calling to turn the light on in ${convertToHMS(onNowDelay)}", "info"
-            debug "schedTurnOn() complete", "trace", -1
             def elapsed = (now() - startTime)/1000
             state.lastCompletedExecution = [time: now(), name: "schedTurnOn()", duration: elapsed]
+            debug "schedTurnOn() completed in ${elapsed} seconds", "trace", -1
             turnOn(onNowDelay)
         } else {
             if (onDate < nowDate) {
-                debug "scheduled turn-on time of ${onDate} has already passed; calling to turn the light on in ${convertToHMS(onNowDelay)}", "info"
-                debug "schedTurnOn() complete", "trace", -1
+                debug "scheduled turn-on time of ${onDate.format('dd MMM HH:mm:ss', tz)} has already passed; calling to turn the light on in ${convertToHMS(onNowDelay)}", "info"
                 def elapsed = (now() - startTime)/1000
                 state.lastCompletedExecution = [time: now(), name: "schedTurnOn()", duration: elapsed]
+                debug "schedTurnOn() completed in ${elapsed} seconds", "trace", -1
                 turnOn(onNowDelay)
             } else {
-                debug "scheduling the light to turn on at ${onDate}", "info"
+                debug "scheduling the light to turn on at ${onDate.format('dd MMM HH:mm:ss', tz)}", "info"
                 state.turnOnTime = onDate.time
                 runOnce(onDate, turnOn)
             }
         }
     }
-    debug "schedTurnOn() complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "schedTurnOn()", duration: elapsed]
+    debug "schedTurnOn() completed in ${elapsed} seconds", "trace", -1
 }
 
 def turnOn(delay) {
@@ -394,7 +397,6 @@ def turnOn(delay) {
     debug "executing turnOn(delay: ${delay})", "trace", 1
 
     def tz = location.timeZone
-    def tomorrowTime = timeTodayAfter("23:59", "04:00", tz)
 	def strDOW = nowDOW
     def DOWOk = !theDays || theDays?.contains(strDOW)
     def darkOk = daytime || itsDarkOut
@@ -408,23 +410,17 @@ def turnOn(delay) {
             debug "we're good to go; turning the light on in ${convertToHMS(delay)}", "info"
             state.appOn = true
             state.lightsOnTime = now()
-            theLight.on(delay: delay)
-            debug "turnOn() complete", "trace", -1
-            def elapsed = (now() - startTime)/1000
-            state.lastCompletedExecution = [time: now(), name: "turnOn()", duration: elapsed]
+            theLight.on()
+            // theLight.on(delay: delay) ** delay removed in an attempt to troubleshoot the TimeoutException error
             schedTurnOff(delay, offDate)
         } else {
-            debug "the light's turn-off time has already passed; check again tomorrow (${tomorrowTime})"
-            state.schedTurnOnTime = tomorrowTime.time
-            runOnce(tomorrowTime, schedTurnOn)
+            debug "the light's turn-off time has already passed"
         }
     } else {
         if (!modeOk) {
     		debug "light activation is not enabled in current mode; check again at mode change"
     	} else if (!DOWOk) {
-            debug "light activation is not enabled on ${strDOW}; check again tomorrow (${tomorrowTime})"
-            state.schedTurnOnTime = tomorrowTime.time
-            runOnce(tomorrowTime, schedTurnOn)
+            debug "light activation is not enabled on ${strDOW}"
         } else if (!darkOk) {
         	def sunTime = getSunriseAndSunset(sunsetOffset: parent.sunsetOffset)
             def sunsetDate = sunTime.sunset
@@ -434,21 +430,22 @@ def turnOn(delay) {
                 def rdmOffset = random.nextInt(randomMinutes)
                 sunsetDate = new Date(sunsetDate.time - (randomMinutes * 30000) + (rdmOffset * 60000))
             }
-            debug "light activation is not enabled during daytime; check again at sunset (${sunsetDate})" //TODO: if using illuminance, subscribe to the sensor and check again when dark
+            debug "light activation is not enabled during daytime; check again at sunset (${sunsetDate.format('dd MMM HH:mm:ss', tz)})" //TODO: if using illuminance, subscribe to the sensor and check again when dark
             state.schedTurnOnTime = sunsetDate.time
             runOnce(sunsetDate, schedTurnOn)
         }
 	}
-    debug "turnOn() complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "turnOn()", duration: elapsed]
+    debug "turnOn() completed in ${elapsed} seconds", "trace", -1
 }	
 
 def schedTurnOff(onDelay, offDate) {
     //determine turn-off time and schedule the turnOff()
+    def tz = location.timeZone
     def startTime = now()
     state.lastInitiatedExecution = [time: startTime, name: "schedTurnOff()"]
-	debug "executing schedTurnOff(onDelay: ${onDelay}, offDate: ${offDate})", "trace", 1
+	debug "executing schedTurnOff(onDelay: ${onDelay}, offDate: ${offDate.format('dd MMM HH:mm:ss', tz)})", "trace", 1
 
     def nowDate = new Date()
     def random = new Random()
@@ -464,30 +461,30 @@ def schedTurnOff(onDelay, offDate) {
             lightOnFor = (int)(lightOnFor - range/2 + rdmOffset)
 		}
         def endOnFor = new Date(now() + lightOnFor + onDelay)
-        debug "calculated OFF time for turning the light off after the 'on for' delay of ${convertToHMS(lightOnFor)} : ${endOnFor}", "info"
+        debug "calculated OFF time for turning the light off after the 'on for' delay of ${convertToHMS(lightOnFor)} : ${endOnFor.format('dd MMM HH:mm:ss', tz)}", "info"
         offDate = offDate && (offDate < endOnFor) ? offDate : endOnFor
     }
     
     if (offDate) {
         if (offDate > nowDate) {
-            debug "scheduling turn-off of the light to occur at ${offDate}", "info"
+            debug "scheduling turn-off of the light to occur at ${offDate.format('dd MMM HH:mm:ss', tz)}", "info"
             state.turnOffTime = offDate.time
             runOnce(offDate, turnOff)
         } else {
         	int maxDelay = 2 * 60 * 1000 //set a delay of up to 2 min to be applied when requested to turn off now
             int delayOffNow = random.nextInt(maxDelay)
             debug "the calculated turn-off time has already passed; calling for the light to turn off in ${convertToHMS(delayOffNow)}", "info"
-            debug "schedTurnOff() complete", "trace", -1
             def elapsed = (now() - startTime)/1000
             state.lastCompletedExecution = [time: now(), name: "schedTurnOff()", duration: elapsed]
+            debug "schedTurnOff() completed in ${elapsed} seconds", "trace", -1
             turnOff(delayOffNow)
         }
     } else {
         debug "no turn-off time specified"
     }
-    debug "schedTurnOff() complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "schedTurnOff()", duration: elapsed]
+    debug "schedTurnOff() completed in ${elapsed} seconds", "trace", -1
 }
 
 def turnOff(delay) {
@@ -499,7 +496,8 @@ def turnOff(delay) {
         debug "turning off the light in ${convertToHMS(delay)}", "info"
         state.appOn = false
         state.lightsOffTime = now()
-        theLight.off(delay: delay)
+        theLight.off()
+        //theLight.off(delay: delay) ** delay removed in an attempt to troubleshoot the TimeoutException error
         if (offFor) {
             int offForDelay = offFor * 60 * 1000
             if (randomMinutes) {
@@ -510,23 +508,16 @@ def turnOff(delay) {
                 int rdmOffset = random.nextInt(range)
                 offForDelay = (int)(offForDelay - range/2 + rdmOffset)
             }
-            debug "turnOff() complete", "trace", -1
-            def elapsed = (now() - startTime)/1000
-            state.lastCompletedExecution = [time: now(), name: "turnOff()", duration: elapsed]
             schedTurnOn(offForDelay)
         } else {
-        	def tz = location.timeZone
-            def tomorrowTime = timeTodayAfter("23:59", "04:00", tz)
-            debug "the light isn't scheduled to turn back on today; check again tomorrow (${tomorrowTime})"
-            state.schedTurnOnTime = tomorrowTime.time
-            runOnce(tomorrowTime, schedTurnOn)
+            debug "the light isn't scheduled to turn back on today"
         }
     } else {
 		debug "the light wasn't turned on by this app; doing nothing"
     }
-    debug "turnOff() complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "turnOff()", duration: elapsed]
+    debug "turnOff() completed in ${elapsed} seconds", "trace", -1
 }
 
 def terminate() {
@@ -543,11 +534,12 @@ def terminate() {
         debug "turning off the light in ${convertToHMS(delay)}", "info"
         state.appOn = false
         state.lightsOffTime = now()
-        theLight.off(delay: delay)
+        theLight.off()
+        //theLight.off(delay: delay) ** delay removed in an attempt to troubleshoot the TimeoutException error
     }
-    debug "terminate() complete", "trace", -1
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "terminate()", duration: elapsed]
+    debug "terminate() completed in ${elapsed} seconds", "trace", -1
 }
 
 
@@ -585,13 +577,13 @@ def schedOnDate() {
 	def random = new Random()
     def onDate = startTime ? timeToday(startTime, tz) : null
 	
-    debug "user-configured turn-on time : ${onDate}"
+    debug "user-configured turn-on time : ${onDate.format('dd MMM HH:mm:ss', tz)}"
     
     if (randomMinutes && onDate) {
         //apply random factor to onDate
         int rdmOffset = random.nextInt(randomMinutes)
         onDate = new Date(onDate.time - (randomMinutes * 30000) + (rdmOffset * 60000))
-        debug "random-adjusted turn-on time : ${onDate}"
+        debug "random-adjusted turn-on time : ${onDate.format('dd MMM HH:mm:ss', tz)}"
     } else {
         debug "no random factor configured in preferences"
     }
@@ -613,18 +605,18 @@ def schedOffDate() {
     if (!daytime) {
         def sunriseString = location.currentValue("sunriseTime") //get the next sunrise time string
         def sunriseDate = Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", sunriseString)
-		debug "comparing end time (${offDate}) to sunrise time (${sunriseDate})"
+		debug "comparing end time (${offDate.format('dd MMM HH:mm:ss', tz)}) to sunrise time (${sunriseDate.format('dd MMM HH:mm:ss', tz)})"
 		offDate = offDate && (offDate < sunriseDate) ? offDate : sunriseDate
     }
     
-    debug "calculated turn-off time : ${offDate}"
+    debug "calculated turn-off time : ${offDate.format('dd MMM HH:mm:ss', tz)}"
     
     if (randomMinutes && offDate) {
         //apply random factor to offDate
         int rdmOffset = random.nextInt(randomMinutes)
         def offTime = offDate.time - (randomMinutes * 30000) + (rdmOffset * 60000)
         offDate = new Date(offTime)
-        debug "random-adjusted turn-off time : ${offDate}"
+        debug "random-adjusted turn-off time : ${offDate.format('dd MMM HH:mm:ss', tz)}"
     } else {
         debug "no random factor configured in preferences"
     }
@@ -658,7 +650,7 @@ def convertToHMS(ms) {
     int hours = Math.floor(ms/1000/60/60)
     int minutes = Math.floor((ms/1000/60) - (hours * 60))
     int seconds = Math.floor((ms/1000) - (hours * 60 * 60) - (minutes * 60))
-    long millisec = ms-(hours*60*60*1000)-(minutes*60*1000)-(seconds*1000)
+    double millisec = ms-(hours*60*60*1000)-(minutes*60*1000)-(seconds*1000)
     int tenths = (millisec/100).round(0)
     return "${hours}h${minutes}m${seconds}.${tenths}s"
 }

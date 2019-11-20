@@ -199,7 +199,7 @@ def uninstalled() {
 def initialize() {
     state.debugLevel = 0
     debug "initializing", "trace", 1
-    debug "there are ${childApps.size()} child smartapps"
+    debug "there are ${childApps.size()} child smartapps:", "info"
     childApps.each {child ->
         debug "child app: ${child.label}", "info"
     }
