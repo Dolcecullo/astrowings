@@ -17,6 +17,7 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *	
+ *    v2.01 (22-Nov-2019) - unschedule rechecks only if warnstate exists
  *    v2.00 (20-Nov-2019) - add options to allow power drop/exceedance for a limited time
  *    v1.10 (18-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
  *                        - calculate method completion time before declaring complete so that time may be displayed in the completion debug line
@@ -237,7 +238,7 @@ def installed() {
 }
 
 def updated() {
-    debug "updated with settings ${settings}", "trace"
+    debug "updated with settings ${settings}", "trace", 0
 	unsubscribe()
     initialize()
 }
@@ -250,9 +251,9 @@ def uninstalled() {
 def initialize() {
     def startTime = now()
     state.lastInitiatedExecution = [time: startTime, name: "initialize()"]
+    state.debugLevel = 0
     debug "initializing", "trace", 1
     state.initializeTime = now()
-    state.debugLevel = 0
     state.warnState = 0  // 0=ok, 10=low power warning triggered, 11=low power grace period, 20=high power warning triggered, 21=high power grace period
     subscribeToEvents()
     def elapsed = (now() - startTime)/1000
@@ -336,10 +337,13 @@ def checkPower(w) {
     	debug "power draw of ${w} watts is below the specified low threshold (${loPower} W); calling loPower()", "debug"
         loPower(w)
     } else {
-    	debug "power draw of ${w} watts is within set limits (${loPower} - ${hiPower} W); unschedule rechecks and wait for next trigger", "debug"
+    	debug "power draw of ${w} watts is within set limits (${loPower} - ${hiPower} W)", "debug"
+    	if (warnState == 11 || warnState == 21) {
+	        debug "unschedule rechecks and wait for next trigger", "debug"
+            unschedule(loRecheck)
+            unschedule(hiRecheck)
+        }
         state.warnState = 0  // 0=ok, 10=low power warning triggered, 11=low power grace period, 20=high power warning triggered, 21=high power grace period
-        unschedule(loRecheck)
-        unschedule(hiRecheck)
     }
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "checkPower()", duration: elapsed]
