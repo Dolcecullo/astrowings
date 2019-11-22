@@ -306,10 +306,10 @@ def modeChangeHandler(evt) {
     debug "modeChangeHandler event: ${evt.descriptionText}", "trace"
     if(modeOk) {
         int delay = activationDelay ? activationDelay * 60 : 5
-        debug "mode changed to ${location.currentMode}; calling schedTurnOn() in ${delay} seconds", "info"
+        debug "mode changed to ${evt.value}; calling schedTurnOn() in ${delay} seconds", "info"
         runIn(delay,schedTurnOn)
     } else {
-        debug "mode changed to ${location.currentMode}; cancelling scheduled tasks", "info"
+        debug "mode changed to ${evt.value}; cancelling scheduled tasks", "info"
         unschedule(turnOn)
         unschedule(turnOff)
         terminate()
