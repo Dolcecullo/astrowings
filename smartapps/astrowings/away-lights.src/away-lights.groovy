@@ -17,7 +17,8 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
- *    v1.14 (13-Nov-1019) - revert to using state instead of atomicState
+ *    v1.15 (26-Nov-2019) - fix state.debugLevel by moving the reset to the start of initialization method
+ *    v1.14 (13-Nov-2019) - revert to using state instead of atomicState
  *                        - add maxInfoLogs input to set the max number of info logs to be displayed in appInfo section 
  *    v1.13 (26-Sep-2019) - use atomicState instead of state in an effort to fix a bug in the child app where the light doesn't turn off because state.appOn wasn't set to true
  *    v1.12 (27-May-2019) - add debug option to skip appOn check before turning off the light
@@ -42,8 +43,8 @@ definition(
 //   --------------------------------
 //   ***   APP DATA  ***
 
-def		versionNum()			{ return "version 1.14" }
-def		versionDate()			{ return "13-Nov-2019" }     
+def		versionNum()			{ return "version 1.15" }
+def		versionDate()			{ return "26-Nov-2019" }     
 def		gitAppName()			{ return "away-lights" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -182,18 +183,18 @@ def pageUninstall() {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-	debug "installed with settings: ${settings}", "trace"
+	debug "installed with settings: ${settings}", "trace", 0
 	initialize()
 }
 
 def updated() {
-    debug "updated with settings ${settings}", "trace"
+    debug "updated with settings ${settings}", "trace", 0
     initialize()
 }
 
 def uninstalled() {
     state.debugLevel = 0
-    debug "application uninstalled", "trace"
+    debug "application uninstalled", "trace", 0
 }
 
 def initialize() {

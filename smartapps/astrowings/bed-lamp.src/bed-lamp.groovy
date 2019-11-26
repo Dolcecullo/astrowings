@@ -17,6 +17,7 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
+ *    v1.31 (26-Nov-2019) - fix state.debugLevel by moving the reset to the start of initialization method
  *    v1.30 (18-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
  *                        - calculate method completion time before declaring complete so that time may be displayed in the completion debug line
  *    v1.20 (27-May-2019) - add event handler based on presence to activate the scheduling
@@ -50,8 +51,8 @@ definition(
 //   --------------------------------
 //   ***   APP DATA  ***
 
-def		versionNum()			{ return "version 1.30" }
-def		versionDate()			{ return "18-Nov-2019" }     
+def		versionNum()			{ return "version 1.31" }
+def		versionDate()			{ return "26-Nov-2019" }     
 def		gitAppName()			{ return "bed-lamp" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -230,13 +231,13 @@ def appInfo() {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-	debug "installed with settings: ${settings}", "trace"
+	debug "installed with settings: ${settings}", "trace", 0
 	state.installTime = now()
 	initialize()
 }
 
 def updated() {
-    debug "updated with settings ${settings}", "trace"
+    debug "updated with settings ${settings}", "trace", 0
 	unsubscribe()
     unschedule()
     initialize()
@@ -244,15 +245,15 @@ def updated() {
 
 def uninstalled() {
     state.debugLevel = 0
-    debug "application uninstalled", "trace"
+    debug "application uninstalled", "trace", 0
 }
 
 def initialize() {
+    state.debugLevel = 0
     def startTime = now()
     state.lastInitiatedExecution = [time: startTime, name: "initialize()"]
     debug "initializing", "trace", 1
     state.initializeTime = now()
-    state.debugLevel = 0
     state.lightsOn = false
     state.lastMode = location.mode
     subscribeToEvents()
@@ -287,11 +288,11 @@ def subscribeToEvents() {
 def sunsetTimeHandler(evt) {
     def startTime = now()
     state.lastInitiatedExecution = [time: startTime, name: "sunsetTimeHandler()"]
-    debug "sunsetTimeHandler event: ${evt.descriptionText}", "trace"
+    debug "sunsetTimeHandler event: ${evt.descriptionText}", "trace", 1
     timeCheck()
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "sunsetTimeHandler()", duration: elapsed]
-    debug "sunsetTimeHandler completed in ${elapsed} seconds", "trace"
+    debug "sunsetTimeHandler completed in ${elapsed} seconds", "trace", -1
 }    
 
 def locationPositionChange(evt) {
@@ -306,7 +307,7 @@ def locationPositionChange(evt) {
 def modeChangeHandler(evt) {
     def startTime = now()
     state.lastInitiatedExecution = [time: startTime, name: "modeChangeHandler()"]
-	debug "modeChangeHandler event: from ${state.lastMode} to ${evt.value}", "trace"
+	debug "modeChangeHandler event: from ${state.lastMode} to ${evt.value}", "trace", 1
     if (isMorning && morningOn) {
         turnOn()
 		runIn(morningDuration*60, turnOff)
@@ -319,13 +320,13 @@ def modeChangeHandler(evt) {
     state.lastMode = evt.value
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "modeChangeHandler()", duration: elapsed]
-	debug "modeChangeHandler completed in ${elapsed} seconds, setting lastMode to ${state.lastMode}", "trace"
+	debug "modeChangeHandler completed in ${elapsed} seconds, setting lastMode to ${state.lastMode}", "trace", -1
 }
 
 def presenceHandler(evt) {
     def startTime = now()
     state.lastInitiatedExecution = [time: startTime, name: "presenceHandler()"]
-	debug "presenceHandler event: ${evt.descriptionText}", "trace"
+	debug "presenceHandler event: ${evt.descriptionText}", "trace", 1
     for (person in thePeople) {
 	    if (person.currentPresence == "present") {
         	timeCheck()
@@ -334,7 +335,7 @@ def presenceHandler(evt) {
     }
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "presenceHandler()", duration: elapsed]
-	debug "presenceHandler completed in ${elapsed} seconds", "trace"
+	debug "presenceHandler completed in ${elapsed} seconds", "trace", -1
 }
 
 
@@ -355,9 +356,6 @@ def timeCheck() {
     	schedule(onTime, turnOn)
     } else {
     	debug "nowDate >= onTime; calling turnOn()", "info"
-        def elapsed = (now() - startTime)/1000
-        state.lastCompletedExecution = [time: now(), name: "timeCheck()", duration: elapsed]
-        debug "timeCheck() completed in ${elapsed} seconds", "trace", -1
         turnOn()
     }
     def elapsed = (now() - startTime)/1000

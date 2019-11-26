@@ -17,6 +17,7 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
+ *    v2.21 (26-Nov-2019) - fix state.debugLevel by moving the reset to the start of initialization method
  *    v2.20 (22-Nov-2019) - add option to turn lights off when mode changes to Night
  *							(to be able to make the lights turn off with a random delay when the mode changes
  *							to Night instead of turning them all off simultaneously with the Good Night! routine)
@@ -68,8 +69,8 @@ definition(
 //   --------------------------------
 //   ***   APP DATA  ***
 
-def		versionNum()			{ return "version 2.20" }
-def		versionDate()			{ return "22-Nov-2019" }     
+def		versionNum()			{ return "version 2.21" }
+def		versionDate()			{ return "26-Nov-2019" }     
 def		gitAppName()			{ return "sunset-lights" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -338,13 +339,13 @@ def appInfo() {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-	debug "installed with settings: ${settings}", "trace"
+	debug "installed with settings: ${settings}", "trace", 0
 	state.installTime = now()
 	initialize()
 }
 
 def updated() {
-    debug "updated with settings ${settings}", "trace"
+    debug "updated with settings ${settings}", "trace", 0
 	unsubscribe()
     unschedule()
     initialize()
@@ -352,15 +353,15 @@ def updated() {
 
 def uninstalled() {
     state.debugLevel = 0
-    debug "application uninstalled", "trace"
+    debug "application uninstalled", "trace", 0
 }
 
 def initialize() {
+    state.debugLevel = 0
     def startTime = now()
     state.lastInitiatedExecution = [time: startTime, name: "initialize()"]
     debug "initializing", "trace", 1
     state.initializeTime = now()
-    state.debugLevel = 0
     state.lightsOn = false
 	subscribeToEvents()
 	scheduleTurnOn(location.currentValue("sunsetTime"))

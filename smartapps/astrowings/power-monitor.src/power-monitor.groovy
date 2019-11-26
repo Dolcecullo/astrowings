@@ -17,6 +17,7 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *	
+ *    v2.02 (26-Nov-2019) - fix state.debugLevel by moving the reset to the start of initialization method
  *    v2.01 (22-Nov-2019) - unschedule rechecks only if warnstate exists
  *    v2.00 (20-Nov-2019) - add options to allow power drop/exceedance for a limited time
  *    v1.10 (18-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
@@ -41,8 +42,8 @@ definition(
 //   --------------------------------
 //   ***   APP DATA  ***
 
-def		versionNum()			{ return "version 2.00" }
-def		versionDate()			{ return "20-Nov-2019" }     
+def		versionNum()			{ return "version 2.02" }
+def		versionDate()			{ return "26-Nov-2019" }     
 def		gitAppName()			{ return "power-monitor" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -232,7 +233,7 @@ def appInfo() {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-	debug "installed with settings: ${settings}", "trace"
+	debug "installed with settings: ${settings}", "trace", 0
 	state.installTime = now()
 	initialize()
 }
@@ -245,13 +246,13 @@ def updated() {
 
 def uninstalled() {
     state.debugLevel = 0
-    debug "application uninstalled", "trace"
+    debug "application uninstalled", "trace", 0
 }
 
 def initialize() {
+    state.debugLevel = 0
     def startTime = now()
     state.lastInitiatedExecution = [time: startTime, name: "initialize()"]
-    state.debugLevel = 0
     debug "initializing", "trace", 1
     state.initializeTime = now()
     state.warnState = 0  // 0=ok, 10=low power warning triggered, 11=low power grace period, 20=high power warning triggered, 21=high power grace period

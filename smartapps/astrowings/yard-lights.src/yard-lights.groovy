@@ -17,6 +17,7 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
+ *    v1.11 (26-Nov-2019) - fix state.debugLevel by moving the reset to the start of initialization method
  *    v1.10 (18-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
  *                        - calculate method completion time before declaring complete so that time may be displayed in the completion debug line
  *	  v1.02 (22 Nov 2018) - in timeDimGo(), removed the check to see if the switch was already on
@@ -42,8 +43,8 @@ definition(
 //   --------------------------------
 //   ***   APP DATA  ***
 
-def		versionNum()			{ return "version 1.10" }
-def		versionDate()			{ return "18-Nov-2019" }     
+def		versionNum()			{ return "version 1.11" }
+def		versionDate()			{ return "26-Nov-2019" }     
 def		gitAppName()			{ return "yard-lights" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -409,13 +410,13 @@ def appInfo() {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-	debug "installed with settings: ${settings}", "trace"
+	debug "installed with settings: ${settings}", "trace", 0
 	state.installTime = now()
     initialize()
 }
 
 def updated() {
-    debug "updated with settings ${settings}", "trace"
+    debug "updated with settings ${settings}", "trace", 0
 	unsubscribe()
     unschedule()
     initialize()
@@ -423,15 +424,15 @@ def updated() {
 
 def uninstalled() {
     state.debugLevel = 0
-    debug "application uninstalled", "trace"
+    debug "application uninstalled", "trace", 0
 }
 
 def initialize() {
+    state.debugLevel = 0
     def startTime = now()
     state.lastInitiatedExecution = [time: startTime, name: "initialize()"]
     debug "initializing", "trace", 1
     state.initializeTime = now()
-    state.debugLevel = 0
     state.lightsOn = false
     state.timeDimActive = false
     state.schedOffTime = 0L
@@ -485,7 +486,7 @@ def doorHandler(evt) {
     
     def startTime = now()
     state.lastInitiatedExecution = [time: startTime, name: "doorHandler()"]
-	debug "doorHandler event: ${evt.descriptionText}", "trace" //TODO: 'descriptionText' only displays '{{linkText}}'?
+	debug "doorHandler event: ${evt.descriptionText}", "trace", 1 //TODO: 'descriptionText' only displays '{{linkText}}'?
     debug "doorHandler event raw description: ${evt.description}"
     debug "doorHandler event description text: ${evt.descriptionText}"
     debug "doorHandler event display name: ${evt.displayName}"
@@ -499,7 +500,7 @@ def doorHandler(evt) {
     }
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "doorHandler()", duration: elapsed]
-    debug "doorHandler completed in ${elapsed} seconds", "trace"
+    debug "doorHandler completed in ${elapsed} seconds", "trace", -1
 }
 
 def motionHandler(evt) {

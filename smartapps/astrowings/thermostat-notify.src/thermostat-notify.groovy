@@ -17,6 +17,7 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *	
+ *    v1.11 (26-Nov-2019) - fix state.debugLevel by moving the reset to the start of initialization method
  *    v1.10 (14-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
  *                          (although currently not being displayed because appInfo not yet implemented)
  *	  v1.01 (09-Aug-2018) - standardize debug log types and make 'debug' logs disabled by default
@@ -40,8 +41,8 @@ definition(
 //   --------------------------------
 //   ***   APP DATA  ***
 
-def		versionNum()			{ return "version 1.10" }
-def		versionDate()			{ return "14-Nov-2019" }     
+def		versionNum()			{ return "version 1.11" }
+def		versionDate()			{ return "26-Nov-2019" }     
 def		gitAppName()			{ return "thermostat-notify" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -169,19 +170,19 @@ def pageUninstall() {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-	debug "installed with settings: ${settings}", "trace"
+	debug "installed with settings: ${settings}", "trace", 0
 	initialize()
 }
 
 def updated() {
-    debug "updated with settings ${settings}", "trace"
+    debug "updated with settings ${settings}", "trace", 0
 	unsubscribe()
     initialize()
 }
 
 def uninstalled() {
     state.debugLevel = 0
-    debug "application uninstalled", "trace"
+    debug "application uninstalled", "trace", 0
 }
 
 def initialize() {

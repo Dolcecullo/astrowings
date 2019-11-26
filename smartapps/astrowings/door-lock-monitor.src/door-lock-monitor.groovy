@@ -17,6 +17,7 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
+ *    v2.21 (26-Nov-2019) - fix state.debugLevel by moving the reset to the start of initialization method
  *    v2.20 (18-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
  *                        - calculate method completion time before declaring complete so that time may be displayed in the completion debug line
  *    v2.12 (23-Nov-2018) - wrap procedures to identify last execution and elapsed time
@@ -58,8 +59,8 @@ definition(
 //   --------------------------------
 //   ***   APP DATA  ***
 
-def		versionNum()			{ return "version 2.20" }
-def		versionDate()			{ return "18-Nov-2019" }     
+def		versionNum()			{ return "version 2.21" }
+def		versionDate()			{ return "26-Nov-2019" }     
 def		gitAppName()			{ return "door-lock-monitor" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -233,28 +234,28 @@ def appInfo() {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-	debug "installed with settings: ${settings}", "trace"
+	debug "installed with settings: ${settings}", "trace", 0
 	state.installTime = now()
 	initialize()
 }
 
 def updated() {
-    debug "updated with settings ${settings}", "trace"
+    debug "updated with settings ${settings}", "trace", 0
 	unsubscribe()
     initialize()
 }
 
 def uninstalled() {
     state.debugLevel = 0
-    debug "application uninstalled", "trace"
+    debug "application uninstalled", "trace", 0
 }
 
 def initialize() {
+    state.debugLevel = 0
     def startTime = now()
     state.lastInitiatedExecution = [time: startTime, name: "initialize()"]
     debug "initializing", "trace", 1
     state.initializeTime = now()
-    state.debugLevel = 0
     subscribeToEvents()
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: "initialize()", duration: elapsed]

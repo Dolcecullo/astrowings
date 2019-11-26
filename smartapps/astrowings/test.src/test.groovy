@@ -148,12 +148,12 @@ def pageUninstall() {
 //   ***   APP INSTALLATION   ***
 
 def installed() {
-	debug "installed with settings: ${settings}", "trace"
+	debug "installed with settings: ${settings}", "trace", 0
 	initialize()
 }
 
 def updated() {
-    debug "updated with settings ${settings}", "trace"
+    debug "updated with settings ${settings}", "trace", 0
 	unsubscribe()
     //unschedule()
     initialize()
@@ -161,7 +161,7 @@ def updated() {
 
 def uninstalled() {
     state.debugLevel = 0
-    debug "application uninstalled", "trace"
+    debug "application uninstalled", "trace", 0
 }
 
 def initialize() {
@@ -445,4 +445,3 @@ def debug(message, lvl = null, shift = null, err = null) {
 //   *******************   TEST ZONE  ********************   //
 //   Put new code here before moving up into main sections   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-
