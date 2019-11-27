@@ -17,6 +17,8 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
+ *    v2.00 (27-Nov-2019) - add appInfo do debugging options section
+ *                        - add crashCheck() schedule
  *    v1.15 (26-Nov-2019) - fix state.debugLevel by moving the reset to the start of initialization method
  *    v1.14 (13-Nov-2019) - revert to using state instead of atomicState
  *                        - add maxInfoLogs input to set the max number of info logs to be displayed in appInfo section 
@@ -43,8 +45,8 @@ definition(
 //   --------------------------------
 //   ***   APP DATA  ***
 
-def		versionNum()			{ return "version 1.15" }
-def		versionDate()			{ return "26-Nov-2019" }     
+def		versionNum()			{ return "version 2.00" }
+def		versionDate()			{ return "27-Nov-2019" }     
 def		gitAppName()			{ return "away-lights" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -109,6 +111,7 @@ def pageSettings() {
             input "debugAppOn", "bool", title: "Skip AppOn Check", description: "skip appOn check before turning off the lights (i.e. with this enabled, lights will turn off even if they weren't initially turned on by this app)", defaultValue: false, required: false
             href "pageLogOptions", title: "IDE Logging Options", description: "Adjust how logs are displayed in the SmartThings IDE", image: getAppImg("office8-icn.png"), required: false
             href "pageInitChild", title: "Re-Initialize All Automations", description: "Tap to call a refresh on each automation.\nTap to Begin...", image: getAppImg("refresh-icn.png")
+            paragraph title: "Application info", appInfo()
         }
     }
 }
@@ -118,9 +121,9 @@ def pageInitChild() {
 		def cApps = getChildApps()
 		section("Re-initializing automations:") {
 			if(cApps) {
-				cApps?.sort()?.each { chld ->
-					chld?.reinit()
-					paragraph title: "${chld?.label}", "Re-Initialized Successfully!!!", state: "complete"
+				cApps.each { child ->
+					child.reinit()
+					paragraph title: "${child?.label}", "Re-Initialized Successfully!!!", state: "complete"
 				}
 			} else {
 				paragraph "No Automations Found..."
@@ -179,33 +182,135 @@ def pageUninstall() {
 }
 
 
+//   ---------------------------------
+//   ***   PAGES SUPPORT METHODS   ***
+
+def appInfo() { 
+    def tz = location.timeZone
+    def mapSun = getSunriseAndSunset()
+    def debugLevel = state.debugLevel
+    def installTime = state.installTime
+    def initializeTime = state.initializeTime
+    def lastInitiatedExecution = state.lastInitiatedExecution
+    def lastCompletedExecution = state.lastCompletedExecution
+    def debugLog = state.debugLogInfo
+    def numLogs = debugLog?.size()
+    def numChild = childApps.size()
+    def strInfo = ""
+        strInfo += " • Application state:\n"
+        strInfo += installTime ? "  └ last install date: ${new Date(installTime).format('dd MMM YYYY HH:mm', tz)}\n" : ""
+        strInfo += initializeTime ? "  └ last initialize date: ${new Date(initializeTime).format('dd MMM YYYY HH:mm', tz)}\n" : ""
+        strInfo += " • Child apps: ${numChild}:\n"
+        if (numChild) {
+            childApps.each {child ->
+                strInfo += "  └ ${child.label} (appOk: ${child.getAppOk()})\n"
+            }
+        }
+        strInfo += "\n • Last initiated execution:\n"
+		strInfo += lastInitiatedExecution ? "  └ name: ${lastInitiatedExecution.name}\n" : ""
+        strInfo += lastInitiatedExecution ? "  └ time: ${new Date(lastInitiatedExecution.time).format('dd MMM HH:mm:ss', tz)}\n" : ""
+        strInfo += "\n • Last completed execution:\n"
+		strInfo += lastCompletedExecution ? "  └ name: ${lastCompletedExecution.name}\n" : ""
+        strInfo += lastCompletedExecution ? "  └ time: ${new Date(lastCompletedExecution.time).format('dd MMM HH:mm:ss', tz)}\n" : ""
+        strInfo += lastCompletedExecution ? "  └ time to complete: ${lastCompletedExecution.duration}s\n" : ""
+		strInfo += "\n • Environment:\n"
+        strInfo += "  └ sunrise: ${mapSun.sunrise.format('dd MMM HH:mm:ss', tz)}\n"
+        strInfo += "  └ sunset: ${mapSun.sunset.format('dd MMM HH:mm:ss', tz)}\n"
+        strInfo += "\n • State stored values:\n"
+        strInfo += "  └ debugLevel: ${debugLevel}\n"
+        strInfo += "  └ number of stored log entries: ${numLogs}\n"
+        if (numLogs > 0) {
+            strInfo += "\n • Last ${numLogs} log messages (most recent on top):\n"
+            for (int i = 0; i < numLogs; i++) {
+                def datLog = new Date(debugLog[i].time).format('dd MMM HH:mm:ss', tz)
+                def msgLog = "${datLog} (${debugLog[i].type}):\n${debugLog[i].msg}"
+                strInfo += " ::: ${msgLog}\n"
+            }
+        }
+    return strInfo
+}
+
+
 //   ----------------------------
 //   ***   APP INSTALLATION   ***
 
 def installed() {
 	debug "installed with settings: ${settings}", "trace", 0
-	initialize()
+    state.installTime = now()
+    initialize()
 }
 
 def updated() {
     debug "updated with settings ${settings}", "trace", 0
+	//unsubscribe() nothing to unsubscribe from
+    //unschedule() nothing to unschedule
     initialize()
 }
 
 def uninstalled() {
-    state.debugLevel = 0
     debug "application uninstalled", "trace", 0
 }
 
 def initialize() {
     state.debugLevel = 0
+    def mName = "initialize()"
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: mName]
     debug "initializing", "trace", 1
+    state.initializeTime = now()
+    //subscribeToEvents() nothing to subscribe to
+    runEvery15Minutes(crashCheck) //TODO: reduce frequency of crashCheck once proven to work
     debug "there are ${childApps.size()} child smartapps:", "info"
     childApps.each {child ->
         debug "child app: ${child.label}", "info"
     }
-    debug "initialization complete", "trace", -1
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: mName, duration: elapsed]
+    debug "initialization completed in ${elapsed} seconds", "trace", -1
 }
+
+def subscribeToEvents() {
+    debug "subscribing to events", "trace", 1
+    debug "subscriptions complete", "trace", -1
+}
+
+
+//   --------------------------
+//   ***   EVENT HANDLERS   ***
+
+
+
+//   -------------------
+//   ***   METHODS   ***
+
+def crashCheck() {
+    def mName = "crashCheck()"
+    def startTime = now()
+    state.lastInitiatedExecution = [time: startTime, name: mName]
+	debug "executing ${mName}", "trace", 1
+    def numChild = childApps.size()
+    if (numChild) {
+        def appOk = false
+        def msg = ""
+        childApps.each {child ->
+            appOk = child.getAppOk()
+            debug "${child.label}: appOk=${appOk}"
+            if (!appOk) {
+            	msg = "A possible crash condition has been detected in ${child.label}."
+                debug msg, "warn"
+                sendPush(msg)
+            }
+        }
+    }
+    def elapsed = (now() - startTime)/1000
+    state.lastCompletedExecution = [time: now(), name: mName, duration: elapsed]
+    debug "${mName} completed in ${elapsed} seconds", "trace", -1
+}
+
+
+//   -------------------------
+//   ***   APP FUNCTIONS   ***
+
 
 
 //   ------------------------
@@ -292,19 +397,37 @@ def debug(message, lvl = null, shift = null, err = null) {
 		prefix = ""
 	}
 
+    def logMsg = null
     if (lvl == "info") {
     	def leftPad = (multiEnable ? ": :" : "")
         log.info "$leftPad$prefix$message", err
+        logMsg = "${message}"
 	} else if (lvl == "trace") {
     	def leftPad = (multiEnable ? "::" : "")
         log.trace "$leftPad$prefix$message", err
+        logMsg = "${message}"
 	} else if (lvl == "warn") {
     	def leftPad = (multiEnable ? "::" : "")
 		log.warn "$leftPad$prefix$message", err
+        logMsg = "${message}"
 	} else if (lvl == "error") {
     	def leftPad = (multiEnable ? "::" : "")
 		log.error "$leftPad$prefix$message", err
+        logMsg = "${message}"
 	} else {
 		log.debug "$prefix$message", err
+        logMsg = "${message}"
 	}
+    
+    if (logMsg) {
+    	def debugLog = state.debugLogInfo ?: [] //create list if it doesn't already exist
+        debugLog.add(0,[time: now(), msg: logMsg, type: lvl]) //insert log info into list slot 0, shifting other entries to the right
+        int maxLogs = settings.maxInfoLogs ?: 5
+        int listSize = debugLog.size()
+        while (listSize > maxLogs) { //delete old entries to prevent list from growing beyond set size
+            debugLog.remove(maxLogs)
+            listSize = debugLog.size()
+        }
+    	state.debugLogInfo = debugLog
+    }
 }
