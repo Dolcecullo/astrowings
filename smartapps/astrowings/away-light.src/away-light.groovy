@@ -17,7 +17,8 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
- *    v2.50 (   TODO    ) - change method for computation of schedTurnOff by using time delay instead of hard timing
+ *    v2.60 (   TODO    ) - change method for computation of schedTurnOff by using time delay instead of hard timing
+ *    v2.50 (27-Nov-2019) - add appOk to enable crash-check
  *    v2.42 (26-Nov-2019) - remove redundant random computation of offForDelay in schedTurnOn() because it's already computed and passed from turnOff()
  *                        - move schedOffDate() to be part of turnOn()
  *                        - add square brackets to enclose delay when sending delayed device commands
@@ -84,8 +85,8 @@ definition(
 //   --------------------------------
 //   ***   APP DATA  ***
 
-def		versionNum()			{ return "version 2.42" }
-def		versionDate()			{ return "26-Nov-2019" }     
+def		versionNum()			{ return "version 2.50" }
+def		versionDate()			{ return "27-Nov-2019" }     
 def		gitAppName()			{ return "away-light" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -203,8 +204,8 @@ def appInfo() {
     def mapSun = getSunriseAndSunset()
     def debugLevel = state.debugLevel
     def appOn = state.appOn
-    def switchOnTime = state.switchTime.on
-    def switchOffTime = state.switchTime.off
+    def switchOnTime = state.switchTime?.on
+    def switchOffTime = state.switchTime?.off
     def installTime = state.installTime
     def initializeTime = state.initializeTime
     def scheduled = state.scheduled?.turnOn
@@ -218,6 +219,7 @@ def appInfo() {
         strInfo += " • Application state:\n"
         strInfo += installTime ? "  └ last install date: ${new Date(installTime).format('dd MMM YYYY HH:mm', tz)}\n" : ""
         strInfo += initializeTime ? "  └ last initialize date: ${new Date(initializeTime).format('dd MMM YYYY HH:mm', tz)}\n" : ""
+        strInfo += "  └ appOk: ${appOk}\n"
         strInfo += "\n • Last scheduled jobs:\n"
         strInfo += turnOnTime ? "  └ turnOn: ${new Date(turnOnTime).format('dd MMM YYYY HH:mm', tz)}\n" : ""
         strInfo += schedTurnOnTime ? "  └ schedTurnOn: ${new Date(schedTurnOnTime).format('dd MMM YYYY HH:mm', tz)}\n" : ""
@@ -295,8 +297,7 @@ def initialize() {
 }
 
 def reinit() {
-    state.debugLevel = 0
-    debug "refreshed with settings ${settings}", "trace"
+    debug "refreshed with settings ${settings}", "trace", 0
     initialize()
 }
 
@@ -361,6 +362,7 @@ def schedTurnOn(offForDelayMS) { //determine turn-on time and schedule the turnO
         debug "calculated ON time for turning the light back on after the 'off for' delay of ${convertToHMS(offForDelayMS)} : ${onDate.format('dd MMM HH:mm:ss', tz)}", "info"
         state.scheduled.turnOn = onDate.time
         //runOnce(onDate, turnOn) ** TODO: replace permanently with runIn (below) if succesful in avoiding timeout exception errors
+        //                                 (which also entails passing on the offForDelay in seconds rather than having to convert back from ms)
         int offForDelayS = Math.floor(offForDelayMS/1000)
         runIn(offForDelayS, turnOn)
 	} else {   
@@ -492,6 +494,7 @@ def schedTurnOff(onDelayMS, offDate) { //determine turn-off time and schedule th
         	int maxDelay = 2 * 60 * 1000 //set a delay of up to 2 min to be applied when requested to turn off now
             int delayOffNow = random.nextInt(maxDelay)
             debug "the calculated turn-off time has already passed; calling for the light to turn off in ${convertToHMS(delayOffNow)}", "info"
+            state.scheduled.turnOff = now() + delayOffNow
             turnOff(delayOffNow)
         }
     } else {
@@ -583,6 +586,26 @@ def getNowDOW() { //method to obtain current weekday adjusted for local time
     return strDOW
 }
 
+def getAppOk() { //used to determine if app has crashed
+    debug "start evaluating appOk()", "debug", 1
+    def appOn = state.appOn //true = command was sent to turn light on
+	def lightOn = theLight?.currentSwitch == "on"
+    def appOnOk = appOn && lightOn || !appOn && !lightOn //check that appOn is in sync with actual switch
+	def result = appOnOk
+    debug "appOn: ${appOn} - lightOn: ${lightOn} - appOnOk: ${appOnOk}", "debug"
+	if (appOn && appOnOk) { //light is on, check if it's scheduled to turn off
+        def wantOff = onFor || userOffTime //check if light should be scheduled to turn off
+        debug "wantOff: ${wantOff}", "debug"
+        if (wantOff) {
+            def turnOffTime = state.scheduled?.turnOff //time the light is scheduled to turn off
+            def schedOffOk = turnOffTime > now() //check if light is scheduled to turn off in the future
+            debug "schedOffOk: ${schedOffOk}", "debug"
+        	result = schedOffOk
+        }
+    }
+    debug "finished evaluating appOk()", "debug", -1
+    return result
+}
 
 
 //   ------------------------
