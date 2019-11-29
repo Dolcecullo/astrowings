@@ -17,6 +17,9 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
+ *    v2.01 (29-Nov-2019) - remove crashCheck schedule because it can't detect a crash where the light would be left on
+ *                          even though appOn is false, since that would also trigger the warning when the light is
+ *                          turned on manually or by another app
  *    v2.00 (27-Nov-2019) - add appInfo do debugging options section
  *                        - add crashCheck() schedule
  *    v1.15 (26-Nov-2019) - fix state.debugLevel by moving the reset to the start of initialization method
@@ -203,7 +206,8 @@ def appInfo() {
         strInfo += " • Child apps: ${numChild}:\n"
         if (numChild) {
             childApps.each {child ->
-                strInfo += "  └ ${child.label} (appOk: ${child.getAppOk()})\n"
+                //strInfo += "  └ ${child.label} (appOk: ${child.getAppOk()})\n"
+                strInfo += "  └ ${child.label}\n"
             }
         }
         strInfo += "\n • Last initiated execution:\n"
@@ -259,7 +263,7 @@ def initialize() {
     debug "initializing", "trace", 1
     state.initializeTime = now()
     //subscribeToEvents() nothing to subscribe to
-    runEvery15Minutes(crashCheck) //TODO: reduce frequency of crashCheck once proven to work
+    //runEvery15Minutes(crashCheck) //TODO: reduce frequency of crashCheck once proven to work
     debug "there are ${childApps.size()} child smartapps:", "info"
     childApps.each {child ->
         debug "child app: ${child.label}", "info"
@@ -296,7 +300,8 @@ def crashCheck() {
             appOk = child.getAppOk()
             debug "${child.label}: appOk=${appOk}"
             if (!appOk) {
-            	msg = "A possible crash condition has been detected in ${child.label}."
+            	//TODO: check if already warned
+                msg = "A possible crash condition has been detected in the ${child.label} automation."
                 debug msg, "warn"
                 sendPush(msg)
             }
