@@ -17,6 +17,7 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
+ *    v2.30 (30-Nov-2019) - update unlockHandler() to adjust for new reporting string
  *    v2.21 (26-Nov-2019) - fix state.debugLevel by moving the reset to the start of initialization method
  *    v2.20 (18-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
  *                        - calculate method completion time before declaring complete so that time may be displayed in the completion debug line
@@ -282,9 +283,10 @@ def unlockHandler(evt) {
     def startTime = now()
     state.lastInitiatedExecution = [time: startTime, name: "unlockHandler()"]
     debug "unlockHandler event: ${evt.descriptionText}", "trace", 1
-    def unlockText = evt.descriptionText
-	debug "unlockText : $unlockText", "warn"
-    if (pushUnlock && unlockText.contains("was unlocked with code")) {
+    def unlockText = "The ${evt.device} was ${evt.descriptionText}"
+	debug unlockText, "warn"
+    //debug "unlockText : $unlockText", "warn"
+    if (pushUnlock && unlockText.contains("Unlocked")) {
     	sendPush(unlockText)
     }
     def elapsed = (now() - startTime)/1000
