@@ -17,7 +17,10 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
- *    v2.60 (29-Nov-2019) - add delay in turnOn to wait until the light actually turns on before invoking schedTurnOff in attempt to fixthe execution timeout issue
+ *    v2.70 (04-Dec-2019) - add option to leave the light on when the mode changes to home even if 'Home' is not a selected mode
+ *    v2.61 (01-Dec-2019) - add minimum delay when calling to switch the light on/off to fix the execution timeout issue (finally working!)
+ *                        - undo v2.60 (add delay in turnOn to wait until the light actually turns on before invoking schedTurnOff)
+ *    v2.60 (29-Nov-2019) - add delay in turnOn to wait until the light actually turns on before invoking schedTurnOff in attempt to fix the execution timeout issue
  *    v2.51 (28-Nov-2019) - use runOnce instead of runIn to call turnOff()
  *    v2.50 (27-Nov-2019) - add appOk to enable crash-check
  *    v2.42 (26-Nov-2019) - remove redundant random computation of offForDelay in schedTurnOn() because it's already computed and passed from turnOff()
@@ -86,8 +89,8 @@ definition(
 //   --------------------------------
 //   ***   APP DATA  ***
 
-def		versionNum()			{ return "version 2.60" }
-def		versionDate()			{ return "29-Nov-2019" }     
+def		versionNum()			{ return "version 2.70" }
+def		versionDate()			{ return "04-Dec-2019" }     
 def		gitAppName()			{ return "away-light" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -103,6 +106,7 @@ def		readmeLink()			{ return "https://github.com/${gitOwner()}/SmartThings/blob/
 	 	//name					value					description
 def		C_ON_NOW_RANDOM()		{ return 2 } 			//set the max value (integer) for the random delay to be applied when requesting to turn on now (minutes)
 def		C_OFF_NOW_RANDOM()		{ return 2 } 			//set the max value (integer) for the random delay to be applied when requesting to turn off now (minutes)
+def		C_MIN_DELAY()			{ return 200}			//set the minimum delay for when calling to switch the light immediately (a delay of 0 seems to be causing timeout exception errors)
 
 
 //   ---------------------------
@@ -157,10 +161,13 @@ def pageSchedule() {
         section("Enable only for certain days of the week? (optional - will run every day if nothing selected)") {
         	input "theDays", "enum", title: "On which days?", options: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], required: false, multiple: true
         }
-        section("Only run in selected modes (automation disabled if none selected)") {
+        section("Select activation modes (automation disabled if none selected) and time to wait (minutes) following mode change before the light automation " +
+        	"activates. You can also choose to leave the light on when the mode changes to 'Home' (i.e. if the light was turned on by this app while away, " +
+            "don't turn it off when you return home as it normally would if 'Home' is not selected as a mode of operation.") {
             input "theModes", "mode", title: "Select the mode(s)", multiple: true, required: false, submitOnChange: true
             if (theModes) {
                 input "activationDelay", "number", title: "Activation delay", required: false, defaultValue: 2, range: "0..60"
+                input "leaveOn", "bool", title: "Leave on when returning home?", required: false, defaultValue: false
             }
         }
     	section("Enable even during daytime") {
@@ -198,6 +205,7 @@ def getSchedOptionsDesc() {
     strDesc += theDays							? " • Only on selected days\n   └ ${theDays}\n" : " • Every day\n"
     strDesc += theModes							? " • While in modes:\n   └ ${theModes}\n   └ delay: ${activationDelay} minutes\n" : ""
     strDesc += daytime	 						? " • Enabled during daytime\n" : ""
+    strDesc += leaveOn	 						? " • Leave light on when mode changes to Home\n" : ""
     return theModes ? strDesc : "No modes selected; automation disabled"
 }
 
@@ -212,7 +220,6 @@ def appInfo() {
     def initializeTime = state.initializeTime
     def turnOnTime = state.scheduled?.turnOn
     def schedTurnOnTime = state.scheduled?.schedTurnOn
-    def schedTurnOffTime = state.scheduled?.schedTurnOff
     def turnOffTime = state.scheduled?.turnOff
     def lastInitiatedExecution = state.lastInitiatedExecution
     def lastCompletedExecution = state.lastCompletedExecution
@@ -227,7 +234,6 @@ def appInfo() {
         strInfo += "\n • Last scheduled jobs:\n"
         strInfo += schedTurnOnTime ? "  └ schedTurnOn: ${new Date(schedTurnOnTime).format('dd MMM YYYY HH:mm', tz)}\n" : ""
         strInfo += turnOnTime ? "  └ turnOn: ${new Date(turnOnTime).format('dd MMM YYYY HH:mm', tz)}\n" : ""
-        strInfo += schedTurnOffTime ? "  └ schedTurnOff: ${new Date(schedTurnOffTime).format('dd MMM YYYY HH:mm', tz)}\n" : ""
         strInfo += turnOffTime ? "  └ turnOff: ${new Date(turnOffTime).format('dd MMM YYYY HH:mm', tz)}\n" : ""
         strInfo += "\n • Last initiated execution:\n"
 		strInfo += lastInitiatedExecution ? "  └ name: ${lastInitiatedExecution.name}\n" : ""
@@ -287,6 +293,7 @@ def initialize() {
     def startTime = now()
     state.lastInitiatedExecution = [time: startTime, name: mName]
     debug "initializing", "trace", 1
+    unschedule()
     state.initializeTime = now()
     state.appOn = false
     state.scheduled = [turnOn: null, schedTurnOn: now(), turnOff: null, schedTurnOff: null]
@@ -332,7 +339,12 @@ def modeChangeHandler(evt) {
         state.scheduled.turnOff = null
         unschedule(turnOn)
         unschedule(turnOff)
-        terminate()
+		if (leaveOn && evt.value == "Home") {
+            debug "leaving the light on as per user settings", "debug"
+            state.appOn = false
+        } else {
+	        terminate()
+		}
     }
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: mName, duration: elapsed]
@@ -369,7 +381,7 @@ def schedTurnOn(offForDelayMS) { //determine turn-on time and schedule the turnO
         state.scheduled.turnOn = onDate.time
         //runOnce(onDate, turnOn) ** TODO: replace permanently with runIn (below) if succesful in avoiding timeout exception errors
         //                                 (which also entails passing on the offForDelay in seconds rather than having to convert back from ms)
-        int offForDelayS = Math.floor(offForDelayMS/1000)
+        int offForDelayS = (int)(offForDelayMS/1000)
         runIn(offForDelayS, turnOn)
 	} else {   
         def onDate = userOnTime ? timeToday(userOnTime, tz) : null
@@ -439,14 +451,17 @@ def turnOn(delayMS) { //check conditions and turn the light on
             debug "no random factor configured in preferences"
         }
         if (!offDate || offDate > nowDate) {    	
-            delayMS = delayMS ?: 0
+            delayMS = delayMS ?: C_MIN_DELAY()
             debug "we're good to go; turning the light on in ${convertToHMS(delayMS)}", "info"
             state.appOn = true
             state.switchTime.on = now()
+            int timerStart = now()
             theLight.on([delay: delayMS])
-            int delayS = delayMS > 5000 ? math.Floor(delayMS/1000) : 5 //wait until the light turns on before invoking schedTurnOff
-            state.scheduled.schedTurnOff = now() + (1000 * delayS)
-            runIn(delayS, schedTurnOff, [data:[onDelayMS: delayMS, offDate: offDate]])
+            int timerEnd = now()
+	        debug "it took ${(timerEnd - timerStart)} ms to execute theLight.on([delay: ${delayMS}])", "debug"
+            int delayS = delayMS ? (int)(delayMS/1000) : 5
+            def offTime = offDate ? offDate.time : null
+            schedTurnOff(delayMS, offTime)
         } else {
             debug "the light's turn-off time has already passed"
         }
@@ -472,13 +487,12 @@ def turnOn(delayMS) { //check conditions and turn the light on
     debug "${mName} completed in ${elapsed} seconds", "trace", -1
 }	
 
-def schedTurnOff(data) { //determine turn-off time and schedule the turnOff()
+def schedTurnOff(onDelayMS, offTime) { //determine turn-off time and schedule the turnOff()
     def mName = "schedTurnOff()"
     def startTime = now()
     def tz = location.timeZone
     state.lastInitiatedExecution = [time: startTime, name: mName]
-	def onDelayMS = data.onDelayMS
-    def offDate = data.offDate
+    def offDate = offTime ? new Date(offTime) : null
     debug "executing schedTurnOff(onDelayMS: ${onDelayMS}, offDate: ${offDate?.format('dd MMM HH:mm:ss', tz)})", "trace", 1
     def random = new Random()
 
@@ -498,10 +512,9 @@ def schedTurnOff(data) { //determine turn-off time and schedule the turnOff()
     
     if (offDate) {
 	    def nowTime = now()
-        def offTime = offDate.time
+        offTime = offDate.time
         if (offTime > nowTime) {
-        	debug "offTime: ${offTime} ║ nowTime: ${nowTime} ║ offTime-nowTime=${offTime - nowTime}", "debug"
-            int offDelayS = math.Floor((offTime - nowTime)/1000)
+            int offDelayS = (int)((offTime - nowTime)/1000)
             state.scheduled.turnOff = offTime
             debug "scheduling turn-off of the light to occur at ${offDate.format('dd MMM HH:mm:ss', tz)}", "info"
             runIn(offDelayS, turnOff)
@@ -527,11 +540,14 @@ def turnOff(delayMS) {
 	debug "executing turnOff(delayMS: ${delayMS})", "trace", 1
     
     if (state.appOn == true || parent.debugAppOn == true) {
-        delayMS = delayMS ?: 0
+        delayMS = delayMS ?: C_MIN_DELAY()
         debug "turning off the light in ${convertToHMS(delayMS)}", "info"
         state.appOn = false
         state.switchTime.off = now()
+        int timerStart = now()
         theLight.off([delay: delayMS])
+        int timerEnd = now()
+        debug "it took ${(timerEnd - timerStart)} ms to execute theLight.off([delay: ${delayMS}])", "debug"
         if (offFor) {
             int offForMS = offFor * 60 * 1000
             if (randomMinutes) {
@@ -567,11 +583,14 @@ def terminate() { //For each configured light that was turned on by this app, tu
         def random = new Random()
         int offNowRandom = C_OFF_NOW_RANDOM()
         int maxDelay = offNowRandom * 60 * 1000
-        int delay = random.nextInt(maxDelay)
-        debug "turning off the light in ${convertToHMS(delay)}", "info"
+        int delayMS = random.nextInt(maxDelay)
+        debug "turning off the light in ${convertToHMS(delayMS)}", "info"
         state.appOn = false
         state.switchTime.off = now()
-        theLight.off([delay: delay])
+        int timerStart = now()
+        theLight.off([delay: delayMS])
+        int timerEnd = now()
+        debug "it took ${(timerEnd - timerStart)} ms to execute theLight.off([delay: ${delayMS}])", "debug"
     }
     def elapsed = (now() - startTime)/1000
     state.lastCompletedExecution = [time: now(), name: mName, duration: elapsed]
