@@ -48,8 +48,8 @@ definition(
 //   --------------------------------
 //   ***   APP DATA  ***
 
-def		versionNum()			{ return "version 2.00" }
-def		versionDate()			{ return "27-Nov-2019" }     
+def		versionNum()			{ return "version 2.01" }
+def		versionDate()			{ return "29-Nov-2019" }     
 def		gitAppName()			{ return "away-lights" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
@@ -176,7 +176,6 @@ def pageUninstall() {
 		section() {
         	def numChilds = childApps.size()
             def isParent = numChilds > 0
-            //TODO: list installed children
             def warnChildren = "CAUTION: You are about to completely remove the SmartApp '${app.name}'; this will also uninstall the ${numChilds} currently configured automations (i.e. 'Child Apps'). This action is irreversible. If you want to proceed, tap on the 'Remove' button below."
             def warnUninstall = "There are no Child Apps currently installed; tap on the 'Remove' button below to uninstall the '${app.name}' SmartApp."
             paragraph isParent ? warnChildren : warnUninstall, required: isParent, state: null
@@ -261,9 +260,9 @@ def initialize() {
     def startTime = now()
     state.lastInitiatedExecution = [time: startTime, name: mName]
     debug "initializing", "trace", 1
+    unschedule()
     state.initializeTime = now()
     //subscribeToEvents() nothing to subscribe to
-    //runEvery15Minutes(crashCheck) //TODO: reduce frequency of crashCheck once proven to work
     debug "there are ${childApps.size()} child smartapps:", "info"
     childApps.each {child ->
         debug "child app: ${child.label}", "info"
