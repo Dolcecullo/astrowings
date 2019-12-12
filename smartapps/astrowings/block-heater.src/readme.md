@@ -1,7 +1,7 @@
 # Block Heater
 
 ### Block Heater App
-This SmartApp controls the activation of a smart outlet based on various criteria for the operation of a car engine's block heater.
+This SmartApp controls the activation of a smart outlet based on various criteria for the operation of a car engine's block heater. It provides options to restrict the outlet's operation not only to certain times, but also based on temperature, presence, hub mode, and weekday. When active, it also watches the power consumption at the outlet and switches it off when the power draw drops (i.e. when the block heater gets disconnected) so as not to leave a live extension cord hanging.
 
 ### Installation Notes
 * Not required; self-explanatory
