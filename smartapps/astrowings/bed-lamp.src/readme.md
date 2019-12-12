@@ -1,7 +1,7 @@
 # Bed Lamp
 
 ### Bed Lamp App
-This SmartApp automatically turns on selected lights after dark (or at a preset time) and turns them off when the mode changes to Night.
+This SmartApp automatically turns on selected lights after dark (or at a preset time) and turns them off when the mode changes to Night. Optionally, it can also turn the lights on for a preset amount of time in the morning when the mode changes from Night to Home (useful if you change the hub mode from your bed, with a remote for example, to turn on the bed lamp and serve as visual confirmation that the mode change was executed).
 
 ### Installation Notes
 * Coming soon...
