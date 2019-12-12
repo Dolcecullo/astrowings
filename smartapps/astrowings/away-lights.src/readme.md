@@ -4,7 +4,7 @@
 This SmartApp provides a central access point for the user to configure multiple lights to simulate presence while away by using the 'Away Light' child app.
 
 ### Away Light Child App
-The 'Away Light' SmartApp turns a light on/off simulate presence while away. It can be configured to run only when it's dark out, between certain times, or on particular days of the week. The light can be scheduled to turn on/off at preset intervals within the automation window, and the user can specify a random factor so that the light doesn't turn on/off at exactly the same time every day, making its operation seem more 'human'.
+The 'Away Light' SmartApp turns a light on/off simulate presence while away. It can be configured to run only when it's dark out, between certain times, or on particular days of the week. The light can be scheduled to turn on/off at preset intervals within the automation window, and the user can specify a random factor so that the light doesn't turn on/off at exactly the same time every day, making its operation seem more 'human'. Just set it up and let it do the work when you're away!
 
 ### Installation Notes
 * Each child instance can only support one light; add children apps to activate more lights.
