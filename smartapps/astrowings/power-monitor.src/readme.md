@@ -1,7 +1,7 @@
 # Power Monitor
 
 ### Power Monitor App
-This SmartApp sends a notification (SMS optional) to notify when power draw from the selected device exceeds the set thresholds.
+This SmartApp sends a notification (SMS optional) to notify when power draw from the selected device exceeds the set thresholds (too low or too high).
 
 ### Installation Notes
 * Not required; self-explanatory
