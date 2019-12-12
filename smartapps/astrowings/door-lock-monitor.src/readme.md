@@ -1,7 +1,7 @@
 # Door Lock Monitor
 
 ### Door Lock Monitor App
-This SmartApp sends a push notification when a lock gets unlocked (can specify during which modes), or if the door is left unlocked when the mode changes (e.g. user forgets to lock the door when leaving).
+This SmartApp sends a push notification whenever a door gets unlocked from outside (can be restricted to certain modes), or if the door is left unlocked when the mode changes (e.g. user forgets to lock the door when leaving).
 
 ### Installation Notes
 * Not required, self-explanatory
