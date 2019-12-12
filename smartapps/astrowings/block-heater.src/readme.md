@@ -1,6 +1,6 @@
-# Power Monitor
+# Block Heater
 
-### Power Monitor App
+### Block Heater App
 This SmartApp controls the activation of a smart outlet based on various criteria for the operation of a car engine's block heater.
 
 ### Installation Notes
