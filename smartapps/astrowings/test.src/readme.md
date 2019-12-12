@@ -1,4 +1,4 @@
-# Test
+# Test (my template readme)
 
 ### Test App
 This is a brief description and usage notes for the Test SmartApp.
