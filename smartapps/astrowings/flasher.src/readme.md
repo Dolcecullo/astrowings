@@ -13,10 +13,11 @@ lights to turn on with the 'Alert with lights' section of the SHM configuration 
 * See "Version History" commented section of the .groovy file
 
 ### Upcoming changes, requests, todo list
-* 
+* Try different flash method to get around having to schedule separate 15-second flash sequences (explanation below).
 
 ### Known Issues
-* None so far
+* Depending on the particular devices used to switch the lights, flash on/off times that are too short may result in erratic behaviour where the light will seem to skip one or more commands. I don't think there's any way around this and that it's just normal because of the time it takes to process the command. I personally use an on/off cycle of 1000ms/400ms which seems to work pretty well besides the occasional skip.
+* Smartapp execution is limited to 20 seconds. Because of this limitation, this app limits each flash sequence duration to remain below that threshold (approx. 15 sec to be safe), and achieves desired flash duration (e.g. 2 minutes) by scheduling successive flash cycles. Each flash sequence is spaced apart by a few seconds to make sure it doesn't get skipped, so that's why you'll observe a small pause every 15 seconds or so through the flash duration. I'll experiment with a different method of flashing the light to get around this limitation in a future release.
 
 ## About the Author
 Currently living in Alberta, Canada, I've been serving in the Canadian Air Force since 1998 and I am by no means an advanced programmer. I do however like to learn and come up with my own solutions to problems. I have absolutely no formal training/education in software development, but I like to learn new things and find ways to put them to good use. I use Excel quite a lot, both for work and personal data organization, I have some experience with MS Access, and a basic knowledge at writing VBA code to suit my needs.<br><br>
