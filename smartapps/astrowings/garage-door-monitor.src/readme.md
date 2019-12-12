@@ -1,7 +1,7 @@
 # Garage Door Monitor
 
 ### Garage Door Monitor App
-This SmartApp sends a notification (SMS optional) to notify that a door is left open when leaving the house, left open for too long (threshold set by user), or if it opens while away. I can also send reminders at a user-defined interval.
+This SmartApp sends a notification (SMS optional) to notify that a door is left open when leaving the house, left open for too long (threshold set by user), or if it opens while away.
 
 ### Installation Notes
 * Not required, self-explanatory
