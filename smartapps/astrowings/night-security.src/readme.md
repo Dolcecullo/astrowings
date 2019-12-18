@@ -1,6 +1,8 @@
 # Night Security
 
 ### Night Security App
+<b><i>18-Dec-2019: This SmartApp is no longer relevant and will no longer be maintained as it does not provide any functionality over and above what's offered by the SHM. It's being retained here as a source of coding snippets and archival purposes only.</b></i>
+
 This SmartApp sends an alert when any of the selected sensors are triggered. It sends push notifications, SMS alerts, turns lights on, and flashes lights to alert the user of an intrusion at night. Can be used to alert the user if someone (child, elderly) is attempting to leave the house.
 
 ### Installation Notes
