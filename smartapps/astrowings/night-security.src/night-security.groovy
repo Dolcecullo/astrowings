@@ -17,6 +17,8 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
+ *          (18-Dec-2019) - this SmartApp is no longer relevant and will no longer be maintained as it does
+ *                          not provide any functionality over and above what's offered by the SHM
  *    v2.11 (26-Nov-2019) - fix state.debugLevel by moving the reset to the start of initialization method
  *    v2.10 (14-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
  *                          (although currently not being displayed because appInfo not yet implemented)
