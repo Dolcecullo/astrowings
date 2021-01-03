@@ -17,6 +17,7 @@
  *   --------------------------------
  *   ***   VERSION HISTORY  ***
  *
+ *    v1.12 (03-Jan-2021) - update iconURL's broken links
  *    v1.11 (26-Nov-2019) - fix state.debugLevel by moving the reset to the start of initialization method
  *    v1.10 (18-Nov-2019) - implement feature to display latest log entries in the 'debugging tools' section
  *                        - calculate method completion time before declaring complete so that time may be displayed in the completion debug line
@@ -35,16 +36,19 @@ definition(
     author: "Phil Maynard",
     description: "Turn on/off selected lights and dim based on various conditions.",
     category: "Convenience",
-    iconUrl: "http://cdn.device-icons.smartthings.com/Lighting/light9-icn.png",
-    iconX2Url: "http://cdn.device-icons.smartthings.com/Lighting/light9-icn@2x.png",
-    iconX3Url: "http://cdn.device-icons.smartthings.com/Lighting/light9-icn@3x.png")
+    //iconUrl: "http://cdn.device-icons.smartthings.com/Lighting/light9-icn.png",
+    //iconX2Url: "http://cdn.device-icons.smartthings.com/Lighting/light9-icn@2x.png",
+    //iconX3Url: "http://cdn.device-icons.smartthings.com/Lighting/light9-icn@3x.png")
+    iconUrl: "https://s3.amazonaws.com/smartapp-icons/Convenience/smartlights.png",
+    iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/smartlights@2x.png",
+    iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/smartlights@3x.png")
 
 
 //   --------------------------------
 //   ***   APP DATA  ***
 
-def		versionNum()			{ return "version 1.11" }
-def		versionDate()			{ return "26-Nov-2019" }     
+def		versionNum()			{ return "version 1.12" }
+def		versionDate()			{ return "03-Jan-2021" }     
 def		gitAppName()			{ return "yard-lights" }
 def		gitOwner()				{ return "astrowings" }
 def		gitRepo()				{ return "SmartThings" }
